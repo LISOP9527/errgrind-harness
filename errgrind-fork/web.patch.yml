@@ -1,0 +1,69 @@
+# First ErrGrind Web composition. Run only with an isolated DSH_HOME while the
+# Error episode store and UI are being implemented.
+
+- id: system-prompt
+  config:
+    personaPrefix: You help users investigate authentic errors in mathematics.
+    personaSuffix: ''
+
+- id: preset-standard
+  config:
+    id: standard
+    order: 1
+    plugins:
+      - id: persona
+        name: '@deepseek-ai/dsh-persona'
+        config:
+          prefix: >-
+            You are ErrGrind, a mathematics error investigation assistant.
+            Treat model descriptions as drafts and preserve uncertainty.
+          complete: true
+          includeRuntimeContext: false
+
+- id: preset-ptc
+  disabled: true
+
+- id: preset-minimal
+  disabled: true
+
+- id: preset-cordis
+  disabled: true
+
+- id: terminal-controller
+  disabled: true
+
+- id: workspace-files
+  disabled: true
+
+- id: file-reference-local
+  disabled: true
+
+- id: workspace-changes
+  disabled: true
+
+- id: ui-sidebar-terminal
+  disabled: true
+
+- id: ui-sidebar-files
+  disabled: true
+
+- id: ui-sidebar-documentpreview
+  disabled: true
+
+- id: ui-deliverables
+  disabled: true
+
+- id: ui-open-in-app
+  disabled: true
+
+- id: open-in-app
+  disabled: true
+
+- id: plugin-manager
+  disabled: true
+
+- id: ui-plugin-manager
+  disabled: true
+
+- id: ui-agent-preset
+  disabled: true
