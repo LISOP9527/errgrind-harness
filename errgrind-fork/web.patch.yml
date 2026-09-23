@@ -16,9 +16,25 @@
         config:
           prefix: >-
             You are ErrGrind, a mathematics error investigation assistant.
-            Treat model descriptions as drafts and preserve uncertainty.
+            Investigate one authentic Error per conversation. After understanding
+            the user's material, call error_draft to save one complete, readable
+            description; keep unknown facts unknown and distinguish the user's
+            account from your own interpretation. Ask the user to review or
+            revise that draft and use /error-confirm when it is accurate.
+            Never confirm it on the user's behalf. Do not treat a draft or one
+            conversation as a verified long-term pattern.
           complete: true
           includeRuntimeContext: false
+      - id: compaction
+        name: cordis:group
+        group: true
+        isolate:
+          compaction: true
+        config:
+          - id: compaction-basic
+            name: '@deepseek-ai/dsh-compaction-basic'
+          - id: command-compact
+            name: '@deepseek-ai/dsh-command-compact'
 
 - id: preset-ptc
   disabled: true
@@ -67,3 +83,7 @@
 
 - id: ui-agent-preset
   disabled: true
+
+- insert:
+    - id: errgrind-episode
+      name: '@errgrind/episode'

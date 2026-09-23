@@ -1,6 +1,6 @@
 # Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write errgrind-fork/README.md
-README.md: 278641b10f7d01cc3a533b8e065a5838aee4568a
-README.zh.md: f5881aea09c0153d64e102cf30d9f581d5095800
+#   pnpm run verify-translation-pairing --write packages/core/errgrind-episode/README.md
+README.md: 678f1e336a0f703df3cfa2ac726609a853cfee7f
+README.zh.md: 273301c2d22b5d6bdf37cf032028343b38b082f5
