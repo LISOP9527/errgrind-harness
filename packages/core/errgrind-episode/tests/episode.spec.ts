@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { applyEpisodeEvent } from '../src/index.ts'
 import type { DiagnosticProbe } from '../src/types.ts'
 
@@ -154,9 +155,22 @@ describe('Error episode event rules', () => {
       ],
       turn: 1,
     }))
+
+    const firstAnswerEvent = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'I subtracted 3.' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyEpisodeEvent(state, firstAnswerEvent)
     expect(state?.diagnosis.currentProbeId).toBe('P1')
     expect(state?.diagnosis.hypotheses).toHaveLength(2)
     expect(state?.diagnosis.probes).toHaveLength(1)
+
+    const secondAnswerEvent = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'I did 2+3=5.' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyEpisodeEvent(state, secondAnswerEvent)
+    expect(state?.evidenceSources.map(source => source.sourceRef)).toEqual([
+      `user-event:${firstAnswerEvent.seq}`, `user-event:${secondAnswerEvent.seq}`,
+    ])
 
     // Duplicate hypothesis ID
     expect(() => applyEpisodeEvent(state, session.append('errgrind/grill-probe', {
@@ -273,7 +287,7 @@ describe('Error episode event rules', () => {
       hypothesisStatusUpdates: [{ id: 'H2', status: 'weakened' }],
       newEvidence: [{
         id: 'E1',
-        sourceRef: 'turn:1:user',
+        sourceRef: `user-event:${secondAnswerEvent.seq}`,
         quote: 'I did 2+3=5',
         interpretation: 'User explicitly confirmed addition',
         supports: ['H1'],
@@ -346,6 +360,16 @@ describe('Error episode event rules', () => {
     }))
     expect(state?.confirmedRevision).toBe(1)
 
+    const conclusionAnswerEvent = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'I subtracted 3.' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyEpisodeEvent(state, conclusionAnswerEvent)
+
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/grill-conclude', {
+      diagnosisStatus: 'supported', summary: 'Unsupported model claim', bestHypothesisId: 'H1',
+      hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }], turn: 2,
+    }))).toThrow('grounded in a user')
+
     // Conclude validation: invalid status
     expect(() => applyEpisodeEvent(state, session.append('errgrind/grill-conclude', {
       diagnosisStatus: 'invalid' as never,
@@ -408,6 +432,11 @@ describe('Error episode event rules', () => {
       summary: 'Confirmed subtraction operator confusion on linear coefficient.',
       bestHypothesisId: 'H1',
       hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+      newEvidence: [{
+        id: 'E1', sourceRef: `user-event:${conclusionAnswerEvent.seq}`, quote: 'I subtracted 3',
+        interpretation: 'User reports subtracting the coefficient',
+        supports: ['H1'], contradicts: [], probeId: 'P1',
+      }],
       whatWouldChangeJudgment: 'Evidence showing user intended division',
       turn: 2,
     }))
@@ -440,6 +469,16 @@ describe('Error episode event rules', () => {
     expect(state?.draft?.revision).toBe(2)
     expect(state?.confirmedRevision).toBeNull()
     expect(state?.diagnosis.stale).toBe(true) // Stale because anchor changed!
+
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/grill-probe', {
+      probe: {
+        id: 'P1', type: 'reasoning_question', question: 'Question after correction',
+        targetHypothesisIds: ['H1'], discriminationGoal: 'Recheck',
+        predictions: [{ hypothesisId: 'H1', expectedObservation: 'Observation' }],
+      },
+      newHypotheses: [{ id: 'H1', claim: 'Revised mechanism', status: 'plausible' }],
+      turn: 3,
+    }))).toThrow('Confirm the corrected Error description')
 
     // Concluding when not open throws
     expect(() => applyEpisodeEvent(null, session.append('errgrind/grill-conclude', {
@@ -488,6 +527,16 @@ describe('Error episode event rules', () => {
     expect(state?.firstInputHasImage).toBe(true)
     expect(state?.provenance.kind).toBe('direct_user')
 
+    const notUser = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'Host relay' }], source: { kind: 'agent-message' } as never,
+    }), { surfaceOp: 'append' })
+    expect(applyEpisodeEvent(null, notUser)).toBeNull()
+    expect(applyEpisodeEvent(state, notUser)).toBe(state)
+    const beforeProbe = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'No question is pending' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    expect(applyEpisodeEvent(state, beforeProbe)).toBe(state)
+
     // grill-probe with hypothesis
     state = applyEpisodeEvent(state, session.append('errgrind/grill-probe', {
       probe: {
@@ -504,5 +553,9 @@ describe('Error episode event rules', () => {
       turn: 1,
     }))
     expect(state?.diagnosis.hypotheses.find(h => h.id === 'H1')?.status).toBe('plausible')
+    const emptyAnswer = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: '' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    expect(applyEpisodeEvent(state, emptyAnswer)).toBe(state)
   })
 })

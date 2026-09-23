@@ -8,10 +8,17 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import { agentEvents, type Agent } from '@deepseek-ai/dsh-agent'
-import { AttachmentId, type FileAttachmentRef, type ImageAttachmentRef, type ImageMediaType } from '@deepseek-ai/dsh-attachment'
+import {
+  AttachmentId,
+  type FileAttachmentRef,
+  type ImageAttachmentLimits,
+  type ImageAttachmentRef,
+  type ImageMediaType,
+} from '@deepseek-ai/dsh-attachment'
+import LocalAttachmentStore from '@deepseek-ai/dsh-attachment-local'
 import CommandRuntime from '@deepseek-ai/dsh-commands'
 import { createUserMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
-import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { Session, SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
@@ -28,8 +35,23 @@ afterEach(async () => {
 })
 
 class MockAttachmentStore extends Service {
+  readonly imageLimits: ImageAttachmentLimits = {
+    maxImagesPerMessage: 20,
+    maxMessageImageBytes: 1_000_000,
+    maxImageBytes: 100_000,
+    maxImagePixels: 1_000_000,
+    maxImageDimension: 10_000,
+    mediaTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/gif'],
+  }
   savedFiles: { data: Uint8Array; name?: string }[] = []
   shouldFailSaveFile = false
+  shouldFailValidation = false
+
+  validateImage(): Promise<void> {
+    return this.shouldFailValidation
+      ? Promise.reject(new Error('Invalid image batch'))
+      : Promise.resolve()
+  }
 
   constructor(ctx: Context) {
     super(ctx, 'attachments')
@@ -49,9 +71,8 @@ class MockAttachmentStore extends Service {
   }
 
   saveImage(input: { data: Uint8Array; name?: string; mediaType: ImageMediaType }): Promise<ImageAttachmentRef> {
-    const sha = createHash('sha256').update(input.data).digest('hex')
     return Promise.resolve({
-      attachmentId: AttachmentId(`sha256:${sha}`),
+      attachmentId: AttachmentId(`sha256:${'a'.repeat(64)}`),
       mediaType: input.mediaType,
       bytes: input.data.byteLength,
       width: 100,
@@ -69,6 +90,48 @@ class MockAttachmentStore extends Service {
 }
 
 describe('ErrGrind episode real Loader composition', () => {
+  it('keeps original image bytes readable after prompt admission and a cold store reopen', async () => {
+    root = await mkdtemp(join(tmpdir(), 'errgrind-image-original-'))
+    const ctx = context = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SystemPrompt)
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(CommandRuntime)
+    await ctx.plugin(LocalAttachmentStore, { dshHome: root })
+    episodePlugin.apply(ctx)
+
+    const source = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADElEQVQImWNgZGIGAAAOAAeCcsnOAAAAAElFTkSuQmCC',
+      'base64',
+    )
+    const admitted = await ctx.attachments.admitPromptContent([
+      { type: 'text', text: '我把分母约掉后得到了错误答案。' },
+      { type: 'image', data: source.toString('base64'), mediaType: 'image/png', name: 'scratch.png' },
+    ])
+    const image = admitted.find(part => part.type === 'image')
+    if (image?.type !== 'image') throw new Error('image admission did not return a reference')
+    expect(image.attachment.errgrindOriginal?.sha256).toBe(createHash('sha256').update(source).digest('hex'))
+
+    const session = ctx.sessions.create(SessionId('original-image'))
+    const agent = { id: session.id, ctx, session, status: 'idle', options: {}, reserveTurnAdmission: () => () => undefined } as unknown as Agent
+    const message = createUserMessage({ content: admitted, source: { kind: 'user' } })
+    const decision = await agentEvents(ctx, agent).waterfall('agent/pre-step', {
+      messages: [message], turn: 1, step: 1, signal: new AbortController().signal,
+    }, () => Promise.resolve({ kind: 'enter' as const, messages: [message] }))
+    expect(decision.kind).toBe('enter')
+
+    const persisted = JSON.parse(JSON.stringify(session.snapshotEvents())) as ReturnType<Session['snapshotEvents']>
+    const opened = persisted.find(event => event.type === 'errgrind/error-open')
+    if (opened?.type !== 'errgrind/error-open') throw new Error('original image was not committed to the session')
+    const original = opened.data.attachments?.[0]?.originalFileRef
+    if (original === undefined) throw new Error('the committed Error has no original-file receipt')
+    const coldStore = new LocalAttachmentStore(new Context(), { dshHome: root })
+    const chunks: Uint8Array[] = []
+    for await (const chunk of coldStore.readFileStream(original)) chunks.push(chunk)
+    expect(Buffer.concat(chunks)).toEqual(source)
+  })
+
   it('saves direct input, supports Grill investigation, and enforces human confirmation', async () => {
     root = await mkdtemp(join(tmpdir(), 'errgrind-episode-loader-'))
     const configPath = join(root, 'cordis.yml')
@@ -117,6 +180,10 @@ describe('ErrGrind episode real Loader composition', () => {
     expect(ctx.tools.schemas(agent).map(t => t.name)).toContain('error_draft')
     expect(ctx.tools.schemas(agent).map(t => t.name)).toContain('grill_probe')
     expect(ctx.tools.schemas(agent).map(t => t.name)).toContain('grill_conclude')
+    expect(ctx.tools.schemas(agent).find(tool => tool.name === 'grill_probe')?.description).toBe(
+      'Pose a discriminative diagnostic question or variant problem during Grill to differentiate candidate error hypotheses. '
+      + 'Internal predictions and answer keys are diagnostic metadata; ask only the question in user-visible prose.',
+    )
 
     // Initial status check when no episode is open
     const initialStatus = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
@@ -148,17 +215,38 @@ describe('ErrGrind episode real Loader composition', () => {
 
     // Fallback coverage when saveFile rejects (with and without name)
     mockAttachments.shouldFailSaveFile = true
-    await ctx.attachments.saveImage({ data: new Uint8Array([9, 9]), mediaType: 'image/jpeg', name: 'fail.jpg' })
-    await ctx.attachments.saveImage({ data: new Uint8Array([9, 9]), mediaType: 'image/jpeg' })
-    await ctx.attachments.saveImages([
+    await expect(ctx.attachments.saveImage({ data: new Uint8Array([9, 9]), mediaType: 'image/jpeg', name: 'fail.jpg' })).rejects.toThrow('saveFile')
+    await expect(ctx.attachments.saveImage({ data: new Uint8Array([9, 9]), mediaType: 'image/jpeg' })).rejects.toThrow('saveFile')
+    await expect(ctx.attachments.saveImages([
       { data: new Uint8Array([8, 8]), mediaType: 'image/jpeg', name: 'fail2.jpg' },
       { data: new Uint8Array([8, 8]), mediaType: 'image/jpeg' },
-    ])
+    ])).rejects.toThrow('saveFile')
     mockAttachments.shouldFailSaveFile = false
+
+    const savedBeforeInvalidBatch = mockAttachments.savedFiles.length
+    mockAttachments.shouldFailValidation = true
+    await expect(ctx.attachments.saveImages([
+      { data: new Uint8Array([5, 5]), mediaType: 'image/png' },
+    ])).rejects.toThrow('Invalid image batch')
+    expect(mockAttachments.savedFiles).toHaveLength(savedBeforeInvalidBatch)
+    await expect(ctx.attachments.saveImage({ data: new Uint8Array([6]), mediaType: 'image/png' })).rejects.toThrow('Invalid image batch')
+    expect(mockAttachments.savedFiles).toHaveLength(savedBeforeInvalidBatch)
+    mockAttachments.shouldFailValidation = false
+
+    await expect(ctx.attachments.saveImages(Array.from({ length: 21 }, () => ({
+      data: new Uint8Array([1]), mediaType: 'image/png' as const,
+    })))).rejects.toThrow('image-count limit')
+    await expect(ctx.attachments.saveImages([{
+      data: new Uint8Array(1_000_001), mediaType: 'image/png',
+    }])).rejects.toThrow('aggregate image-byte limit')
+    await expect(ctx.attachments.saveImages([{
+      data: new Uint8Array([1]), mediaType: 'image/svg+xml' as never,
+    }])).rejects.toThrow('not accepted')
+    expect(mockAttachments.savedFiles).toHaveLength(savedBeforeInvalidBatch)
 
     // Edge case: saveImages returns fewer image refs than inputs
     mockAttachments.saveImagesReturnsEmpty = true
-    await ctx.attachments.saveImages([{ data: new Uint8Array([1]), mediaType: 'image/png' }])
+    await expect(ctx.attachments.saveImages([{ data: new Uint8Array([1]), mediaType: 'image/png' }])).rejects.toThrow('incomplete image batch')
     mockAttachments.saveImagesReturnsEmpty = false
 
     // Pre-step edge case: non-enter decision
@@ -200,6 +288,7 @@ describe('ErrGrind episode real Loader composition', () => {
       content: [
         { type: 'text', text: '原题与我当时的解法：我把两个不等比值当成相等。' },
         { type: 'image', attachment: singleImageRef },
+        ...batchImages.map(attachment => ({ type: 'image' as const, attachment })),
         { type: 'file', attachment: fileRef },
       ],
       source: { kind: 'user', rpcId: 'rpc-prompt-1', clientTimeZone: 'Asia/Shanghai' },
@@ -232,17 +321,15 @@ describe('ErrGrind episode real Loader composition', () => {
       }],
       source: { kind: 'user' },
     })
-    await agentEvents(ctx, unmappedAgent).waterfall('agent/pre-step', {
+    await expect(agentEvents(ctx, unmappedAgent).waterfall('agent/pre-step', {
       messages: [unmappedImageMsg], turn: 1, step: 1, signal: new AbortController().signal,
-    }, () => Promise.resolve({ kind: 'enter' as const, messages: [unmappedImageMsg] }))
+    }, () => Promise.resolve({ kind: 'enter' as const, messages: [unmappedImageMsg] }))).rejects.toThrow('durable original-file receipt')
     const unmappedEp = ctx.sessionProjections.stateOf(unmappedSession, 'errgrindEpisode')
-    expect(unmappedEp?.attachments[0]?.sha256).toBe('unknown1234567890abcdef1234567890abcdef')
-    expect(unmappedEp?.attachments[0]?.name).toBeUndefined()
-    expect(unmappedEp?.attachments[0]?.originalFileRef).toBeUndefined()
+    expect(unmappedEp).toBeNull()
 
     // Test /error-status when attachment has no name
     const unmappedStatus = await ctx.commands.execute(unmappedAgent, '/error-status', [], new AbortController().signal)
-    expect(unmappedStatus?.result.text).toContain('image: unknown1...')
+    expect(unmappedStatus?.result.text).toContain('尚未记录 Error 输入')
 
     // Test /error-confirm when draft is null
     const unmappedConfirm = await ctx.commands.execute(unmappedAgent, '/error-confirm', [], new AbortController().signal)
@@ -257,9 +344,51 @@ describe('ErrGrind episode real Loader composition', () => {
       draft: null,
       confirmedRevision: null,
     })
-    expect(episode?.attachments).toHaveLength(2)
+    expect(episode?.attachments).toHaveLength(4)
     expect(episode?.attachments[0]?.name).toBe('math-scratch.png')
-    expect(episode?.attachments[1]?.name).toBe('notes.txt')
+    expect(episode?.attachments[1]?.name).toBe('extra.png')
+    expect(episode?.attachments[2]?.name).toBeUndefined()
+    expect(episode?.attachments[3]?.name).toBe('notes.txt')
+    expect(episode?.attachments[0]?.sha256).toBe(createHash('sha256').update(rawImageBytes).digest('hex'))
+    expect(episode?.attachments[0]?.bytes).toBe(rawImageBytes.byteLength)
+    expect(episode?.attachments[0]?.originalFileRef).toEqual({
+      attachmentId: AttachmentId(`sha256:${createHash('sha256').update(rawImageBytes).digest('hex')}`),
+      name: 'math-scratch.png',
+      bytes: rawImageBytes.byteLength,
+    })
+    expect(episode?.attachments[1]?.sha256).toBe(createHash('sha256').update(new Uint8Array([1, 2, 3])).digest('hex'))
+    expect(episode?.attachments[2]?.sha256).toBe(createHash('sha256').update(new Uint8Array([4, 5, 6])).digest('hex'))
+
+    if (episode === null) throw new Error('expected the Error episode projection')
+    const legacyEpisode = {
+      firstInput: episode.firstInput,
+      firstInputHasImage: episode.firstInputHasImage,
+      firstInputTurn: episode.firstInputTurn,
+      latestTurn: episode.latestTurn,
+      provenance: episode.provenance,
+      attachments: episode.attachments,
+      draft: episode.draft,
+      confirmedRevision: episode.confirmedRevision,
+      diagnosis: episode.diagnosis,
+    }
+    const legacyCheckpoint = {
+      errgrindEpisode: {
+        ver: 1,
+        seq: SessionSeq(session.snapshotEvents().at(-1)?.seq ?? 0),
+        val: legacyEpisode,
+      },
+    }
+    const restored = ctx.sessionProjections.restore(
+      legacyCheckpoint,
+      session.snapshotEvents(),
+      SessionLogOffset(0),
+      session.header,
+      session.inheritedEventCount,
+    )
+    expect(restored.checkpoint.errgrindEpisode).toMatchObject({
+      ver: 3,
+      val: { evidenceSources: [], diagnosisHistory: [], diagnosisRound: 1 },
+    })
 
     // Check /error-status with open episode and no draft
     const statusNoDraft = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
@@ -352,6 +481,43 @@ describe('ErrGrind episode real Loader composition', () => {
 
     // Append turn/start event so subsequent probe/conclude exercises turn extraction with actual turn number
     session.append('turn/start', { turn: 2 })
+    const answerEvent = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: '我直接把分母去掉了，后面的1没动。' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+
+    const missingQuote = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('probe-missing-quote'), agent,
+      arguments: {
+        probe: {
+          id: 'P9', type: 'reasoning_question', question: 'What did you do?',
+          targetHypothesisIds: ['H1'], discriminationGoal: 'Check source',
+          predictions: [{ hypothesisId: 'H1', expectedObservation: 'Explains omitted term' }],
+        },
+        newEvidence: [{
+          id: 'E9', sourceRef: `user-event:${answerEvent.seq}`,
+          interpretation: 'Missing exact quote', supports: ['H1'], contradicts: [], probeId: 'P1',
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(missingQuote.isError).toBe(true)
+    const missingProbeRef = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('probe-missing-id'), agent,
+      arguments: {
+        probe: {
+          id: 'P9', type: 'reasoning_question', question: 'What did you do?',
+          targetHypothesisIds: ['H1'], discriminationGoal: 'Check source',
+          predictions: [{ hypothesisId: 'H1', expectedObservation: 'Explains omitted term' }],
+        },
+        newEvidence: [{
+          id: 'E9', sourceRef: `user-event:${answerEvent.seq}`, quote: '我直接把分母去掉了',
+          interpretation: 'Missing probe reference', supports: ['H1'], contradicts: [],
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(missingProbeRef.isError).toBe(true)
 
     // Model poses Grill probe P2 with preservedMechanism, surfaceChange, hypothesisStatusUpdates, and newEvidence
     const probe2Call = await ctx.tools.execute({
@@ -371,8 +537,8 @@ describe('ErrGrind episode real Loader composition', () => {
         newEvidence: [
           {
             id: 'E1',
-            sourceRef: 'turn:1',
-            quote: '直接移项减去了',
+            sourceRef: `user-event:${answerEvent.seq}`,
+            quote: '我直接把分母去掉了',
             interpretation: '用户混淆除法与减法',
             supports: ['H1'],
             contradicts: ['H2'],
@@ -380,10 +546,12 @@ describe('ErrGrind episode real Loader composition', () => {
           },
           {
             id: 'E2',
-            sourceRef: 'turn:1',
+            sourceRef: `user-event:${answerEvent.seq}`,
+            quote: '我直接把分母去掉了',
             interpretation: '草稿纸记录',
             supports: ['H1'],
             contradicts: [],
+            probeId: 'P1',
           },
         ],
       },
@@ -403,6 +571,79 @@ describe('ErrGrind episode real Loader composition', () => {
     // Confirming again returns already confirmed message
     const confirmDuplicate = await ctx.commands.execute(agent, '/error-confirm', [], new AbortController().signal)
     expect(confirmDuplicate?.result.text).toContain('已经确认')
+
+    const fabricatedEvidence = await ctx.tools.execute({
+      name: 'grill_conclude', callId: ToolCallId('conclude-fabricated'), agent,
+      arguments: {
+        diagnosisStatus: 'supported', summary: 'Model asserted a diagnosis without a user answer.',
+        bestHypothesisId: 'H1',
+        hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+        newEvidence: [{
+          id: 'E_FAKE', sourceRef: 'turn:999:user', quote: 'the user agreed',
+          interpretation: 'fabricated', supports: ['H1'], contradicts: [], probeId: 'P1',
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(fabricatedEvidence.isError).toBe(true)
+
+    for (const [callId, argumentsValue] of [
+      ['missing-best', { diagnosisStatus: 'supported', summary: 'Missing best' }],
+      ['unsupported-best', { diagnosisStatus: 'supported', summary: 'Unproven best', bestHypothesisId: 'H2' }],
+      ['no-answer', {
+        diagnosisStatus: 'supported', summary: 'No evidence for H2', bestHypothesisId: 'H2',
+        hypothesisStatusUpdates: [{ id: 'H2', status: 'supported' }],
+      }],
+      ['missing-uncertainty', { diagnosisStatus: 'undetermined', summary: 'Still uncertain' }],
+    ] as const) {
+      const invalidConclusion = await ctx.tools.execute({
+        name: 'grill_conclude', callId: ToolCallId(callId), agent,
+        arguments: argumentsValue, signal: new AbortController().signal,
+      })
+      expect(invalidConclusion.isError).toBe(true)
+    }
+
+    const wrongQuote = await ctx.tools.execute({
+      name: 'grill_conclude', callId: ToolCallId('wrong-quote'), agent,
+      arguments: {
+        diagnosisStatus: 'supported', summary: 'Quote is fabricated', bestHypothesisId: 'H1',
+        hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+        newEvidence: [{
+          id: 'E9', sourceRef: `user-event:${answerEvent.seq}`, quote: '我做了另一件事',
+          interpretation: 'Invented answer', supports: ['H1'], contradicts: [], probeId: 'P1',
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(wrongQuote.isError).toBe(true)
+
+    const missingConclusionQuote = await ctx.tools.execute({
+      name: 'grill_conclude', callId: ToolCallId('missing-conclusion-quote'), agent,
+      arguments: {
+        diagnosisStatus: 'supported', summary: 'Quote is missing', bestHypothesisId: 'H1',
+        hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+        newEvidence: [{
+          id: 'E9', sourceRef: `user-event:${answerEvent.seq}`,
+          interpretation: 'Missing quote', supports: ['H1'], contradicts: [], probeId: 'P1',
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(missingConclusionQuote.isError).toBe(true)
+
+    const missingConclusionProbe = await ctx.tools.execute({
+      name: 'grill_conclude', callId: ToolCallId('missing-conclusion-probe'), agent,
+      arguments: {
+        diagnosisStatus: 'supported', summary: 'Probe reference is missing', bestHypothesisId: 'H1',
+        hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+        newEvidence: [{
+          id: 'E9', sourceRef: `user-event:${answerEvent.seq}`, quote: '我直接把分母去掉了',
+          interpretation: 'Missing probe', supports: ['H1'], contradicts: [],
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(missingConclusionProbe.isError).toBe(true)
 
     // Conclude diagnosis with supported finding and whatWouldChangeJudgment
     const concludeTool = ctx.tools.get('grill_conclude', agent)
@@ -428,8 +669,8 @@ describe('ErrGrind episode real Loader composition', () => {
         newEvidence: [
           {
             id: 'E3',
-            sourceRef: 'turn:2:user',
-            quote: '我直接把分母去掉了，后面的1没动',
+            sourceRef: `user-event:${answerEvent.seq}`,
+            quote: '我直接把分母去掉了，后面的1没动。',
             interpretation: '用户亲口确认常数项未乘公分母',
             supports: ['H1'],
             contradicts: ['H2'],
@@ -437,10 +678,12 @@ describe('ErrGrind episode real Loader composition', () => {
           },
           {
             id: 'E4',
-            sourceRef: 'turn:2:user',
+            sourceRef: `user-event:${answerEvent.seq}`,
+            quote: '后面的1没动',
             interpretation: '补充观察',
             supports: ['H1'],
             contradicts: [],
+            probeId: 'P1',
           },
         ],
       },
@@ -467,6 +710,19 @@ describe('ErrGrind episode real Loader composition', () => {
 
     const stateStale = ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
     expect(stateStale?.diagnosis.stale).toBe(true)
+    const earlyReprobe = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('reprobe-before-confirm'), agent,
+      arguments: {
+        probe: {
+          id: 'P1', type: 'reasoning_question', question: 'What happened?',
+          targetHypothesisIds: ['H1'], discriminationGoal: 'Recheck',
+          predictions: [{ hypothesisId: 'H1', expectedObservation: 'Answer' }],
+        },
+        newHypotheses: [{ id: 'H1', claim: 'Revised mechanism' }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(earlyReprobe.isError).toBe(true)
     const statusStale = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
     expect(statusStale?.result.text).toContain('待复核')
 
@@ -474,10 +730,60 @@ describe('ErrGrind episode real Loader composition', () => {
     await ctx.commands.execute(agent, '/error-confirm', [], new AbortController().signal)
     expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.confirmedRevision).toBe(2)
 
+    const reprobe = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('reprobe-1'), agent,
+      arguments: {
+        probe: {
+          id: 'P1', type: 'reasoning_question', question: '乘负数时，不等号的方向如何处理？',
+          targetHypothesisIds: ['H1'], discriminationGoal: '复核不等号方向处理',
+          predictions: [{ hypothesisId: 'H1', expectedObservation: '没有翻转方向' }],
+        },
+        newHypotheses: [{ id: 'H1', claim: '乘负数后忘记翻转不等号方向' }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(reprobe.isError).toBe(false)
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosisHistory).toHaveLength(1)
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.currentProbeId).toBe('P1')
+
     // Cold session replay verifies full deterministic recovery
     const replayed = Session.create(SessionId('replayed-math-error'), session.snapshotEvents())
     expect(ctx.sessionProjections.stateOf(replayed, 'errgrindEpisode')?.draft?.revision).toBe(2)
-    expect(ctx.sessionProjections.stateOf(replayed, 'errgrindEpisode')?.diagnosis.status).toBe('supported')
+    expect(ctx.sessionProjections.stateOf(replayed, 'errgrindEpisode')?.diagnosis.status).toBe('active')
+    expect(ctx.sessionProjections.stateOf(replayed, 'errgrindEpisode')?.diagnosisHistory).toHaveLength(1)
+
+    const reusedOldAnswer = await ctx.tools.execute({
+      name: 'grill_conclude', callId: ToolCallId('reprobe-old-answer'), agent,
+      arguments: {
+        diagnosisStatus: 'supported', summary: '旧回答不能证明更正后的新机制', bestHypothesisId: 'H1',
+        hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+        newEvidence: [{
+          id: 'E1', sourceRef: `user-event:${answerEvent.seq}`, quote: '我直接把分母去掉了',
+          interpretation: '旧轮次回答', supports: ['H1'], contradicts: [], probeId: 'P1',
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(reusedOldAnswer.isError).toBe(true)
+
+    const newAnswerEvent = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: '这次我把不等式两边同时乘了负数，却忘记翻转方向。' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    const newConclusion = await ctx.tools.execute({
+      name: 'grill_conclude', callId: ToolCallId('reprobe-new-answer'), agent,
+      arguments: {
+        diagnosisStatus: 'supported', summary: '更正后确认不等号方向处理错误', bestHypothesisId: 'H1',
+        hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+        newEvidence: [{
+          id: 'E1', sourceRef: `user-event:${newAnswerEvent.seq}`, quote: '忘记翻转方向',
+          interpretation: '本轮用户回答', supports: ['H1'], contradicts: [], probeId: 'P1',
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(newConclusion.isError).toBe(false)
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosisRound).toBe(2)
 
     // Test relay input on a second session
     const second = ctx.sessions.create(SessionId('relay-session'))

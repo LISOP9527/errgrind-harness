@@ -1,8 +1,8 @@
 /** Session-backed authentic Error intake, draft revisions, human confirmation, and Grill diagnosis. */
 
-import { createHash } from 'node:crypto'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import type { Context } from '@deepseek-ai/cordis'
-import type { FileAttachmentRef, SaveImageAttachment } from '@deepseek-ai/dsh-attachment'
+import type { SaveImageAttachment } from '@deepseek-ai/dsh-attachment'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-session-projection'
 import { z as zod } from 'zod'
@@ -104,12 +104,21 @@ const episodeSchema: ZodType<ErrorEpisode | null> = zod.union([
     attachments: zod.array(attachmentSchema),
     draft: zod.object({ revision: zod.number().int().positive(), text: zod.string().min(1) }).nullable(),
     confirmedRevision: zod.number().int().positive().nullable(),
+    diagnosisRound: zod.number().int().positive(),
+    diagnosisHistory: zod.array(diagnosticLedgerSchema),
+    evidenceSources: zod.array(zod.object({
+      sourceRef: zod.string(), text: zod.string(), probeId: zod.string().nullable(),
+      diagnosisRound: zod.number().int().positive(),
+    }).strict()),
     diagnosis: diagnosticLedgerSchema,
   }).strict(),
   zod.null(),
 ])
 
-/** Initial clean audit ledger for one episode diagnosis. */
+/**
+ * Create the empty diagnostic ledger for one Error investigation.
+ * @returns A new active ledger without hypotheses, probes, or evidence.
+ */
 export function initialDiagnosticLedger(): DiagnosticLedger {
   return {
     status: 'active',
@@ -125,10 +134,6 @@ export function initialDiagnosticLedger(): DiagnosticLedger {
     anchoredRevision: null,
     stale: false,
   }
-}
-
-function digestBytes(data: Uint8Array): string {
-  return createHash('sha256').update(data).digest('hex')
 }
 
 function mergeHypotheses(
@@ -172,6 +177,8 @@ function mergeEvidence(
   newEvidence: readonly DiagnosticEvidence[] | undefined,
   hypotheses: readonly Hypothesis[],
   probes: readonly DiagnosticProbe[],
+  sources: ErrorEpisode['evidenceSources'],
+  diagnosisRound: number,
 ): DiagnosticEvidence[] {
   const ids = new Set(current.map(e => e.id))
   const hypIds = new Set(hypotheses.map(h => h.id))
@@ -200,6 +207,14 @@ function mergeEvidence(
       }
       for (const hId of e.contradicts) {
         if (!hypIds.has(hId)) throw new Error(`Evidence ${e.id} contradicts unknown hypothesis ${hId}`)
+      }
+      const source = sources.find(item => item.sourceRef === e.sourceRef)
+      if (source === undefined || source.diagnosisRound !== diagnosisRound
+        || source.probeId === null || source.probeId !== e.probeId) {
+        throw new Error(`Evidence ${e.id} must reference an actual user answer to its probe`)
+      }
+      if (e.quote === undefined || e.quote.trim().length === 0 || !source.text.includes(e.quote)) {
+        throw new Error(`Evidence ${e.id} quote must match the referenced user answer`)
       }
       ids.add(e.id)
       result.push(e)
@@ -242,7 +257,12 @@ function validateProbe(probe: DiagnosticProbe, probes: readonly DiagnosticProbe[
   }
 }
 
-/** Fold only ErrGrind-owned events; unrelated chat preserves the same state reference. */
+/**
+ * Fold Error events and user answers into one durable episode projection.
+ * @param state - Episode state before this committed Session event.
+ * @param event - Event to fold, including user answers used as evidence sources.
+ * @returns Updated episode, or the same state for an unrelated event.
+ */
 export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEvent): ErrorEpisode | null {
   switch (event.type) {
     case 'errgrind/error-open': {
@@ -261,6 +281,9 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         attachments,
         draft: null,
         confirmedRevision: null,
+        diagnosisRound: 1,
+        diagnosisHistory: [],
+        evidenceSources: [],
         diagnosis: initialDiagnosticLedger(),
       }
     }
@@ -295,15 +318,23 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
     }
     case 'errgrind/grill-probe': {
       if (state === null) throw new Error('Error episode is not open')
-      if (state.diagnosis.status !== 'active') throw new Error('Cannot add probe to completed diagnosis')
-      const hypotheses = mergeHypotheses(state.diagnosis.hypotheses, event.data.newHypotheses, event.data.hypothesisStatusUpdates)
-      validateProbe(event.data.probe, state.diagnosis.probes, hypotheses)
-      const probes = [...state.diagnosis.probes, event.data.probe]
-      const evidence = mergeEvidence(state.diagnosis.evidence, event.data.newEvidence, hypotheses, probes)
+      if (state.diagnosis.status !== 'active' && !state.diagnosis.stale) throw new Error('Cannot add probe to completed diagnosis')
+      const reopening = state.diagnosis.status !== 'active' && state.diagnosis.stale
+      if (reopening && state.confirmedRevision !== state.draft?.revision) {
+        throw new Error('Confirm the corrected Error description before re-probing the stale diagnosis')
+      }
+      const prior = reopening ? initialDiagnosticLedger() : state.diagnosis
+      const hypotheses = mergeHypotheses(prior.hypotheses, event.data.newHypotheses, event.data.hypothesisStatusUpdates)
+      validateProbe(event.data.probe, prior.probes, hypotheses)
+      const probes = [...prior.probes, event.data.probe]
+      const diagnosisRound = reopening ? state.diagnosisRound + 1 : state.diagnosisRound
+      const evidence = mergeEvidence(prior.evidence, event.data.newEvidence, hypotheses, probes, state.evidenceSources, diagnosisRound)
       return {
         ...state,
+        diagnosisRound,
+        diagnosisHistory: reopening ? [...state.diagnosisHistory, state.diagnosis] : state.diagnosisHistory,
         diagnosis: {
-          ...state.diagnosis,
+          ...prior,
           hypotheses,
           probes,
           evidence,
@@ -318,7 +349,10 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         throw new Error('Cannot conclude diagnosis before Error description draft is confirmed')
       }
       const hypotheses = mergeHypotheses(state.diagnosis.hypotheses, event.data.newHypotheses, event.data.hypothesisStatusUpdates)
-      const evidence = mergeEvidence(state.diagnosis.evidence, event.data.newEvidence, hypotheses, state.diagnosis.probes)
+      const evidence = mergeEvidence(
+        state.diagnosis.evidence, event.data.newEvidence, hypotheses, state.diagnosis.probes,
+        state.evidenceSources, state.diagnosisRound,
+      )
 
       const status: string = event.data.diagnosisStatus
       if (status !== 'supported' && status !== 'undetermined') {
@@ -340,6 +374,12 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         }
         if (best.status !== 'supported') {
           throw new Error(`Best hypothesis ${best.id} must have status "supported", got "${best.status}"`)
+        }
+        if (!evidence.some(item => item.supports.includes(best.id)
+          && state.evidenceSources.some(source => source.sourceRef === item.sourceRef
+            && source.diagnosisRound === state.diagnosisRound
+            && source.probeId !== null && source.probeId === item.probeId))) {
+          throw new Error('Supported diagnosis requires evidence grounded in a user\'s answer to a probe')
         }
         bestId = best.id
       } else {
@@ -376,6 +416,18 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
       if (turn === state.latestTurn) return state
       return { ...state, latestTurn: turn }
     }
+    case 'user/message': {
+      if (state === null || event.data.source.kind !== 'user') return state
+      const text = event.data.content.filter(block => block.type === 'text').map(block => block.text).join('\n')
+      if (text.length === 0 || state.diagnosis.currentProbeId === null) return state
+      const sourceRef = `user-event:${event.seq}`
+      return {
+        ...state,
+        evidenceSources: [...state.evidenceSources, {
+          sourceRef, text, probeId: state.diagnosis.currentProbeId, diagnosisRound: state.diagnosisRound,
+        }],
+      }
+    }
     default:
       return state
   }
@@ -388,93 +440,76 @@ function currentEpisode(ctx: Context, session: Session): ErrorEpisode | null {
   return state
 }
 
-interface RawAttachmentFacts {
-  sha256: string
-  bytes: number
-  name?: string | undefined
-  mediaType: string
-  fileRef?: FileAttachmentRef | undefined
-}
-
 /** Register the authentic Error intake, draft tool, Grill diagnostic tools, and human commands. */
 export function apply(ctx: Context): void {
   ctx.sessionProjections.register({
     key: 'errgrindEpisode',
     stateSchema: episodeSchema,
-    stateVersion: 1,
+    stateVersion: 3,
     init: () => null,
     apply: applyEpisodeEvent,
   })
 
-  const rawAttachmentFacts = new Map<string, RawAttachmentFacts>()
-
-  // Intercept attachment storage to persist verbatim original bytes before normalization
+  // Carry the raw receipt on the exact normalized reference. A process-local
+  // digest map cannot distinguish different source files that normalize alike.
   const attachments = ctx.get('attachments')
   if (attachments !== undefined) {
-    let isSavingBatch = false
+    const batchSave = new AsyncLocalStorage<boolean>()
     const originalSaveImage = attachments.saveImage.bind(attachments)
     const originalSaveImages = attachments.saveImages.bind(attachments)
 
     attachments.saveImage = async (input: SaveImageAttachment) => {
-      let fileRef: FileAttachmentRef | undefined
-      if (!isSavingBatch) {
-        try {
-          fileRef = await attachments.saveFile({
-            data: input.data,
-            ...(input.name !== undefined ? { name: input.name } : {}),
-          })
-        } catch {
-          // Ignored if the mounted backend does not support saveFile
-        }
+      if (batchSave.getStore()) return originalSaveImage(input)
+      const snapshot = { ...input, data: new Uint8Array(input.data) }
+      await attachments.validateImage(snapshot)
+      const fileRef = await attachments.saveFile({
+        data: snapshot.data,
+        ...(snapshot.name !== undefined ? { name: snapshot.name } : {}),
+      })
+      const imageRef = await originalSaveImage(snapshot)
+      return {
+        ...imageRef,
+        errgrindOriginal: {
+          sha256: fileRef.attachmentId.replace(/^sha256:/, ''),
+          bytes: snapshot.data.byteLength,
+          mediaType: snapshot.mediaType,
+          fileRef,
+        },
       }
-      const imageRef = await originalSaveImage(input)
-      if (!isSavingBatch) {
-        const rawSha256 = fileRef ? fileRef.attachmentId.replace(/^sha256:/, '') : digestBytes(input.data)
-        rawAttachmentFacts.set(String(imageRef.attachmentId), {
-          sha256: rawSha256,
-          bytes: input.data.byteLength,
-          ...(input.name !== undefined ? { name: input.name } : {}),
-          mediaType: input.mediaType,
-          ...(fileRef ? { fileRef } : {}),
-        })
-      }
-      return imageRef
     }
 
     attachments.saveImages = async (inputs: readonly SaveImageAttachment[]) => {
-      isSavingBatch = true
-      try {
-        const fileRefs: (FileAttachmentRef | undefined)[] = []
-        for (const input of inputs) {
-          try {
-            fileRefs.push(await attachments.saveFile({
-              data: input.data,
-              ...(input.name !== undefined ? { name: input.name } : {}),
-            }))
-          } catch {
-            fileRefs.push(undefined)
-          }
-        }
-        const imageRefs = await originalSaveImages(inputs)
-        let i = 0
-        for (const input of inputs) {
-          const imageRef = imageRefs[i]
-          const fileRef = fileRefs[i]
-          i++
-          if (imageRef === undefined) continue
-          const rawSha256 = fileRef ? fileRef.attachmentId.replace(/^sha256:/, '') : digestBytes(input.data)
-          rawAttachmentFacts.set(String(imageRef.attachmentId), {
-            sha256: rawSha256,
-            bytes: input.data.byteLength,
-            ...(input.name !== undefined ? { name: input.name } : {}),
-            mediaType: input.mediaType,
-            ...(fileRef ? { fileRef } : {}),
-          })
-        }
-        return imageRefs
-      } finally {
-        isSavingBatch = false
+      const snapshots = inputs.map(input => ({ ...input, data: new Uint8Array(input.data) }))
+      const limits = attachments.imageLimits
+      if (snapshots.length > limits.maxImagesPerMessage) throw new Error('Image batch exceeds the configured image-count limit')
+      if (snapshots.reduce((sum, input) => sum + input.data.byteLength, 0) > limits.maxMessageImageBytes) {
+        throw new Error('Image batch exceeds the configured aggregate image-byte limit')
       }
+      for (const input of snapshots) {
+        if (!limits.mediaTypes.includes(input.mediaType)) throw new Error(`Image type ${input.mediaType} is not accepted`)
+      }
+      await Promise.all(snapshots.map(input => attachments.validateImage(input)))
+      const fileRefs = await Promise.all(snapshots.map(input => attachments.saveFile({
+        data: input.data,
+        ...(input.name !== undefined ? { name: input.name } : {}),
+      })))
+      const imageRefs = await batchSave.run(true, () => originalSaveImages(snapshots))
+      if (imageRefs.length !== snapshots.length) throw new Error('Attachment store returned an incomplete image batch')
+      return imageRefs.map((imageRef, index) => {
+        const input = snapshots[index]
+        const fileRef = fileRefs[index]
+        /* v8 ignore next -- map indices are valid after saveImages returned the exact input count. */
+        if (input === undefined || fileRef === undefined) throw new Error('Attachment batch provenance was lost')
+        return {
+          ...imageRef,
+          errgrindOriginal: {
+            sha256: fileRef.attachmentId.replace(/^sha256:/, ''),
+            bytes: input.data.byteLength,
+            mediaType: input.mediaType,
+            fileRef,
+          },
+        }
+      })
     }
 
     ctx.effect(() => () => {
@@ -505,14 +540,14 @@ export function apply(ctx: Context): void {
     const episodeAttachments: ErrorAttachment[] = []
     for (const block of userSourced.content) {
       if (block.type === 'image') {
-        const known = rawAttachmentFacts.get(String(block.attachment.attachmentId))
-        const sha256 = known ? known.sha256 : String(block.attachment.attachmentId).replace(/^sha256:/, '')
+        const original = block.attachment.errgrindOriginal
+        if (original === undefined) throw new Error('Image upload is missing its durable original-file receipt')
         episodeAttachments.push({
-          sha256,
-          mediaType: block.attachment.mediaType,
-          bytes: known ? known.bytes : block.attachment.bytes,
+          sha256: original.sha256,
+          mediaType: original.mediaType,
+          bytes: original.bytes,
           ...(block.attachment.name ? { name: block.attachment.name } : {}),
-          ...(known?.fileRef ? { originalFileRef: known.fileRef } : {}),
+          originalFileRef: original.fileRef,
           normalizedImageRef: block.attachment,
         })
       } else if (block.type === 'file') {
@@ -575,7 +610,7 @@ export function apply(ctx: Context): void {
   ctx.tools.register(defineTool({
     name: 'grill_probe',
     description: 'Pose a discriminative diagnostic question or variant problem during Grill to differentiate candidate error hypotheses. '
-      + 'Internal predictions and answer keys are kept in probe metadata and never shown to the user.',
+      + 'Internal predictions and answer keys are diagnostic metadata; ask only the question in user-visible prose.',
     parameters: {
       probe: {
         type: 'object',
@@ -659,7 +694,10 @@ export function apply(ctx: Context): void {
       if (!exec.agent) throw new Error('grill_probe requires an agent session')
       const episode = currentEpisode(ctx, exec.agent.session)
       if (episode === null) throw new Error('No Error episode has been opened')
-      if (episode.diagnosis.status !== 'active') throw new Error('Diagnosis already concluded')
+      if (episode.diagnosis.status !== 'active' && !episode.diagnosis.stale) throw new Error('Diagnosis already concluded')
+      if (episode.diagnosis.stale && episode.confirmedRevision !== episode.draft?.revision) {
+        throw new Error('Confirm the corrected Error description before re-probing the stale diagnosis')
+      }
 
       const turn = episode.latestTurn
 
@@ -698,6 +736,13 @@ export function apply(ctx: Context): void {
         ...(args.probe.preservedMechanism !== undefined ? { preservedMechanism: args.probe.preservedMechanism } : {}),
         ...(args.probe.surfaceChange !== undefined ? { surfaceChange: args.probe.surfaceChange } : {}),
       }
+
+      const prior = episode.diagnosis.stale ? initialDiagnosticLedger() : episode.diagnosis
+      const mergedHypotheses = mergeHypotheses(prior.hypotheses, newHypotheses, hypothesisStatusUpdates)
+      validateProbe(probe, prior.probes, mergedHypotheses)
+      const mergedProbes = [...prior.probes, probe]
+      mergeEvidence(prior.evidence, newEvidence, mergedHypotheses, mergedProbes,
+        episode.evidenceSources, episode.diagnosisRound + (episode.diagnosis.stale ? 1 : 0))
 
       exec.agent.session.append('errgrind/grill-probe', {
         probe,
@@ -787,7 +832,7 @@ export function apply(ctx: Context): void {
       if (!exec.agent) throw new Error('grill_conclude requires an agent session')
       const episode = currentEpisode(ctx, exec.agent.session)
       if (episode === null) throw new Error('No Error episode has been opened')
-      if (episode.diagnosis.status !== 'active') throw new Error('Diagnosis already concluded')
+      if (episode.diagnosis.status !== 'active') throw new Error('Diagnosis already concluded; re-probe a stale diagnosis first')
       if (episode.confirmedRevision === null) {
         throw new Error('Cannot conclude diagnosis before Error description draft is confirmed by the user (/error-confirm).')
       }
@@ -813,6 +858,23 @@ export function apply(ctx: Context): void {
       const bestHypothesisId = args.bestHypothesisId?.trim() || undefined
       const remainingUncertainty = args.remainingUncertainty?.trim() || undefined
       const whatWouldChangeJudgment = args.whatWouldChangeJudgment?.trim() || undefined
+
+      const hypotheses = mergeHypotheses(episode.diagnosis.hypotheses, undefined, hypothesisStatusUpdates)
+      const evidence = mergeEvidence(episode.diagnosis.evidence, newEvidence, hypotheses,
+        episode.diagnosis.probes, episode.evidenceSources, episode.diagnosisRound)
+      if (args.diagnosisStatus === 'supported') {
+        if (bestHypothesisId === undefined) throw new Error('Supported diagnosis requires bestHypothesisId')
+        const best = hypotheses.find(hypothesis => hypothesis.id === bestHypothesisId)
+        if (best?.status !== 'supported') throw new Error(`Best hypothesis ${bestHypothesisId} must have status "supported"`)
+        if (!evidence.some(item => item.supports.includes(best.id)
+          && episode.evidenceSources.some(source => source.sourceRef === item.sourceRef
+            && source.diagnosisRound === episode.diagnosisRound
+            && source.probeId !== null && source.probeId === item.probeId))) {
+          throw new Error('Supported diagnosis requires evidence grounded in a user\'s answer to a probe')
+        }
+      } else if (remainingUncertainty === undefined || remainingUncertainty.length === 0) {
+        throw new Error('Undetermined diagnosis must specify remainingUncertainty')
+      }
 
       exec.agent.session.append('errgrind/grill-conclude', {
         diagnosisStatus: args.diagnosisStatus,
