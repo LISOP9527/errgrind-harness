@@ -1,5 +1,5 @@
 ---
-description: "The session-backed first Error input and reviewed description draft for compositions adding an explicit human confirmation step."
+description: "The session-backed authentic Error input, verbatim attachment facts, reviewed draft, controlled Grill diagnostic ledger, and human confirmation commands."
 kind: "package-reference"
 ---
 
@@ -9,43 +9,48 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@errgrind/episode` records the first user-sourced input in a session projection, lets the agent save a complete Error description with `error_draft`, and accepts the current draft revision only through the user command `/error-confirm`. Drafts remain model-authored until that explicit confirmation; each replacement clears the prior confirmation. This package supplies an intake and confirmation boundary, not the complete ErrGrind workflow.
+`@errgrind/episode` records authentic Error inputs and verbatim original attachments in a session projection, allows the agent to draft a complete Error description with `error_draft`, conducts controlled Grill diagnosis with `grill_probe` and `grill_conclude`, and enforces human confirmation via `/error-confirm`. Diagnostic conclusions require an explicitly confirmed Error draft; post-conclusion draft amendments mark the diagnosis stale until re-evaluated. The package distinguishes direct user input from host relays and provides `/error-status` to inspect episode state.
 
 ## Event flow
 
-On an entered agent step, the plugin examines the claimed user-sourced message before the model call. If its text or image content is non-empty and no episode is open, it appends `errgrind/error-open` with the text, an image-presence flag, and the turn number. The event stores no image bytes.
+On an entered agent step, the plugin inspects the claimed user-sourced message before the model call. If text or attachments are present and no episode is open, it appends `errgrind/error-open` with the text, turn, provenance (`direct_user` or `host_relay`), and SHA-256 attachment records. When the host attachments service is mounted, original image bytes are saved via `saveFile` before normalization so the exact verbatim file is durable.
 
-The registered `errgrindEpisode` projection folds only `errgrind/error-open`, `errgrind/error-draft`, and `errgrind/error-confirm`. It exposes the first input, whether that input included an image, its turn, the latest draft revision and text, and the confirmed revision. Unrelated events preserve the existing projection state.
+The registered `errgrindEpisode` projection folds `errgrind/error-open`, `errgrind/error-draft`, `errgrind/error-confirm`, `errgrind/grill-probe`, and `errgrind/grill-conclude`. It maintains the authentic first input, attachment references, provenance, description draft, confirmed revision, and a structured `DiagnosticLedger`. Unrelated events preserve the existing projection state.
 
-The `error_draft` tool accepts one complete description, trims it, enforces a 1–12,000 character limit, increments the draft revision, and appends `errgrind/error-draft`. A new draft replaces the previous one and clears `confirmedRevision`. Its tool contract tells the agent to distinguish the user's account from its interpretation and ask the user to review the description; the tool itself cannot confirm it.
+The `error_draft` tool accepts one complete description (1–12,000 characters), increments the draft revision, clears previous confirmation, and marks any concluded diagnosis as stale if the anchored revision is changed. The user confirms the current revision using `/error-confirm`.
 
-After reviewing the draft, the user runs `/error-confirm` with no arguments. The command records the current revision and the correlation ID of the matching user-issued `command/run` event in `errgrind/error-confirm`. Repeating confirmation of the current revision returns success without appending a second confirmation event. Stale revisions and invalid event transitions fail.
+During Grill, the agent poses discriminative probes with `grill_probe` to test competing hypotheses (`H1`, `H2`...). Probe questions are presented in user cards, while predictions and variant problem answer keys remain in probe metadata to prevent leaking answers to the learner. When sufficient evidence (`E1`, `E2`...) is gathered, `grill_conclude` concludes the diagnosis as either `supported` (with a verified best hypothesis) or `undetermined` (with explicit remaining uncertainty). Concluding before draft confirmation is strictly rejected.
+
+## Human Commands
+
+- `/error-confirm` — Confirms the current Error description revision. Fails if no draft exists, arguments are passed, or the revision was already confirmed.
+- `/error-status` — Displays the episode provenance, original input size, attachment hashes, draft confirmation status, diagnosis conclusion, and ledger counts.
 
 ## Session projection
 
-The session log is the durable source for this package's state. The projection uses state version `1`, starts at `null`, and is reconstructed by folding committed session events; `currentEpisode` fails explicitly if the projection service or registered key is unavailable.
+The session log is the durable source of truth for all episode state. The projection uses state version `1`, starts at `null`, and is deterministically reconstructed by folding committed session events. Calling `currentEpisode` fails explicitly if the projection service or registered key is unavailable.
 
 There is no `./invariant` export: the fold checks the owned event transitions, and this package owns no relation to a second service or store.
 
 ## Model Experience
 
-### Draft tool and session conversation
+### Diagnostic tools and session conversation
 
 #### What the model sees
 
-The package registers no system prompt. When enabled, the model can see the `error_draft` tool schema and description, plus its call and result in the ordinary session conversation. The tool accepts one required `description` string and returns the saved revision and description.
+The package registers no system prompt. When enabled, the model sees `error_draft`, `grill_probe`, and `grill_conclude` tool schemas and descriptions. Discriminative probe calls keep expected observations and answer keys inside tool arguments; the user card presentation renders only the probe question without answer key leaks.
 
 #### Token effect
 
-The tool schema contributes tokens on requests where the host exposes this tool. Calls and rendered results add conversation content when used; the package stores the first input as a domain event without adding a second copy to model context.
+The tool schemas contribute tokens on requests where the host exposes them. Grill probes and evidence records append structured findings to the session log, allowing multi-turn diagnosis without duplicate context re-injection.
 
 #### KV Cache effect
 
-The package-owned tool description and schema are static, so they preserve a reusable request prefix while composition and preceding context remain unchanged. A tool call and result append conversation content; replacing a draft does not rewrite earlier session events. Provider cache availability and eviction are outside this package's contract.
+Tool descriptions and schemas are static, preserving request prefix stability while preceding context remains unchanged. Probe and conclusion events are append-only.
 
 ## Known Limitations and Deferred Work
 
-- **No complete Error workflow** — the package does not implement Record editing, Grill, Teach, Drill, UI, or MCP behavior; consumers must provide those capabilities.
-- **Image input is only noted** — the opening event keeps an image-presence flag but does not persist or expose raw image data.
-- **Confirmation is revision scoped** — confirmation proves that a user command accepted the current description revision; it does not validate the description's factual accuracy or complete another workflow stage.
-- **Adapter provenance is not yet represented** — a user-sourced DSH message can also arrive through a forwarding host. A future MCP adapter must record that origin before its text is treated as direct user evidence.
+- **Teach and Drill are deferred** — The package manages Error recording and Grill diagnosis; subsequent pedagogical intervention and practice generation remain for future packages.
+- **Card presentation and narrow viewport** — The package provides generic card presenters for tools and CLI status; dedicated mobile and web Error card UI components are deferred.
+- **Live cache read tokens unmeasured** — Request prefix stability is designed statically, but empirical `cacheReadTokens` verification requires a live model key.
+- **Python legacy migration deferred** — Error #8 and SQLite historical records remain read-only reference data and are not auto-migrated.

@@ -11,6 +11,7 @@
     { "path": "../agent" },
     { "path": "../session" },
     { "path": "../tools" },
+    { "path": "../../attachment/attachment" },
     { "path": "../../interaction/commands" },
     { "path": "../../llm/llm" },
     { "path": "../../session/session-projection" }
