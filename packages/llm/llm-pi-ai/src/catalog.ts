@@ -200,7 +200,29 @@ export function catalogProviderIds(): readonly string[] {
 export function catalogModels(provider: string): Map<string, Model<Api>> {
   if (!catalogProviders().has(provider)) return new Map()
   const models = getBuiltinModels(provider as BuiltinProvider) as Model<Api>[]
-  return new Map(models.map(model => [model.id, model]))
+  const indexed = new Map(models.map(model => [model.id, model]))
+  if (provider === 'openai-codex') {
+    // pi-ai 0.85.1 predates these models. The 0.87.1 catalog supplies the
+    // capacities and prices; the account catalog still decides visibility.
+    const astra = indexed.get('gpt-6-astra')
+    if (astra !== undefined) {
+      for (const [id, name, input, output, cacheRead, cacheWrite] of [
+        ['gpt-6-sol', 'GPT-6 Sol', 2, 10, 0.2, 2.5],
+        ['gpt-6-luna', 'GPT-6 Luna', 0.1, 0.5, 0.01, 0.125],
+      ] as const) {
+        indexed.set(id, {
+          ...astra,
+          id,
+          name,
+          cost: { input, output, cacheRead, cacheWrite,
+            tiers: [{ inputTokensAbove: 272000, input: input * 2,
+              output: output * 1.5, cacheRead: cacheRead * 2, cacheWrite: cacheWrite * 2 }] },
+          thinkingLevelMap: { ...astra.thinkingLevelMap, off: 'none' },
+        })
+      }
+    }
+  }
+  return indexed
 }
 
 /**

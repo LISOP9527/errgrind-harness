@@ -65,6 +65,7 @@ import type { AdapterRegistrationHandle, DirectoryRegistrationHandle, LlmConfigu
 import type {} from '@deepseek-ai/dsh-fs'
 import { deepEqualJson } from '@deepseek-ai/dsh-util-values'
 import { PiAiAdapter } from './adapter.ts'
+import { currentCodexModelIds } from './codex-model-catalog.ts'
 import { authContextFrom, credentialStoreFrom } from './auth.ts'
 import { catalogProviderIds } from './catalog.ts'
 import { assertServiceable, Config, resolveProfiles } from './config.ts'
@@ -211,6 +212,7 @@ export function apply(ctx: Context, config: Config): void {
   const auth = { credentials: credentialStoreFrom(ctx), authContext: authContextFrom(ctx) }
   const adapter = new PiAiAdapter({
     profiles,
+    ...(config.filterCodexModelsByAccount ? { codexModelIds: currentCodexModelIds } : {}),
     resolveApiKey,
     auth,
     resolveAttachments: () => ctx.get('attachments'),

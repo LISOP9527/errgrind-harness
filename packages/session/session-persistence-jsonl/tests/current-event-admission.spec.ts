@@ -85,4 +85,42 @@ describe('current event admission at EOF', () => {
     expect((await readFile(path)).subarray(0, bytes.length)).toEqual(bytes)
   })
 
+  it('reopens the required ErrGrind episode events after a cold read', async () => {
+    const events = [
+      { type: 'errgrind/error-open', seq: 1, time: 2, data: { text: '2 + 2 = 5', turn: 1 } },
+      { type: 'errgrind/error-draft', seq: 2, time: 3, data: { revision: 1, text: 'I miscounted the second pair.' } },
+      { type: 'errgrind/error-clarify', seq: 3, time: 4, data: { text: 'What did you count first?', turn: 1 } },
+      { type: 'errgrind/error-confirm', seq: 4, time: 5, data: { revision: 1, commandId: 'confirm-1' } },
+      { type: 'errgrind/grill-probe', seq: 5, time: 6, data: { turn: 1, probe: {
+        id: 'P1', type: 'variant_problem', question: 'What is 3 + 2?',
+        targetHypothesisIds: ['H1'], discriminationGoal: 'Test counting.',
+        predictions: [{ hypothesisId: 'H1', expectedObservation: '4' }], answerKey: '5',
+      } } },
+      { type: 'errgrind/grill-conclude', seq: 6, time: 7, data: {
+        diagnosisStatus: 'undetermined', summary: 'More evidence needed.',
+        remainingUncertainty: 'The counting step is unclear.', turn: 1,
+      } },
+    ]
+    const drillSpec = { targetMechanism: 'Equal parts', trigger: 'Unlike units', failureBehavior: 'Adds unlike units',
+      desiredBehavior: 'Convert units', successSignal: 'Explains conversion', domain: 'fractions', taskType: 'calculate',
+      setting: 'Lengths', taskGoal: 'Combine lengths', essentialTrigger: 'Different units', solutionStrategy: 'Common unit',
+      avoid: [], difficultyLevel: 1, reasoningDepth: 2, calculationLoad: 1 }
+    const drillEvents = [
+      { type: 'errgrind/drill-spec-prepared', data: { id: 'practice', spec: drillSpec,
+        sourceRevision: 1, sourceDiagnosisRound: 1, preparedAtTurn: 2 } },
+      { type: 'errgrind/drill-draft-requested', data: { preparationId: 'practice', spec: drillSpec,
+        prompt: 'Generate JSON.', config: { provider: 'replay', model: 'test' } } },
+      { type: 'errgrind/drill-draft-finished', data: { preparationId: 'practice', status: 'failed',
+        usage: { inputTokens: 30, outputTokens: 5 } } },
+    ].map((event, index) => ({ ...event, seq: events.length + index + 1, time: events.length + index + 2 }))
+    const persistedEvents = [...events, ...drillEvents]
+    await store(Buffer.from(prefix + persistedEvents.map(event => JSON.stringify(event)).join('\n') + '\n'))
+    const reader = await ctx.sessionPersistence.open(id, 'read')
+    try {
+      expect((await reader.read()).events).toEqual([start, ...persistedEvents])
+    } finally {
+      await reader.close()
+    }
+  })
+
 })

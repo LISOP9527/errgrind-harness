@@ -1,6 +1,7 @@
 /** Reject maintained references to repository commits and the disallowed organization URL. */
 
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { lstatSync, readFileSync, readlinkSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -42,6 +43,10 @@ export function findRepositoryReferences(
   commits: ReadonlySet<string>,
 ): RepositoryReference[] {
   if (!isMaintained(file)) return []
+  // Preserve the exact imported fork-selection evidence, not mutable commit links.
+  // Any edit or any other archive file remains subject to the ordinary policy.
+  if (file === 'errgrind-fork/history/python-product-2026-09-27/design/decisions/2026-09-23-error-episode-and-agent-fork.md.txt'
+    && createHash('sha256').update(source).digest('hex') === 'c445f6f76ed876e06226a1a733ea75a5f9f31a23b2fc9b32bb9bfd655e306885') return []
   const references: RepositoryReference[] = []
   for (const [index, line] of source.split('\n').entries()) {
     if (organizationUrl.test(canonicalReferenceText(line).replace(kitRepositoryUrl, ''))) {

@@ -23,6 +23,7 @@ import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import * as episodePlugin from '../src/index.ts'
+import { loadToolPrompts } from '../src/tool-prompts.ts'
 
 let context: Context | undefined
 let root: string | undefined
@@ -121,6 +122,11 @@ describe('ErrGrind episode real Loader composition', () => {
     }, () => Promise.resolve({ kind: 'enter' as const, messages: [message] }))
     expect(decision.kind).toBe('enter')
 
+    const publicListValue = ctx.sessionProjections.cachedSnapshot(session).values.errgrindEpisode
+    expect(publicListValue).toEqual({ description: null, status: 'grill', drillEligible: false })
+    expect(JSON.stringify(publicListValue)).not.toContain('errgrindOriginal')
+    expect(JSON.stringify(publicListValue)).not.toContain('sha256')
+
     const persisted = JSON.parse(JSON.stringify(session.snapshotEvents())) as ReturnType<Session['snapshotEvents']>
     const opened = persisted.find(event => event.type === 'errgrind/error-open')
     if (opened?.type !== 'errgrind/error-open') throw new Error('original image was not committed to the session')
@@ -178,12 +184,12 @@ describe('ErrGrind episode real Loader composition', () => {
     expect(ctx.commands.list(agent).map(c => c.name)).toContain('error-confirm')
     expect(ctx.commands.list(agent).map(c => c.name)).toContain('error-status')
     expect(ctx.tools.schemas(agent).map(t => t.name)).toContain('error_draft')
+    expect(ctx.tools.schemas(agent).map(t => t.name)).toContain('error_clarify')
     expect(ctx.tools.schemas(agent).map(t => t.name)).toContain('grill_probe')
     expect(ctx.tools.schemas(agent).map(t => t.name)).toContain('grill_conclude')
-    expect(ctx.tools.schemas(agent).find(tool => tool.name === 'grill_probe')?.description).toBe(
-      'Pose a discriminative diagnostic question or variant problem during Grill to differentiate candidate error hypotheses. '
-      + 'Internal predictions and answer keys are diagnostic metadata; ask only the question in user-visible prose.',
-    )
+    expect(ctx.tools.schemas(agent).map(t => t.name)).toContain('drill_answer_draft')
+    expect(ctx.tools.schemas(agent).find(tool => tool.name === 'grill_probe')?.description)
+      .toBe(loadToolPrompts().description('grill_probe'))
 
     // Initial status check when no episode is open
     const initialStatus = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
@@ -386,8 +392,16 @@ describe('ErrGrind episode real Loader composition', () => {
       session.inheritedEventCount,
     )
     expect(restored.checkpoint.errgrindEpisode).toMatchObject({
-      ver: 3,
-      val: { evidenceSources: [], diagnosisHistory: [], diagnosisRound: 1 },
+      ver: 8,
+      val: {
+        evidenceSources: [
+          { sourceRef: 'initial-input', probeId: null, diagnosisRound: 1, text: episode.firstInput },
+          ...episode.attachments.map((_, index) => ({
+            sourceRef: `initial-attachment:${index + 1}`, probeId: null, diagnosisRound: 1, text: '',
+          })),
+        ],
+        diagnosisHistory: [], diagnosisRound: 1,
+      },
     })
 
     // Check /error-status with open episode and no draft
@@ -428,11 +442,32 @@ describe('ErrGrind episode real Loader composition', () => {
     expect(draft1.isError).toBe(false)
     expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.draft?.revision).toBe(1)
 
+    const projectionBeforeClarification = ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
+    const clarification = await ctx.tools.execute({
+      name: 'error_clarify', callId: ToolCallId('clarify-before-grill'), agent,
+      arguments: { text: 'Which step did you write first?' },
+      signal: new AbortController().signal,
+    })
+    expect(clarification.isError).toBe(false)
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')).toEqual({
+      ...projectionBeforeClarification, pendingClarification: true,
+    })
+    expect(session.snapshotEvents().find(event => event.type === 'errgrind/error-clarify')?.data)
+      .toEqual({ text: 'Which step did you write first?', turn: 1 })
+    expect((await ctx.tools.execute({
+      name: 'error_clarify', callId: ToolCallId('clarify-empty'), agent,
+      arguments: { text: '  ' }, signal: new AbortController().signal,
+    })).isError).toBe(true)
+    expect((await ctx.tools.execute({
+      name: 'error_clarify', callId: ToolCallId('clarify-too-long'), agent,
+      arguments: { text: 'x'.repeat(4001) }, signal: new AbortController().signal,
+    })).isError).toBe(true)
+
     // Check status when active diagnosis has no current probe
     const statusNoProbe = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
     expect(statusNoProbe?.result.text).toContain('当前探针: 无待回答探针')
 
-    // Trying grill_conclude before confirmation MUST fail
+    // A conclusion without a supported hypothesis/evidence still fails.
     const concludeEarly = await ctx.tools.execute({
       name: 'grill_conclude', callId: ToolCallId('conclude-early'), agent,
       arguments: { diagnosisStatus: 'supported', summary: 'Too early' },
@@ -440,7 +475,7 @@ describe('ErrGrind episode real Loader composition', () => {
     })
     expect(concludeEarly.isError).toBe(true)
 
-    // Model poses Grill probe P1 (without turn/start event in session; falls back to turn 1)
+    // Model poses Grill probe P1 before final description confirmation.
     const probeTool = ctx.tools.get('grill_probe', agent)
     expect(probeTool?.presentCall?.({
       probe: {
@@ -478,7 +513,6 @@ describe('ErrGrind episode real Loader composition', () => {
     })
     expect(probeCall.isError).toBe(false)
     expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.currentProbeId).toBe('P1')
-
     // Append turn/start event so subsequent probe/conclude exercises turn extraction with actual turn number
     session.append('turn/start', { turn: 2 })
     const answerEvent = session.append('user/message', createUserMessage({
@@ -537,7 +571,7 @@ describe('ErrGrind episode real Loader composition', () => {
         newEvidence: [
           {
             id: 'E1',
-            sourceRef: `user-event:${answerEvent.seq}`,
+            sourceRef: 'latest-probe-answer',
             quote: '我直接把分母去掉了',
             interpretation: '用户混淆除法与减法',
             supports: ['H1'],
@@ -558,19 +592,16 @@ describe('ErrGrind episode real Loader composition', () => {
       signal: new AbortController().signal,
     })
     expect(probe2Call.isError).toBe(false)
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.evidence
+      .find(item => item.id === 'E1')?.sourceRef).toBe(`user-event:${answerEvent.seq}`)
 
     // Check status during active probe
     const statusWithProbe = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
     expect(statusWithProbe?.result.text).toContain('当前探针: P2')
 
-    // Confirm draft revision 1
-    const confirm = await ctx.commands.execute(agent, '/error-confirm', [], new AbortController().signal)
-    expect(confirm?.result.kind).toBe('success')
-    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.confirmedRevision).toBe(1)
-
-    // Confirming again returns already confirmed message
-    const confirmDuplicate = await ctx.commands.execute(agent, '/error-confirm', [], new AbortController().signal)
-    expect(confirmDuplicate?.result.text).toContain('已经确认')
+    // The draft cannot be confirmed while Grill has no pending conclusion.
+    const confirmTooEarly = await ctx.commands.execute(agent, '/error-confirm 1', [], new AbortController().signal)
+    expect(confirmTooEarly?.result.kind).toBe('error')
 
     const fabricatedEvidence = await ctx.tools.execute({
       name: 'grill_conclude', callId: ToolCallId('conclude-fabricated'), agent,
@@ -651,7 +682,7 @@ describe('ErrGrind episode real Loader composition', () => {
       diagnosisStatus: 'supported',
       summary: '用户去分母时确实遗漏常数项',
     })).toEqual({
-      card: 'generic', title: 'Diagnosis Concluded', kind: 'other',
+      card: 'generic', title: 'Diagnosis Proposed', kind: 'other',
       rawInput: '用户去分母时确实遗漏常数项',
     })
 
@@ -692,9 +723,17 @@ describe('ErrGrind episode real Loader composition', () => {
     expect(concludeCall.isError).toBe(false)
 
     const diag = ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis
-    expect(diag?.status).toBe('supported')
-    expect(diag?.bestHypothesisId).toBe('H1')
+    expect(diag?.status).toBe('active')
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.pendingConclusion?.bestHypothesisId).toBe('H1')
     expect(diag?.currentProbeId).toBeNull()
+    const pendingReplay = Session.create(SessionId('pending-confirmation-replay'), session.snapshotEvents())
+    expect(ctx.sessionProjections.stateOf(pendingReplay, 'errgrindEpisode')?.diagnosis.status).toBe('active')
+    expect(ctx.sessionProjections.stateOf(pendingReplay, 'errgrindEpisode')?.pendingConclusion?.anchorRevision).toBe(1)
+    const pendingStatus = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
+    expect(pendingStatus?.result.text).toContain('Grill 未结束')
+    const confirmFinal = await ctx.commands.execute(agent, '/error-confirm 1', [], new AbortController().signal)
+    expect(confirmFinal?.result.kind).toBe('success')
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.status).toBe('supported')
 
     // Check status after supported conclusion
     const statusSupported = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
@@ -710,6 +749,11 @@ describe('ErrGrind episode real Loader composition', () => {
 
     const stateStale = ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
     expect(stateStale?.diagnosis.stale).toBe(true)
+    const oldRevisionConfirm = await ctx.commands.execute(agent, '/error-confirm 1', [], new AbortController().signal)
+    expect(oldRevisionConfirm?.result.kind).toBe('error')
+    expect(oldRevisionConfirm?.result.text).toContain('已有更新')
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.confirmedRevision).toBeNull()
+    expect(session.snapshotEvents().filter(event => event.type === 'errgrind/error-confirm')).toHaveLength(1)
     const earlyReprobe = await ctx.tools.execute({
       name: 'grill_probe', callId: ToolCallId('reprobe-before-confirm'), agent,
       arguments: {
@@ -722,29 +766,35 @@ describe('ErrGrind episode real Loader composition', () => {
       },
       signal: new AbortController().signal,
     })
-    expect(earlyReprobe.isError).toBe(true)
+    expect(earlyReprobe.isError).toBe(false)
     const statusStale = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
-    expect(statusStale?.result.text).toContain('待复核')
+    expect(statusStale?.result.text).toContain('诊断状态: active')
 
-    // Confirm revision 2
-    await ctx.commands.execute(agent, '/error-confirm', [], new AbortController().signal)
-    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.confirmedRevision).toBe(2)
+    // Revision 2 still requires a matching conclusion proposal before confirmation.
+    const prematureRevisionConfirm = await ctx.commands.execute(agent, '/error-confirm 2', [], new AbortController().signal)
+    expect(prematureRevisionConfirm?.result.kind).toBe('error')
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.confirmedRevision).toBeNull()
+
+    expect((await ctx.tools.execute({
+      name: 'error_clarify', callId: ToolCallId('clarify-before-stale-reprobe'), agent,
+      arguments: { text: 'Please clarify the revised Error before another diagnostic probe.' },
+      signal: new AbortController().signal,
+    })).isError).toBe(false)
 
     const reprobe = await ctx.tools.execute({
       name: 'grill_probe', callId: ToolCallId('reprobe-1'), agent,
       arguments: {
         probe: {
-          id: 'P1', type: 'reasoning_question', question: '乘负数时，不等号的方向如何处理？',
+          id: 'P2', type: 'reasoning_question', question: '乘负数时，不等号的方向如何处理？',
           targetHypothesisIds: ['H1'], discriminationGoal: '复核不等号方向处理',
           predictions: [{ hypothesisId: 'H1', expectedObservation: '没有翻转方向' }],
         },
-        newHypotheses: [{ id: 'H1', claim: '乘负数后忘记翻转不等号方向' }],
       },
       signal: new AbortController().signal,
     })
     expect(reprobe.isError).toBe(false)
     expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosisHistory).toHaveLength(1)
-    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.currentProbeId).toBe('P1')
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.currentProbeId).toBe('P2')
 
     // Cold session replay verifies full deterministic recovery
     const replayed = Session.create(SessionId('replayed-math-error'), session.snapshotEvents())
@@ -774,16 +824,20 @@ describe('ErrGrind episode real Loader composition', () => {
       name: 'grill_conclude', callId: ToolCallId('reprobe-new-answer'), agent,
       arguments: {
         diagnosisStatus: 'supported', summary: '更正后确认不等号方向处理错误', bestHypothesisId: 'H1',
+        whatWouldChangeJudgment: '发现两边乘的是正数',
         hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
         newEvidence: [{
-          id: 'E1', sourceRef: `user-event:${newAnswerEvent.seq}`, quote: '忘记翻转方向',
-          interpretation: '本轮用户回答', supports: ['H1'], contradicts: [], probeId: 'P1',
+          id: 'E3', sourceRef: `user-event:${newAnswerEvent.seq}`, quote: '忘记翻转方向',
+          interpretation: '本轮用户回答', supports: ['H1'], contradicts: [], probeId: 'P2',
         }],
       },
       signal: new AbortController().signal,
     })
     expect(newConclusion.isError).toBe(false)
     expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosisRound).toBe(2)
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.status).toBe('active')
+    await ctx.commands.execute(agent, '/error-confirm 2', [], new AbortController().signal)
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.status).toBe('supported')
 
     // Test relay input on a second session
     const second = ctx.sessions.create(SessionId('relay-session'))
@@ -806,7 +860,6 @@ describe('ErrGrind episode real Loader composition', () => {
       arguments: { description: '分子相加、分母相加的分数加法错误。' },
       signal: new AbortController().signal,
     })
-    await ctx.commands.execute(secondAgent, '/error-confirm', [], new AbortController().signal)
     await ctx.tools.execute({
       name: 'grill_conclude', callId: ToolCallId('second-conclude'), agent: secondAgent,
       arguments: {
@@ -816,6 +869,8 @@ describe('ErrGrind episode real Loader composition', () => {
       },
       signal: new AbortController().signal,
     })
+    expect(ctx.sessionProjections.stateOf(second, 'errgrindEpisode')?.diagnosis.status).toBe('active')
+    await ctx.commands.execute(secondAgent, '/error-confirm 1', [], new AbortController().signal)
     const secondStatus = await ctx.commands.execute(secondAgent, '/error-status', [], new AbortController().signal)
     expect(secondStatus?.result.text).toContain('宿主转述')
     expect(secondStatus?.result.text).toContain('undetermined')
@@ -921,5 +976,275 @@ describe('ErrGrind episode real Loader composition', () => {
     expect(standaloneCtx.get('attachments')).toBeUndefined()
     await standaloneCtx.fiber.dispose()
     await rm(tempDir, { recursive: true, force: true })
+  })
+
+  it('enforces live observation requirement and change-judgment validation in registered tools', async () => {
+    root = await mkdtemp(join(tmpdir(), 'errgrind-observation-reg-'))
+    const ctx = context = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SystemPrompt)
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(CommandRuntime)
+    await ctx.plugin(LocalAttachmentStore, { dshHome: root })
+    episodePlugin.apply(ctx)
+
+    const session = ctx.sessions.create(SessionId('observation-reg-session'))
+    const agent = { id: session.id, ctx, session, status: 'idle', options: {}, reserveTurnAdmission: () => () => undefined } as Agent
+
+    // Open error via pre-step
+    const firstMsg = createUserMessage({
+      content: [{ type: 'text', text: '5 - 2 * 3 = 9' }], source: { kind: 'user' },
+    })
+    await agentEvents(ctx, agent).waterfall('agent/pre-step', {
+      messages: [firstMsg], turn: 1, step: 1, signal: new AbortController().signal,
+    }, () => Promise.resolve({ kind: 'enter' as const, messages: [firstMsg] }))
+
+    // Draft error description
+    await ctx.tools.execute({
+      name: 'error_draft', callId: ToolCallId('draft-1'), agent,
+      arguments: { description: 'Computed subtraction before multiplication: (5-2)*3 = 9.' },
+      signal: new AbortController().signal,
+    })
+
+    // Pose probe P1
+    const p1Call = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('probe-1'), agent,
+      arguments: {
+        probe: {
+          id: 'P1', type: 'reasoning_question', question: 'Which operation did you perform first?',
+          targetHypothesisIds: ['H1', 'H2'], discriminationGoal: 'Distinguish order of operations from arithmetic mistake',
+          predictions: [
+            { hypothesisId: 'H1', expectedObservation: 'Subtracted first' },
+            { hypothesisId: 'H2', expectedObservation: 'Multiplied first' },
+          ],
+        },
+        newHypotheses: [
+          { id: 'H1', claim: 'Left-to-right evaluation order ignoring precedence' },
+          { id: 'H2', claim: 'Multiplication arithmetic mistake' },
+        ],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(p1Call.isError).toBe(false)
+
+    // User answers probe P1 with contradictory / discriminating reply
+    session.append('turn/start', { turn: 2 })
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'I did 5 minus 2 first, which is 3, then 3 times 3 is 9.' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+
+    // 1. Attempting next grill_probe while omitting observation of the latest reply fails
+    const probeOmitted = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('probe-2-omitted'), agent,
+      arguments: {
+        probe: {
+          id: 'P2', type: 'variant_problem', question: 'What is 10 - 2 * 4?',
+          targetHypothesisIds: ['H1'], discriminationGoal: 'Confirm left to right',
+          predictions: [{ hypothesisId: 'H1', expectedObservation: 'Answers 32' }],
+        },
+      },
+      signal: new AbortController().signal,
+    })
+    expect(probeOmitted.isError).toBe(true)
+
+    // 2. Attempting grill_conclude while omitting observation of the latest reply fails
+    const concludeOmitted = await ctx.tools.execute({
+      name: 'grill_conclude', callId: ToolCallId('conclude-omitted'), agent,
+      arguments: {
+        diagnosisStatus: 'supported', summary: 'Left-to-right error without observing answer',
+        bestHypothesisId: 'H1',
+        whatWouldChangeJudgment: 'Evidence showing multiplication was done first',
+        hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(concludeOmitted.isError).toBe(true)
+
+    // 3. Supplying an observation for the latest reply that is nondiscriminating (supports/contradicts empty) is accepted
+    const probeWithNondiscriminating = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('probe-2-nondiscriminating'), agent,
+      arguments: {
+        probe: {
+          id: 'P2', type: 'variant_problem', question: 'What is 10 - 2 * 4?',
+          targetHypothesisIds: ['H1'], discriminationGoal: 'Confirm left to right',
+          predictions: [{ hypothesisId: 'H1', expectedObservation: 'Answers 32' }],
+        },
+        newEvidence: [{
+          id: 'E1', sourceRef: 'latest-probe-answer', quote: '5 minus 2 first',
+          interpretation: 'Recorded step order from user reply',
+          supports: [], contradicts: [], probeId: 'P1',
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(probeWithNondiscriminating.isError).toBe(false)
+
+    // Now P1 answer is represented in the ledger. User answers P2:
+    session.append('turn/start', { turn: 3 })
+    const answerP2 = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: '10 minus 2 is 8, 8 times 4 is 32.' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+
+    // 4. Missing whatWouldChangeJudgment in supported conclusion fails
+    const missingChangeJudgment = await ctx.tools.execute({
+      name: 'grill_conclude', callId: ToolCallId('conclude-missing-judgment'), agent,
+      arguments: {
+        diagnosisStatus: 'supported',
+        summary: 'Confirmed left-to-right precedence misunderstanding.',
+        bestHypothesisId: 'H1',
+        hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+        newEvidence: [{
+          id: 'E2', sourceRef: `user-event:${answerP2.seq}`, quote: '10 minus 2 is 8',
+          interpretation: 'Repeated left-to-right evaluation on variant',
+          supports: ['H1'], contradicts: ['H2'], probeId: 'P2',
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(missingChangeJudgment.isError).toBe(true)
+
+    // 5. With whatWouldChangeJudgment and grounded observation, conclude succeeds
+    const successfulConclusion = await ctx.tools.execute({
+      name: 'grill_conclude', callId: ToolCallId('conclude-valid'), agent,
+      arguments: {
+        diagnosisStatus: 'supported',
+        summary: 'Confirmed left-to-right precedence misunderstanding.',
+        bestHypothesisId: 'H1',
+        whatWouldChangeJudgment: 'Counter-evidence showing standard operator precedence was applied',
+        hypothesisStatusUpdates: [{ id: 'H1', status: 'supported' }],
+        newEvidence: [{
+          id: 'E2', sourceRef: `user-event:${answerP2.seq}`, quote: '10 minus 2 is 8',
+          interpretation: 'Repeated left-to-right evaluation on variant',
+          supports: ['H1'], contradicts: ['H2'], probeId: 'P2',
+        }],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(successfulConclusion.isError).toBe(false)
+  })
+
+  it('resolves latest probe and clarification aliases to durable references including image attachments', async () => {
+    root = await mkdtemp(join(tmpdir(), 'errgrind-aliases-reg-'))
+    const ctx = context = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(SessionProjectionRegistry)
+    await ctx.plugin(SystemPrompt)
+    await ctx.plugin(ToolRuntime)
+    await ctx.plugin(CommandRuntime)
+    await ctx.plugin(LocalAttachmentStore, { dshHome: root })
+    episodePlugin.apply(ctx)
+
+    const session = ctx.sessions.create(SessionId('aliases-reg-session'))
+    const agent = { id: session.id, ctx, session, status: 'idle', options: {}, reserveTurnAdmission: () => () => undefined } as Agent
+
+    const firstMsg = createUserMessage({
+      content: [{ type: 'text', text: 'Equation problem.' }], source: { kind: 'user' },
+    })
+    await agentEvents(ctx, agent).waterfall('agent/pre-step', {
+      messages: [firstMsg], turn: 1, step: 1, signal: new AbortController().signal,
+    }, () => Promise.resolve({ kind: 'enter' as const, messages: [firstMsg] }))
+
+    await ctx.tools.execute({
+      name: 'error_draft', callId: ToolCallId('draft-1'), agent,
+      arguments: { description: 'Algebraic equation draft.' },
+      signal: new AbortController().signal,
+    })
+
+    // Clarification asked
+    await ctx.tools.execute({
+      name: 'error_clarify', callId: ToolCallId('clarify-1'), agent,
+      arguments: { text: 'Which formula did you use?' },
+      signal: new AbortController().signal,
+    })
+
+    // User replies to clarification with text + image
+    const clarMsg = session.append('user/message', createUserMessage({
+      content: [
+        { type: 'text', text: 'I used quadratic formula.' },
+        { type: 'image', mimeType: 'image/png', data: 'AQID' },
+      ],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+
+    // Pose probe P1 resolving latest-clarification-answer and latest-clarification-attachment:1
+    const p1Call = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('probe-1'), agent,
+      arguments: {
+        probe: {
+          id: 'P1', type: 'reasoning_question', question: 'How did you calculate discriminant?',
+          targetHypothesisIds: ['H1'], discriminationGoal: 'Check discriminant calculation',
+          predictions: [{ hypothesisId: 'H1', expectedObservation: 'Answers negative' }],
+        },
+        newHypotheses: [{ id: 'H1', claim: 'Discriminant sign error' }],
+        newEvidence: [
+          {
+            id: 'E1', sourceRef: 'latest-clarification-answer', quote: 'quadratic formula',
+            interpretation: 'Learner stated quadratic formula', supports: ['H1'], contradicts: [],
+          },
+          {
+            id: 'E2', sourceRef: 'latest-clarification-attachment:1', quote: '',
+            interpretation: 'Photo of scratchpad from clarification', supports: ['H1'], contradicts: [],
+          },
+        ],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(p1Call.isError).toBe(false)
+
+    const episodeState = ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
+    expect(episodeState?.diagnosis.evidence.find(e => e.id === 'E1')?.sourceRef).toBe(`user-event:${clarMsg.seq}`)
+    expect(episodeState?.diagnosis.evidence.find(e => e.id === 'E2')?.sourceRef).toBe(`user-event:${clarMsg.seq}:attachment:1`)
+
+    // User replies to P1 with image only
+    session.append('turn/start', { turn: 2 })
+    const p1ImgReply = session.append('user/message', createUserMessage({
+      content: [{ type: 'image', mimeType: 'image/png', data: 'AQIDBA==' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+
+    // latest-probe-answer must resolve to the image reply, NOT mis-binding to older text
+    const p2Call = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('probe-2'), agent,
+      arguments: {
+        probe: {
+          id: 'P2', type: 'variant_problem', question: 'Check discriminant of x^2 + 4x + 5 = 0',
+          targetHypothesisIds: ['H1'], discriminationGoal: 'Confirm negative discriminant',
+          predictions: [{ hypothesisId: 'H1', expectedObservation: 'Finds -4' }],
+        },
+        newEvidence: [
+          {
+            id: 'E3', sourceRef: 'latest-probe-answer', quote: '',
+            interpretation: 'Image-only scratchpad reply observed for P1', supports: ['H1'], contradicts: [], probeId: 'P1',
+          },
+        ],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(p2Call.isError).toBe(false)
+    const ep2 = ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
+    expect(ep2?.diagnosis.evidence.find(e => e.id === 'E3')?.sourceRef).toBe(`user-event:${p1ImgReply.seq}:attachment:1`)
+
+    // Missing alias target throws error
+    const missingAtt = await ctx.tools.execute({
+      name: 'grill_probe', callId: ToolCallId('probe-missing-att'), agent,
+      arguments: {
+        probe: {
+          id: 'P3', type: 'reasoning_question', question: 'Next probe',
+          targetHypothesisIds: ['H1'], discriminationGoal: 'Goal',
+          predictions: [{ hypothesisId: 'H1', expectedObservation: 'Obs' }],
+        },
+        newEvidence: [
+          {
+            id: 'E4', sourceRef: 'latest-probe-attachment:99', quote: '',
+            interpretation: 'Nonexistent attachment', supports: [], contradicts: [], probeId: 'P1',
+          },
+        ],
+      },
+      signal: new AbortController().signal,
+    })
+    expect(missingAtt.isError).toBe(true)
   })
 })

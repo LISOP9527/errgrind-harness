@@ -164,6 +164,7 @@ function syncDocumentLanguage(snapshot: LocaleSnapshot): void {
  */
 export class LocaleRuntime {
   private dicts = new Map<string, Map<string, LocaleDict>>()
+  private overrides = new Map<string, Map<string, LocaleDict>>()
   private bound = new Map<string, Translate>()
   private catalog = new Map<string, LocaleDefinition>()
   private fallbackChains = new Map<string, readonly LocaleId[]>()
@@ -437,6 +438,61 @@ export class LocaleRuntime {
   }
 
   /**
+   * Override selected keys in an existing namespace without taking ownership
+   * of its base dictionaries. Only one plugin may own each namespace/locale
+   * override; supplied keys must already exist in the corresponding base.
+   * @param ns - namespace whose existing dictionaries are selectively overridden.
+   * @param overrides - per-built-in-locale replacement values.
+   * @returns idempotent disposer removing these exact override dictionaries.
+   * @throws when a base locale is absent, a key is unknown, or an override is already owned.
+   */
+  registerOverride<N extends Extract<keyof LocaleNamespaceMap, string>>(
+    ns: N,
+    overrides: Record<BuiltInLocaleId, Partial<LocaleDictOf<N>>>,
+  ): () => void {
+    const prepared = new Map<string, LocaleDict>()
+    const currentOverrides = this.overrides.get(ns)
+    const baseLocales = this.dicts.get(ns)
+    for (const locale of LOCALE_IDS) {
+      const key = localeKey(locale)
+      if (currentOverrides?.has(key)) {
+        throw new Error(`locale namespace "${ns}" already has an override for locale "${locale}"`)
+      }
+      const base = baseLocales?.get(key)
+      if (base === undefined) {
+        throw new Error(`locale namespace "${ns}" has no base dictionary for locale "${locale}"`)
+      }
+      const dictionary: LocaleDict = {}
+      const entries = Object.entries(overrides[locale]) as [string, string | undefined][]
+      for (const [entryKey, value] of entries) {
+        if (base[entryKey] === undefined) {
+          throw new Error(`locale namespace "${ns}" has no base key "${entryKey}" for locale "${locale}"`)
+        }
+        if (typeof value !== 'string') {
+          throw new Error(`locale namespace "${ns}" override for "${entryKey}" in "${locale}" must be a string`)
+        }
+        dictionary[entryKey] = value
+      }
+      prepared.set(key, dictionary)
+    }
+
+    const target = currentOverrides ?? new Map<string, LocaleDict>()
+    if (currentOverrides === undefined) this.overrides.set(ns, target)
+    for (const [key, dictionary] of prepared) target.set(key, dictionary)
+    this.publish(this.snapshot.active, false)
+    return () => {
+      let removed = false
+      for (const [key, dictionary] of prepared) {
+        if (target.get(key) === dictionary) {
+          target.delete(key)
+          removed = true
+        }
+      }
+      if (removed) this.publish(this.snapshot.active, false)
+    }
+  }
+
+  /**
    * Bind a declared namespace to a translate function typed to its
    * dictionary key union (plus the shared common vocabulary) — the same key
    * domain the framework-injected `t` seat carries. The returned reference
@@ -475,8 +531,13 @@ export class LocaleRuntime {
 
   private lookup(ns: string, key: string, chain: readonly LocaleId[]): string | undefined {
     const locales = this.dicts.get(ns)
+    const overrides = this.overrides.get(ns)
     for (const locale of chain) {
-      const value = locales?.get(localeKey(locale))?.[key]
+      const localeId = localeKey(locale)
+      const base = locales?.get(localeId)
+      const value = base === undefined
+        ? undefined
+        : overrides?.get(localeId)?.[key] ?? base[key]
       if (value !== undefined) return value
     }
     return undefined

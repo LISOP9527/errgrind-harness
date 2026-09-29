@@ -29,7 +29,7 @@ Mount this provider when a delegation should run as a real Codex session in the 
 
 ### Installing the Bundle
 
-Install the package into the target Profile, then restart that Profile. The installation brings the official wrapper and one compatible native platform payload into the Profile; the declared patch layer registers only the dormant provider and starts no Codex process.
+Install the package into the target Profile and install the Codex CLI separately on the Host `PATH`, then restart that Profile. The declared patch layer registers only the dormant provider and starts no Codex process. ErrGrind does not mount this provider.
 
 ```sh
 dsh plugin --profile <name> add @deepseek-ai/dsh-subagent-codex
@@ -37,7 +37,7 @@ dsh plugin --profile <name> remove @deepseek-ai/dsh-subagent-codex
 dsh --profile <name>
 ```
 
-Removing the package withdraws the provider and its private runtime closure on the next Profile start. Installation controls Host availability, not model permission: the model can only reach the provider through a delegation tool row you compose.
+Removing the package withdraws the provider on the next Profile start. Installation controls Host availability, not model permission: the model can only reach the provider through a delegation tool row you compose.
 
 ### Configuration
 
@@ -83,7 +83,7 @@ A foreground call gives the model the selected final Codex answer, or an error w
 
 ### Failure and recovery
 
-An install that omits optional dependencies, uses an unsupported platform, or loses the selected payload leaves the provider dormant and fails the first delegation at `initialize` with a safe `unknown` category and any observed process outcome; there is no host-CLI fallback. Raw wrapper text stays on Host stderr. A cancelled run settles as `aborted`.
+If `codex` is missing from the Host `PATH` or cannot start, the first delegation fails at `initialize` with a safe `unknown` category and any observed process outcome. Raw CLI stderr stays on Host stderr. A cancelled run settles as `aborted`.
 
 -----
 
@@ -171,8 +171,8 @@ These limits define when this provider is a poor fit or needs special operationa
 
 - **One fresh process, thread, and turn per run** — there is no continuation, resume, pooling, progress stream, or product-session persistence.
 - **Static instance selection** — Profile rows fix provider names, optional models, and tool bindings; calls cannot choose or change either a provider or model dynamically, and every exposed tool needs a unique `toolName`.
-- **Authentication and account state remain native** — the Bundle supplies the CLI but does not create an account, log in, trust a project, or rewrite Codex settings; configuration and authentication failures surface with their lifecycle stage and the safe `unknown` fallback rather than a separate public taxonomy.
-- **The native platform payload is required at delegation time** — installs that omit optional dependencies, unsupported platforms, and missing or damaged payloads fail at the first run; there is no host-CLI fallback.
+- **Authentication and account state remain native** — the Bundle does not install the CLI, create an account, log in, trust a project, or rewrite Codex settings; configuration and authentication failures surface with their lifecycle stage and the safe `unknown` fallback rather than a separate public taxonomy.
+- **A separately installed Codex CLI is required at delegation time** — a missing or damaged Host CLI fails at the first run.
 - **Compatibility is pinned by development evidence** — upgrading from the verified 0.153.4 protocol baseline requires regenerating upstream schema evidence and rerunning handshake, answer-selection, approval, cancellation, keyless real-product, and credentialed DeepSeek nonce tests.
 - **No human approval path** — known unattended approval requests are denied and unknown server requests fail closed; the three Profile modes never create a DSH interaction channel or per-call allow policy.
 - **Assistant payload is final text only** — a failed run may additionally expose the separate safe diagnostic; reasoning, commentary, intermediate messages, tool traffic, usage, raw stderr, and workspace diffs remain outside the parent Session, while generic Job ids, notices, and status come from the shared job runtime.
@@ -187,8 +187,7 @@ These limits define when this provider is a poor fit or needs special operationa
 
 This Dev Note is working context for maintainers: open questions and undecided directions. It is explicitly non-authoritative — shipped behavior and limits live in the sections above and in the package code.
 
-- **Payload size disclosure** — the current darwin-arm64 platform payload packs to about 114 MB and unpacks to about 282 MB; these are disclosure numbers, not installation thresholds.
-- **Version-pinned protocol** — the runtime dependency is pinned to `@openai/codex@0.153.4`; upgrading requires regenerating the upstream schema evidence and rerunning the credentialed nonce tests.
+- **Protocol compatibility** — the separately installed Codex CLI must support the app-server methods used by this provider; changing that CLI requires rerunning the protocol and credentialed nonce tests.
 
 </details>
 

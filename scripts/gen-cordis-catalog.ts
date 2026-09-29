@@ -84,6 +84,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   deepseekAccount: 'credentials.md',
   credentials: 'credentials.md',
   credentialsController: 'credentials.md',
+  codexAuthController: 'credentials.md',
   settingsController: 'settings.md',
   directoryPicker: 'workspace.md',
   deepseekLlmApiExtensions: 'llm-streaming.md',
@@ -696,6 +697,8 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   AuthorizationSession: 'credentials.md',
   AuthorizationSettlement: 'credentials.md',
   AuthorizationStatus: 'credentials.md',
+  CodexAuthStatus: 'credentials.md',
+  CodexAuthNotice: 'credentials.md',
   CredentialRef: 'credentials.md',
   CredentialKey: 'credentials.md',
   CredentialInfo: 'credentials.md',
@@ -804,6 +807,8 @@ export const FOUNDATION_TYPE_NAMES: ReadonlySet<string> = new Set([
 
 /** Project types deliberately documented outside the subsystems catalog. */
 export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
+  DerivedErrorOpenRequest: 'derived Error Session request is owned by packages/api/session-controller/README.md',
+  DerivedErrorOpenValue: 'derived Error Session identity is owned by packages/api/session-controller/README.md',
   ConnectionFetchHandler: 'shared Fetch dispatch is owned by packages/client/connection/src/rpc.ts',
   ConnectionRequestRejection: 'transport rejection status is owned by packages/client/connection/src/rpc.ts',
   ConnectionTrustRequest: 'transport authentication input is owned by packages/client/connection/src/rpc.ts',

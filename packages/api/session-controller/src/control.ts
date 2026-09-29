@@ -6,6 +6,7 @@ import type {
   Session, SessionId,
 } from '@deepseek-ai/dsh-session'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
+import { browserProjectionValues, type BrowserViewPolicy } from './browser-view.ts'
 import type {
   SessionControlBaseline,
   SessionControlFrame,
@@ -17,9 +18,13 @@ import type {
 export class SessionControlController {
   private readonly streams = new Set<ControlQueue>()
 
-  /** @param ctx - Host context carrying live Agent and projection services. */
-  constructor(private readonly ctx: Context) {
+  /** @param ctx - Host context carrying live Agent and projection services.
+   * @param browserView - optional product boundary for public projection values.
+   */
+  constructor(private readonly ctx: Context, private readonly browserView?: BrowserViewPolicy) {
     ctx.sessionProjections.onChanged((session, key, value, seq) => {
+      if (this.browserView?.allowedProjectionKeys !== undefined
+        && !this.browserView.allowedProjectionKeys.includes(key)) return
       this.broadcast({
         type: 'projection',
         sessionId: session.id,
@@ -68,7 +73,7 @@ export class SessionControlController {
       blocks[session.id] = {
         asOfSeq: snapshot.asOfSeq,
         // Every projection definition validates its value before snapshot publication.
-        values: snapshot.values as SessionProjectionValues,
+        values: browserProjectionValues(snapshot.values, this.browserView) as SessionProjectionValues,
       }
     }
     return blocks

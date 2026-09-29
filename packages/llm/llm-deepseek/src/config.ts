@@ -26,6 +26,8 @@ const MODEL_MODALITIES = ['text', 'image'] as const satisfies readonly ModelModa
  * reasoning effort resolves to `high`.
  */
 export interface Config {
+  /** Product selectors may omit the catalog until this provider can authenticate. */
+  hideModelsWithoutCredential: boolean
   /** Credential reference (environment-variable name) resolved per request; defaults to `DEEPSEEK_API_KEY`. */
   apiKeyEnv: Volatile<string>
   /** Endpoint base; falls back to $DEEPSEEK_BASE_URL from a trusted environment layer, then the public API. */
@@ -90,6 +92,7 @@ const catalogModel: z<DeepSeekCatalogModel> = z.object({
 })
 
 export const Config = z.object({
+  hideModelsWithoutCredential: z.boolean().default(false),
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV).volatile(),
   baseURL: z.string().volatile(),
   thinking: z.union(['enabled', 'disabled']).volatile(),

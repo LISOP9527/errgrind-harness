@@ -33,6 +33,7 @@ import {
   hasApiSessionSubagentOwner,
   inspectApiSession,
 } from './agent.ts'
+import { browserImageAttachment, parseBrowserAttachmentId, type BrowserViewPolicy } from './browser-view.ts'
 import type {
   SessionAttachmentRequest,
   SessionAttachmentValue,
@@ -94,6 +95,7 @@ export class SessionCommandController {
     private readonly ctx: Context,
     private readonly agents: ApiSessionAgentController,
     private readonly defaultCwd: string,
+    private readonly browserView?: BrowserViewPolicy,
   ) {}
 
   /**
@@ -403,7 +405,13 @@ export class SessionCommandController {
         {},
       )
     }
-    const ref = referencedImage(source.events, String(request.attachmentId))
+    const requestedId = String(request.attachmentId)
+    const publicLocator = this.browserView?.allowedEventTypes === undefined
+      ? undefined
+      : parseBrowserAttachmentId(requestedId)
+    const ref = this.browserView?.allowedEventTypes !== undefined
+      ? publicLocator === undefined ? undefined : imageAtPublicLocator(source.events, publicLocator)
+      : referencedImage(source.events, requestedId)
     if (ref === undefined) {
       throw new RemoteError(
         'session/attachment-invalid',
@@ -414,7 +422,9 @@ export class SessionCommandController {
     try {
       const stored = await this.ctx.attachments.readImage(ref)
       return {
-        attachment: stored.ref,
+        attachment: this.browserView?.allowedEventTypes === undefined
+          ? stored.ref
+          : browserImageAttachment(stored.ref, request.attachmentId),
         data: Buffer.from(stored.data).toString('base64'),
       }
     } catch (error) {
@@ -689,6 +699,16 @@ function referencedImage(
     if (found !== undefined) return found
   }
   return undefined
+}
+
+function imageAtPublicLocator(
+  events: readonly SessionEvent[],
+  locator: { readonly seq: number; readonly contentIndex: number },
+): ImageAttachmentRef | undefined {
+  const event = events.find(candidate => candidate.seq === locator.seq && candidate.type === 'user/message')
+  if (event?.type !== 'user/message') return undefined
+  const block = event.data.content[locator.contentIndex]
+  return block?.type === 'image' ? block.attachment : undefined
 }
 
 function routeServed(ctx: Context, provider: string): boolean {

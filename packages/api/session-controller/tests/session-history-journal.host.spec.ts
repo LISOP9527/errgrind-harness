@@ -8,6 +8,7 @@ import { LlmAttemptId, ToolCallId, createMessage, createToolResultMessage, creat
 import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { SessionHistoryController } from '@deepseek-ai/dsh-api-session-controller/src/history.ts'
+import { assertSessionWireEvent } from '@deepseek-ai/dsh-api-session-controller/src/client/session-wire-event.ts'
 import type { SessionFollowFrame, SessionPage, SessionWireEvent } from '@deepseek-ai/dsh-api-session-controller/types'
 import { createSessionTestRemote, installSessionReadTestServices } from './test-remote.ts'
 
@@ -102,6 +103,85 @@ function pageEvents(page: SessionPage): SessionWireEvent[] {
 }
 
 describe('Session history raw journal', () => {
+  it('sends a public journal and assistant stream while retaining private diagnostic facts on the Host', async () => {
+    const { ctx } = await harness()
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
+    const secret = 'hidden-variant-answer-731'
+    const policy = {
+      privateEventTypes: ['errgrind/grill-probe', 'errgrind/grill-conclude'],
+      redactToolArguments: true,
+      redactAssistantReasoning: true,
+    }
+    const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() }, policy)
+    appendExtension(session, 'errgrind/grill-probe', {
+      probe: { id: 'P1', question: 'What changed?', answerKey: secret, predictions: [secret] },
+    })
+    session.append('tool/call', {
+      turn: 1, step: 1, callId: ToolCallId('private-probe'), name: 'grill_probe',
+      arguments: JSON.stringify({ probe: { answerKey: secret } }),
+    })
+    session.append('tool/result', {
+      turn: 1, step: 1,
+      message: createToolResultMessage({
+        callId: ToolCallId('private-probe'),
+        content: [{ type: 'text', text: 'Diagnostic question (P1): What changed?' }],
+        isError: false,
+      }),
+      meta: { internal: secret },
+    }, { surfaceOp: 'append' })
+    session.append('assistant/message', {
+      turn: 1, step: 1,
+      message: createMessage({
+        role: 'assistant', source: { kind: 'model', provider: 'p', model: 'm' },
+        content: [
+          { type: 'text', text: 'What changed?' },
+          { type: 'reasoning', text: secret },
+          { type: 'tool-call', id: ToolCallId('private-probe'), name: 'grill_probe', arguments: secret },
+        ],
+      }),
+      stream: [
+        { type: 'reasoning-chunks', time0: 1, index: 0, dt: [], texts: [secret] },
+        { type: 'tool-call-chunks', time0: 2, index: 1, dt: [], id: ToolCallId('private-probe'), name: 'grill_probe', args: [secret] },
+        { type: 'chunk', time: 3, chunk: { type: 'block-end', index: 1, block: { type: 'tool-call', id: ToolCallId('private-probe'), name: 'grill_probe', arguments: secret } } },
+      ],
+    }, { surfaceOp: 'append' })
+    const abort = new AbortController()
+    const page = await history.page({ address: { kind: 'session', sessionId: session.id }, throughSeq: session.seq - 1 }, abort.signal)
+    expect(JSON.stringify(page)).not.toContain(secret)
+    expect(pageEvents(page)[0]).toMatchObject({ type: 'browser/private', data: {}, ignorable: true })
+    for (const event of pageEvents(page)) assertSessionWireEvent(event)
+    expect(session.snapshotEvents().some(event => JSON.stringify(event).includes(secret))).toBe(true)
+
+    const agent = { id: session.id, session, status: 'running', ctx } as Agent
+    const attemptId = LlmAttemptId('private-stream')
+    ctx.emit('agent/assistant-stream', { agent, frame: { type: 'start', attemptId, revision: 1, turn: 2, step: 1 } })
+    ctx.emit('agent/assistant-stream', {
+      agent,
+      frame: { type: 'chunk', attemptId, revision: 2, index: 0, time: 4,
+        chunk: { type: 'tool-call-delta', index: 0, id: ToolCallId('live-probe'), name: 'grill_probe', argumentsDelta: secret } },
+    })
+    const iterator = history.follow({ address: { kind: 'session', sessionId: session.id }, assistantStream: true }, abort.signal)[Symbol.asyncIterator]()
+    const opening = await iterator.next()
+    expect(JSON.stringify(opening.value)).not.toContain(secret)
+    expect(opening.value).toMatchObject({ type: 'snapshot', assistantStream: { activeAttempt: { nextIndex: 1 } } })
+    const openingFrame = opening.value as SessionFollowFrame | undefined
+    if (openingFrame?.type === 'snapshot') {
+      for (const record of openingFrame.records) assertSessionWireEvent(record.event)
+    }
+
+    ctx.emit('agent/assistant-stream', {
+      agent,
+      frame: { type: 'chunk', attemptId, revision: 3, index: 1, time: 5,
+        chunk: { type: 'tool-call-delta', index: 0, id: ToolCallId('live-probe'), argumentsDelta: secret } },
+    })
+    expect(JSON.stringify((await iterator.next()).value)).not.toContain(secret)
+    appendExtension(session, 'errgrind/grill-conclude', { summary: 'Complete', newEvidence: [secret] })
+    expect((await iterator.next()).value).toMatchObject({ type: 'event', event: { type: 'browser/private', data: {} } })
+    abort.abort()
+    await iterator.next()
+    await ctx.fiber.dispose()
+  })
+
   it('opens an empty opted-in Assistant baseline before any live attempt exists', async () => {
     const { ctx } = await harness()
     const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
@@ -119,6 +199,42 @@ describe('Session history raw journal', () => {
     abort.abort()
     await iterator.next()
     await ctx.fiber.dispose()
+  })
+
+  it('keeps the opted-in opening baseline empty when browser Assistant streams are hidden', async () => {
+    const { ctx } = await harness()
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
+    const agent = { id: session.id, session, status: 'running', ctx } as Agent
+    const history = new SessionHistoryController(
+      ctx,
+      (observation) => { observation[Symbol.dispose]() },
+      { hideAssistantStream: true },
+    )
+    const abort = new AbortController()
+    const iterator = history.follow({
+      address: { kind: 'session', sessionId: session.id },
+      assistantStream: true,
+    }, abort.signal)[Symbol.asyncIterator]()
+
+    try {
+      await expect(iterator.next()).resolves.toMatchObject({
+        done: false,
+        value: { type: 'snapshot', assistantStream: { revision: 0 } },
+      })
+
+      ctx.emit('agent/assistant-stream', {
+        agent,
+        frame: {
+          type: 'start', attemptId: LlmAttemptId('hidden-browser-stream'), revision: 1,
+          turn: 1, step: 1,
+        },
+      })
+      const next = iterator.next()
+      const durable = session.append('turn/start', { turn: 1 })
+      await expect(next).resolves.toEqual({ done: false, value: { type: 'event', event: durable } })
+    } finally {
+      await disposeFollow(ctx, iterator, abort)
+    }
   })
 
   it('filters foreign and opening-baseline frames buffered during the source observation', async () => {

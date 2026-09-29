@@ -84,6 +84,8 @@ export interface DeepSeekConnectionOptions {
 
 /** Constructor options for {@link DeepSeekAdapter}: the operation-local resolution hooks the plugin owns. */
 export interface DeepSeekAdapterOptions {
+  /** Suppress keyless model choices in product selectors while keeping the route mounted. */
+  hideModelsWithoutCredential?: () => boolean
   /** Report unusable native Messages replay metadata without exposing content or signatures. */
   onReplayDegrade?: (detail: { provider: string; model: string; reason: string }) => void
   /** Current validated connection facts; called once per operation. */

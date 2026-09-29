@@ -399,8 +399,19 @@ declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
     /** Browser prompt correlation and optional Host-validated time zone. */
     'user-rpc': { kind: 'user'; rpcId: SessionRequestId; clientTimeZone?: string }
+    /** Host-copied Drill Error context, never claimed as new learner-authored input. */
+    'errgrind-derived-error': { kind: 'errgrind-derived-error'; sourceSessionId: SessionId; preparationId: string }
   }
 }
+
+/** Request to open an incorrect Drill attempt as its own recoverable Error Session. */
+export interface DerivedErrorOpenRequest {
+  readonly sourceSessionId: SessionId
+  readonly preparationId: string
+}
+
+/** Stable target identity returned by retry-safe derived Error materialization. */
+export interface DerivedErrorOpenValue { readonly sessionId: SessionId }
 
 /** Durable identity selecting an ordinary Session or one direct subagent child. */
 export type SessionAddress =

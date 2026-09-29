@@ -29,6 +29,33 @@ function clientDocumentTitle(): Plugin {
   }
 }
 
+/** Emit fork-owned browser identity only for the ErrGrind client build. */
+function errgrindBrowserIdentity(): Plugin {
+  return {
+    name: 'errgrind-browser-identity',
+    transformIndexHtml(html) {
+      if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'errgrind') return html
+      for (const name of ['/manifest.webmanifest', '/favicon-dark.svg', '/favicon.svg']) {
+        if (!html.includes(name)) throw new Error(`ErrGrind Web identity: missing ${name} in index.html`)
+      }
+      return html
+        .replace('/manifest.webmanifest', '/errgrind-manifest.webmanifest')
+        .replace('/favicon-dark.svg', '/errgrind-favicon.svg')
+        .replace('/favicon.svg', '/errgrind-favicon.svg')
+    },
+    async generateBundle() {
+      if (process.env.DSH_CLIENT_BUILD_PROFILE !== 'errgrind') return
+      const assets = [
+        ['errgrind-manifest.webmanifest', '../../errgrind-fork/assets/manifest.webmanifest'],
+        ['errgrind-favicon.svg', '../../errgrind-fork/assets/favicon.svg'],
+      ] as const
+      for (const [fileName, path] of assets) {
+        this.emitFile({ type: 'asset', fileName, source: await readFile(src(path)) })
+      }
+    },
+  }
+}
+
 /** Fail before a Vite dev or preview server can expose the boot-manifest-free shell. */
 function rejectStandaloneServe(): Plugin {
   return {
@@ -156,7 +183,7 @@ export default defineConfig({
   // directory, and the served index resolves identically from the site root.
   base: './',
   plugins: [
-    rejectStandaloneServe(), clientDocumentTitle(), react(), emitPreviewPage(),
+    rejectStandaloneServe(), clientDocumentTitle(), errgrindBrowserIdentity(), react(), emitPreviewPage(),
     productWebBundleIsolation(src('../..'), src('.')),
   ],
   build: {

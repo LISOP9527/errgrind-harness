@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, expect, it, type TestContext } from 'vitest'
@@ -44,6 +44,16 @@ function repository(test: TestContext) {
 }
 
 describe('maintained repository reference policy', () => {
+  it('preserves only the byte-sealed imported fork decision, not edited or adjacent files', () => {
+    const file = 'errgrind-fork/history/python-product-2026-09-27/design/decisions/2026-09-23-error-episode-and-agent-fork.md.txt'
+    const source = readFileSync(new URL('../' + file, import.meta.url), 'utf8')
+    const identifiers = new Set(source.match(/(?<![a-z0-9])[\da-f]{7,40}(?![a-z0-9])/gi) ?? [])
+    expect(identifiers.size).toBeGreaterThan(0)
+    expect(findRepositoryReferences(file, source, identifiers)).toEqual([])
+    expect(findRepositoryReferences(file, source + '\n', identifiers).length).toBeGreaterThan(0)
+    expect(findRepositoryReferences(file + '.copy', source, identifiers).length).toBeGreaterThan(0)
+  })
+
   it('permits only the independent kit repository and its source URLs', () => {
     for (const suffix of ['', '.git', '/tree/main/packages/entry']) {
       expect(findRepositoryReferences('package.json', `${organizationUrl}/libreoffice-kit${suffix}`, new Set())).toEqual([])

@@ -34,6 +34,9 @@ import type {
   SessionWireEvent,
 } from './types.ts'
 import { SessionAssistantStreamAccumulator } from './assistant-stream.ts'
+import {
+  browserAssistantBaseline, browserChunk, browserEvent, browserProjectionValues, type BrowserViewPolicy,
+} from './browser-view.ts'
 
 const DEFAULT_MAX_MESSAGES = 50
 const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
@@ -50,18 +53,21 @@ export class SessionHistoryController {
   constructor(
     private readonly ctx: Context,
     private readonly promote: (observation: SessionObservation) => void,
+    private readonly browserView?: BrowserViewPolicy,
   ) {
-    ctx.on('agent/assistant-stream', ({ agent, frame }) => {
-      let stream = this.assistantStreams.get(agent.session.id)
-      if (stream === undefined) {
-        stream = new SessionAssistantStreamAccumulator()
-        this.assistantStreams.set(agent.session.id, stream)
-      }
-      stream.accept(frame, cursorBeforeNext(agent.session.seq))
-    }, { global: true })
-    ctx.on('agent/disposed', ({ agent }) => {
-      this.assistantStreams.delete(agent.session.id)
-    }, { global: true })
+    if (browserView?.hideAssistantStream !== true) {
+      ctx.on('agent/assistant-stream', ({ agent, frame }) => {
+        let stream = this.assistantStreams.get(agent.session.id)
+        if (stream === undefined) {
+          stream = new SessionAssistantStreamAccumulator()
+          this.assistantStreams.set(agent.session.id, stream)
+        }
+        stream.accept(frame, cursorBeforeNext(agent.session.seq))
+      }, { global: true })
+      ctx.on('agent/disposed', ({ agent }) => {
+        this.assistantStreams.delete(agent.session.id)
+      }, { global: true })
+    }
     ctx.effect(() => () => {
       for (const close of this.closeFollowers) close()
       this.closeFollowers.clear()
@@ -104,7 +110,7 @@ export class SessionHistoryController {
       throughSeq,
       request.turnWindow,
     )
-    const records = pageRecords(page.events)
+    const records = pageRecords(page.events, this.browserView)
     return {
       records,
       hasMore: page.hasMore,
@@ -162,13 +168,14 @@ export class SessionHistoryController {
       }
       notify()
     }, { global: true })
-    const disposeAssistantStream = request.assistantStream !== true
+    const exposeAssistantStream = request.assistantStream === true && this.browserView?.hideAssistantStream !== true
+    const disposeAssistantStream = !exposeAssistantStream
       ? undefined
       : this.ctx.on('agent/assistant-stream', ({ agent, frame }) => {
         if (agent.session.id !== target) return
         buffered.pushBack({
           type: 'assistant-stream',
-          frame: wireAssistantStreamFrame(frame, cursorBeforeNext(agent.session.seq)),
+          frame: wireAssistantStreamFrame(frame, cursorBeforeNext(agent.session.seq), this.browserView),
           ordinal: ++assistantStreamOrdinal,
         })
         notify()
@@ -182,9 +189,11 @@ export class SessionHistoryController {
       const cursor = source.cursor
       snapshotCursor = cursor
       const page = paginate(events, undefined, request.maxMessages ?? DEFAULT_MAX_MESSAGES, cursor, request.turnWindow)
-      const assistantStream = request.assistantStream === true
-        ? this.assistantStreams.get(target)?.snapshot() ?? { revision: 0 }
-        : undefined
+      const assistantStream = request.assistantStream !== true
+        ? undefined
+        : exposeAssistantStream
+          ? this.assistantStreams.get(target)?.snapshot() ?? { revision: 0 }
+          : { revision: 0 }
       // The accumulator snapshot and this watermark are synchronous. Frames
       // through the cut are represented or superseded by that baseline,
       // including larger revisions from a retired Agent; later revision
@@ -194,12 +203,16 @@ export class SessionHistoryController {
         type: 'snapshot',
         header: wireHeader(source.header),
         cursor,
-        records: pageRecords(page.events),
+        records: pageRecords(page.events, this.browserView),
         hasMore: page.hasMore,
         projections: source.projections === undefined
           ? { asOfSeq: cursor, values: {} }
-          : projectionBlock(source.projections),
-        ...assistantStream === undefined ? {} : { assistantStream },
+          : projectionBlock(source.projections, this.browserView),
+        ...assistantStream === undefined ? {} : {
+          assistantStream: this.browserView === undefined
+            ? assistantStream
+            : browserAssistantBaseline(assistantStream, this.browserView),
+        },
       }
       if (address.kind === 'session' && source.source === 'prepared') {
         const promotion = source.retain()
@@ -229,7 +242,7 @@ export class SessionHistoryController {
           throw new RemoteError('gateway/internal', `session event stream skipped seq ${String(expectedSeq)}`, {})
         }
         nextOffset = SessionLogOffset(nextOffset + 1)
-        yield entryFor(item.event)
+        yield entryFor(item.event, this.browserView)
       }
     } finally {
       this.closeFollowers.delete(close)
@@ -283,22 +296,25 @@ function cursorBeforeNext(nextSeq: SessionLogOffsetType): SessionSeqCursor {
 function wireAssistantStreamFrame(
   frame: AssistantStreamFrame,
   durableCursor: SessionSeqCursor,
+  browserView?: BrowserViewPolicy,
 ): SessionAssistantStreamFrame {
   if (frame.type === 'start') return { ...frame, startedAfterSeq: durableCursor }
   if (frame.type === 'end') return frame
   return {
     ...frame,
-    chunk: frame.chunk as JsonValue,
+    chunk: (browserView === undefined ? frame.chunk : browserChunk(frame.chunk, browserView)) as JsonValue,
   }
 }
 
 function projectionBlock(
   snapshot: NonNullable<SessionObservation['projections']>,
+  browserView?: BrowserViewPolicy,
 ): SessionProjectionBaseline {
   return {
     asOfSeq: snapshot.asOfSeq,
-    // Projection definitions validate whole JSON values before snapshot publication.
-    values: snapshot.values as SessionProjectionValues,
+    // Projection definitions validate values before publication; the browser
+    // policy then removes capabilities that this product does not expose.
+    values: browserProjectionValues(snapshot.values, browserView) as SessionProjectionValues,
   }
 }
 
@@ -431,15 +447,15 @@ function wireHeader(header: SessionHeader): SessionWireHeader {
   return { ...header }
 }
 
-function entryFor(event: SessionEvent): SessionEventEntry {
+function entryFor(event: SessionEvent, browserView?: BrowserViewPolicy): SessionEventEntry {
   return {
     type: 'event',
     // Session.append validates and freezes event data as JSON before publication.
-    event: event as unknown as SessionWireEvent,
+    event: browserView === undefined ? event as unknown as SessionWireEvent : browserEvent(event, browserView),
   }
 }
 
 /** Encode one bounded logical page without changing its pagination cut. */
-function pageRecords(events: readonly SessionEvent[]): SessionHistoryRecord[] {
-  return events.map(entryFor)
+function pageRecords(events: readonly SessionEvent[], browserView?: BrowserViewPolicy): SessionHistoryRecord[] {
+  return events.map(event => entryFor(event, browserView))
 }

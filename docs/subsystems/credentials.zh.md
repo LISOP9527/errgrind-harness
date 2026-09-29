@@ -59,6 +59,10 @@ PlatformSession 是 getPlatformSession 返回的仅限 Host 快照：origin 指�
 
 AccountDetails.balance 将充值钱包投影为 value、赠送钱包投影为 bonusWallets，分别保留币种和十进制余额字符串。查询失败不包含钱包数组。
 
+## ErrGrind Codex 设备码登录
+
+ErrGrind Web 授权控制器只开放固定的 `llm-pi-ai/openai-codex` 流程。`CodexAuthStatus` 报告流程是否可用、是否存在已存 OAuth 授权、是否正在运行以及当前阶段。`CodexAuthNotice` 只包含固定的验证网址和长度受限的用户代码。访问令牌和刷新令牌仍保存在 Host 凭据库中；浏览器不能选择其他凭据，也不能回答秘密提示。交互和取消行为见[控制器](../../packages/api/settings-controller/README.zh.md)。
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -127,6 +131,38 @@ async begin(request: AuthorizationRequest): Promise<AuthorizationOutcome>
 ```
 
 Source: [`packages/credentials/authorization/src/index.ts`](../../packages/credentials/authorization/src/index.ts)
+
+<a id="ctxcodexauthcontroller--codexauthcontroller"></a>
+
+### `ctx.codexAuthController` — `CodexAuthController`
+
+Host Remote owner for the fixed `errgrindCodexAuth` namespace.
+
+```ts cordis-catalog
+/**
+ * Read whether the fixed device-code flow is available and its safe lifecycle state.
+ * @returns no credential or authorization payload.
+ */
+@Remote async status(): Promise<CodexAuthStatus>
+
+/**
+ * Start the fixed Codex OAuth flow and return immediately; callers poll `notices` and `status`.
+ * @returns whether this call admitted a new attempt.
+ */
+@Remote beginDeviceCode(): { readonly started: boolean }
+
+/**
+ * Poll only validated device-code instructions emitted by this attempt.
+ * @param after - last notice id already displayed by the caller.
+ * @returns bounded safe notices and the latest cursor.
+ */
+@Remote noticesAfter(after: number): { readonly notices: readonly CodexAuthNotice[]; readonly next: number }
+
+/** Cancel the in-flight attempt for the fixed credential key. */
+@Remote cancel(): void
+```
+
+Source: [`packages/api/settings-controller/src/codex-auth.ts`](../../packages/api/settings-controller/src/codex-auth.ts)
 
 <a id="ctxcredentials--credentialprovider-abstract-seam"></a>
 

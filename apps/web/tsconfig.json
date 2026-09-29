@@ -28,6 +28,8 @@
     "tests/diff-context.e2e.ts",
     "tests/code-card-layout.e2e.ts",
     "tests/scaffold.ts",
+    "tests/errgrind-image-receipt.e2e.ts",
+    "tests/errgrind-multiturn-replay.e2e.ts",
     "tests/voice-input.e2e.ts",
     "tests/voice-setup.e2e.ts",
     "tests/voice-download.e2e.ts",

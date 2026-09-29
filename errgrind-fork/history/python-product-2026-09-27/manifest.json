@@ -1,0 +1,310 @@
+{
+  "captured_on": "2026-09-27",
+  "source_repository": "errgrind (Python/React)",
+  "source_head": "9cb49a4da1f92810fd44e11f86663231a97f16eb",
+  "source_worktree_used": true,
+  "scope": "design/**/*.md, prompts/*.md, AGENTS.md, todo.md; root README.md included to preserve linked product context",
+  "files": [
+    {
+      "source": "AGENTS.md",
+      "snapshot": "AGENTS.md.txt",
+      "sha256": "c1151f42a944fabc1ae484379f3b47dfcbd06b8de30f340fbbc6307d2ccace57",
+      "disposition": "通用工作规则承接；Python 专属指令仅归档",
+      "current_owner": "../../design/engineering-principles.md"
+    },
+    {
+      "source": "README.md",
+      "snapshot": "README.md.txt",
+      "sha256": "d4aeb08e2d13166980ed4d5fe913927f25cd92a49df232cafe4ab908278f900e",
+      "disposition": "历史资料；不作为 Harness 的运行规则",
+      "current_owner": ""
+    },
+    {
+      "source": "design/README.md",
+      "snapshot": "design/README.md.txt",
+      "sha256": "5a5a9f676404de724ebe417af923f58d059bc9388163a12392dc4bba1b58468c",
+      "disposition": "旧索引归档；现行索引已建立",
+      "current_owner": "../../design/README.md"
+    },
+    {
+      "source": "design/core-principles.md",
+      "snapshot": "design/core-principles.md.txt",
+      "sha256": "e14bd3f077b5f41db8208081e406a32592cabf1a0eb42ae8232737487d748c74",
+      "disposition": "长期设计已完整迁入并标明旧实现范围",
+      "current_owner": "../../design/research/core-principles.md"
+    },
+    {
+      "source": "design/decisions/2026-07-27-conversation-lifecycle.md",
+      "snapshot": "design/decisions/2026-07-27-conversation-lifecycle.md.txt",
+      "sha256": "b13b0f53544a3021cc580f406c53ba2f433c18bc2c527589066fc62c64a1996f",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-07-27-terminal-content-rendering.md",
+      "snapshot": "design/decisions/2026-07-27-terminal-content-rendering.md.txt",
+      "sha256": "ec4af80a179ee061f83f3c5fe37e388032c735ac0d5d53bde77cd3d106017758",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-07-28-drill-spec-isolation.md",
+      "snapshot": "design/decisions/2026-07-28-drill-spec-isolation.md.txt",
+      "sha256": "97f2a4c64f29ebbc5682f894ac252bb8e12e19442dc55e63328a542ecaac9c46",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-08-29-codex-app-server-provider.md",
+      "snapshot": "design/decisions/2026-08-29-codex-app-server-provider.md.txt",
+      "sha256": "b5d5ade3d300b0147dfc6ce6c1a1127bed1f8befe29dd3c7bd7840b189d7cf11",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-08-31-ocr-as-reviewed-input.md",
+      "snapshot": "design/decisions/2026-08-31-ocr-as-reviewed-input.md.txt",
+      "sha256": "d6f4c79ba3a48677435ebab206a20a9f219907a1499ce393c8cdf5d3065592f8",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-01-evidence-provenance-drill-ledger.md",
+      "snapshot": "design/decisions/2026-09-01-evidence-provenance-drill-ledger.md.txt",
+      "sha256": "c65e5ba1cf12edebe150972dc4954a783d8389225c62b50116439c5c80bb5eba",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-02-defer-pattern-observation-validation.md",
+      "snapshot": "design/decisions/2026-09-02-defer-pattern-observation-validation.md.txt",
+      "sha256": "389efaab5d934d0890ea4cf6fc8dfea0ac0bfc021a093dfd5b6df99fc7e6e9dc",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-03-application-workflow-boundary.md",
+      "snapshot": "design/decisions/2026-09-03-application-workflow-boundary.md.txt",
+      "sha256": "78ed43ce6ce1aceb0407a756ff6ae052bbbe39617d0e77d489d5a56e1c53e7c4",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-04-grill-as-active-diagnosis.md",
+      "snapshot": "design/decisions/2026-09-04-grill-as-active-diagnosis.md.txt",
+      "sha256": "a86ff437c4754d8508f032288ed2084618a84823e7f4259ec715090af738fb6a",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-04-structured-grill-diagnosis-and-variant-probes.md",
+      "snapshot": "design/decisions/2026-09-04-structured-grill-diagnosis-and-variant-probes.md.txt",
+      "sha256": "723612d093313de25086b14f72bcd96b15948762ee647d08a703f816c684571f",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-05-retrospective-grill-and-post-interference-boundary.md",
+      "snapshot": "design/decisions/2026-09-05-retrospective-grill-and-post-interference-boundary.md.txt",
+      "sha256": "3c7eaab17801d52b6290e3482a0419aade59181baf0fda9e534a460aac4f1eb0",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-06-record-field-image-input.md",
+      "snapshot": "design/decisions/2026-09-06-record-field-image-input.md.txt",
+      "sha256": "dd789b44bf7c06e6e70fb095b85318196fa78ebce73ab758ab9f9dcc1cf0c702",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-07-codex-direct-responses.md",
+      "snapshot": "design/decisions/2026-09-07-codex-direct-responses.md.txt",
+      "sha256": "0ea34a20b85fa2f216d5b894039b7d127b4e4ea143a4ee5791172ff6d34f2ed9",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-08-drill-answer-ocr.md",
+      "snapshot": "design/decisions/2026-09-08-drill-answer-ocr.md.txt",
+      "sha256": "9bc6ed7b15b417a53910cc2a1ae31726750213dfd4d7d18886554eba73e72910",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-08-drill-target-query-and-verdict.md",
+      "snapshot": "design/decisions/2026-09-08-drill-target-query-and-verdict.md.txt",
+      "sha256": "fffb23b4658d830540fe0e90964f1a5ec961d4057cf75bb9fb830e42bcfb3d41",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-08-model-usage-logging.md",
+      "snapshot": "design/decisions/2026-09-08-model-usage-logging.md.txt",
+      "sha256": "c4ddbe0d9ad98b76f831f777cff9bfca39453c213003c40c891a9e197a221967",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-10-single-workspace-webui.md",
+      "snapshot": "design/decisions/2026-09-10-single-workspace-webui.md.txt",
+      "sha256": "73ede2af896f4502739d84d3669ffc9a93dae8a90c2808b85a2bf29db2f63f59",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-11-direct-multimodal-web-input.md",
+      "snapshot": "design/decisions/2026-09-11-direct-multimodal-web-input.md.txt",
+      "sha256": "9b5b2db61f699349801fc2c131efe805cc275eec3c7f9d6f35e7f0a804c608e3",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-14-assistant-ui-migration.md",
+      "snapshot": "design/decisions/2026-09-14-assistant-ui-migration.md.txt",
+      "sha256": "ded246134ad59113ea1fa17e76dcb1836e30f3f40322cc1e352b7427cbedd9d7",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-14-assistant-ui-spike.md",
+      "snapshot": "design/decisions/2026-09-14-assistant-ui-spike.md.txt",
+      "sha256": "f4bf539431e80ee1446b694d5d797fd36b7ca395e4a23caffd84b5827d319309",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-14-web-settings.md",
+      "snapshot": "design/decisions/2026-09-14-web-settings.md.txt",
+      "sha256": "e2030dd8e479d5b516c090b605ef8d28f3163508dbfddcdef68124ae0c7df340",
+      "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
+      "current_owner": "../../design/migration.md"
+    },
+    {
+      "source": "design/decisions/2026-09-23-error-episode-and-agent-fork.md",
+      "snapshot": "design/decisions/2026-09-23-error-episode-and-agent-fork.md.txt",
+      "sha256": "c445f6f76ed876e06226a1a733ea75a5f9f31a23b2fc9b32bb9bfd655e306885",
+      "disposition": "原始 fork 决策保留；后续共同确认规则以当前契约为准",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "design/decisions/README.md",
+      "snapshot": "design/decisions/README.md.txt",
+      "sha256": "8e5a29efa0720dba93a2137c93a053047c32806aa3bb2e49d847043c48dbe088",
+      "disposition": "旧索引归档；现行索引已建立",
+      "current_owner": "../../design/README.md"
+    },
+    {
+      "source": "design/evaluation-strategy.md",
+      "snapshot": "design/evaluation-strategy.md.txt",
+      "sha256": "cbe283d1c61fbbf19de707283dbd5b562a8c4e7d9b4a1997e7907a18af42171b",
+      "disposition": "长期设计已完整迁入并标明旧实现范围",
+      "current_owner": "../../design/research/evaluation-strategy.md"
+    },
+    {
+      "source": "design/long-term-architecture.md",
+      "snapshot": "design/long-term-architecture.md.txt",
+      "sha256": "075f5d5b1fd6ba3a575bdc6b811b8e7707995dd55cec41839129ccec0776535a",
+      "disposition": "长期设计已完整迁入并标明旧实现范围",
+      "current_owner": "../../design/research/long-term-architecture.md"
+    },
+    {
+      "source": "design/pattern-state-proposal.md",
+      "snapshot": "design/pattern-state-proposal.md.txt",
+      "sha256": "0da7ab2be391f6f8a1b2bb758ebd826dbef3e2fe3293c21ba731a7de32d3f64c",
+      "disposition": "长期设计已完整迁入并标明旧实现范围",
+      "current_owner": "../../design/research/pattern-state-proposal.md"
+    },
+    {
+      "source": "design/record-input.md",
+      "snapshot": "design/record-input.md.txt",
+      "sha256": "3debc23499cda6dbbd05ea92d56565e42c68b340f4b83d02490e960038659511",
+      "disposition": "Core/UI 解耦及原始附件来源承接；旧三字段/SQLite 实现仅归档",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "design/ui-decoupling.md",
+      "snapshot": "design/ui-decoupling.md.txt",
+      "sha256": "25e6cc182bfed5d8d7f2fb16f752740046e445a1bd7ca18f8aa2e7227135fa5a",
+      "disposition": "Core/UI 解耦及原始附件来源承接；旧三字段/SQLite 实现仅归档",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "design/version-plan.md",
+      "snapshot": "design/version-plan.md.txt",
+      "sha256": "564e75eb9041159dbcf1eaba8c9014c5da0bdb6d12e984b0f953643fcb1218fb",
+      "disposition": "长期设计已完整迁入并标明旧实现范围",
+      "current_owner": "../../design/research/version-plan.md"
+    },
+    {
+      "source": "prompts/drill.md",
+      "snapshot": "prompts/drill.md.txt",
+      "sha256": "b05b33c8d9c191db5099021d175f4b74cee83b36388430521e55b0bc3cb9e367",
+      "disposition": "按现行 Prompt 迁移表承接或替代；原文不加载",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "prompts/drill_spec.md",
+      "snapshot": "prompts/drill_spec.md.txt",
+      "sha256": "0388a6a9b73803e283e220ab6bfdb4d896cc0b9e5bcc7cf33430b256717e4090",
+      "disposition": "按现行 Prompt 迁移表承接或替代；原文不加载",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "prompts/grilling.md",
+      "snapshot": "prompts/grilling.md.txt",
+      "sha256": "91ec631ea795e7ac4275b75e205edb7ba2335e757e4090e1e74d909738d0a7bf",
+      "disposition": "按现行 Prompt 迁移表承接或替代；原文不加载",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "prompts/judge.md",
+      "snapshot": "prompts/judge.md.txt",
+      "sha256": "35ab0170819de8b7e2c9a07383b7e8d94254a0e9729c08e8a11a5b561622cf81",
+      "disposition": "按现行 Prompt 迁移表承接或替代；原文不加载",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "prompts/ocr.md",
+      "snapshot": "prompts/ocr.md.txt",
+      "sha256": "3a72ff34d0b559274da4a1fab9ef16c30c84532305a8719dc6b8aeb4ca04daf5",
+      "disposition": "按现行 Prompt 迁移表承接或替代；原文不加载",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "prompts/ocr_field.md",
+      "snapshot": "prompts/ocr_field.md.txt",
+      "sha256": "199a3f1bdbb541b73ea80385b2fa6d4e25978b968475c31108f09fbeb8c4bfa0",
+      "disposition": "按现行 Prompt 迁移表承接或替代；原文不加载",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "prompts/ocr_record_input.md",
+      "snapshot": "prompts/ocr_record_input.md.txt",
+      "sha256": "2b9a7f40952c8c3cdb8bc2dd65f7bf44ac31d3407452a227537d98668d611893",
+      "disposition": "按现行 Prompt 迁移表承接或替代；原文不加载",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "prompts/record_draft.md",
+      "snapshot": "prompts/record_draft.md.txt",
+      "sha256": "33d8bbbf75523b2541a4e44806ec625afaae4748b86d1f863c96ce6e3b20de8d",
+      "disposition": "按现行 Prompt 迁移表承接或替代；原文不加载",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "prompts/teach.md",
+      "snapshot": "prompts/teach.md.txt",
+      "sha256": "38374177a70bd23669ceb54a9564192d7cebf8371ca9dd8c34f898100d4951a8",
+      "disposition": "按现行 Prompt 迁移表承接或替代；原文不加载",
+      "current_owner": "../../design/product-contract.md"
+    },
+    {
+      "source": "todo.md",
+      "snapshot": "todo.md.txt",
+      "sha256": "04f6d7cd9d66e737691e654127ceb0d75fef99c24fdb1463bdd4793bb27b42dd",
+      "disposition": "旧验证记录归档；未决质量问题转入现行待办，不继承旧通过结论",
+      "current_owner": "../../todo.md"
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  color: var(--dsw-alias-label-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem 0.5rem;
+}
+
+.header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.count {
+  min-width: 1.4rem;
+  padding: 0.125rem 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.searchLabel {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0 0.75rem 0.65rem;
+  color: color-mix(in srgb, currentColor 72%, transparent);
+  font-size: 0.75rem;
+}
+
+.searchLabel span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+/* An editable ErrGrind composer means the workspace was selected. */
+:global([data-conversation-content]:has([data-composer-input][contenteditable="true"]) [data-hero-workspace-picker]) {
+  display: none;
+}
+
+.searchLabel input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.2rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid color-mix(in srgb, currentColor 17%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  color: inherit;
+  font: inherit;
+}
+
+.list {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.45rem;
+  overflow: auto;
+  padding: 0.15rem 0.55rem 0.75rem;
+}
+
+.card {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, currentColor 3%, transparent);
+}
+
+.openButton,
+.practiceButton,
+.unknownButton,
+.railButton {
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.unknownButton {
+  padding: 0.65rem;
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.openButton {
+  display: grid;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.2rem;
+  background: transparent;
+  text-align: left;
+}
+
+.description {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  font-size: 0.84rem;
+}
+
+.status {
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  font-size: 0.72rem;
+}
+
+.practiceButton {
+  min-height: 2rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, var(--accent, #8aa4ff) 18%, transparent);
+  text-align: left;
+  font-size: 0.78rem;
+}
+
+.practiceButton:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+.empty,
+.notice {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.notice {
+  margin: 0 0.65rem 0.45rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+}
+
+.railButton {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 2.75rem;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.openButton:focus-visible,
+.practiceButton:focus-visible,
+.unknownButton:focus-visible,
+.railButton:focus-visible,
+.searchLabel input:focus-visible {
+  outline: 2px solid var(--accent, #8aa4ff);
+  outline-offset: 2px;
+}

@@ -2,6 +2,7 @@
 
 import { AsyncLocalStorage } from 'node:async_hooks'
 import type { Context } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
 import type { SaveImageAttachment } from '@deepseek-ai/dsh-attachment'
 import type {} from '@deepseek-ai/dsh-commands'
 import type {} from '@deepseek-ai/dsh-session-projection'
@@ -15,17 +16,53 @@ import type {
   DiagnosticLedger,
   ErrorAttachment,
   ErrorEpisode,
+  ErrorListEntry,
   Hypothesis,
   HypothesisStatus,
   InputProvenance,
+  PendingDiagnosisConclusion,
 } from './types.ts'
+import { applyDrill } from './drill.ts'
+import { loadToolPrompts } from './tool-prompts.ts'
 
 export type * from './types.ts'
+export type * from './drill.ts'
 
 export const name = 'errgrind-episode'
 export const inject = ['sessionProjections', 'tools', 'commands']
 
+/** Product-specific command visibility. */
+export interface Config {
+  /** Register the diagnostic ledger inspection command; enabled for core and disabled in browser products. */
+  readonly statusCommand?: boolean
+}
+
+/** Loader-validated ErrGrind plugin configuration. */
+export const Config: z<Config> = z.object({ statusCommand: z.boolean().default(true) })
+
+const errorListEntrySchema: ZodType<ErrorListEntry | null> = zod.object({
+  description: zod.string().nullable(),
+  status: zod.enum(['grill', 'confirm', 'teach']),
+  drillEligible: zod.boolean(),
+}).strict().nullable()
+
+/** Expose only the learner-facing Error description and coarse workflow state. */
+export function publicErrorListEntry(episode: ErrorEpisode | null): ErrorListEntry | null {
+  if (episode === null) return null
+  const drillEligible = episode.diagnosis.status !== 'active'
+    && !episode.diagnosis.stale
+    && episode.confirmedRevision !== null
+    && episode.confirmedRevision === episode.diagnosis.anchoredRevision
+  const status = drillEligible ? 'teach' : episode.pendingConclusion !== null ? 'confirm' : 'grill'
+  const description = episode.draft?.text === undefined
+    ? null
+    : Array.from(episode.draft.text).slice(0, 300).join('')
+  return { description, status, drillEligible }
+}
+
 const MAX_DESCRIPTION_CHARS = 12_000
+const MAX_CLARIFICATION_CHARS = 4_000
+const MAX_TEACH_STEP_CHARS = 4_000
 const HYPOTHESIS_ID_PATTERN = /^H[1-9][0-9]*$/
 const PROBE_ID_PATTERN = /^P[1-9][0-9]*$/
 const EVIDENCE_ID_PATTERN = /^E[1-9][0-9]*$/
@@ -78,6 +115,16 @@ const diagnosticLedgerSchema = zod.object({
   stale: zod.boolean(),
 }).strict()
 
+const pendingConclusionSchema = zod.object({
+  status: zod.enum(['supported', 'undetermined']),
+  summary: zod.string().min(1),
+  bestHypothesisId: zod.string().nullable(),
+  remainingUncertainty: zod.string(),
+  whatWouldChangeJudgment: zod.string(),
+  turn: zod.number().int().positive(),
+  anchorRevision: zod.number().int().positive(),
+}).strict()
+
 const attachmentSchema = zod.object({
   sha256: zod.string(),
   mediaType: zod.string(),
@@ -88,10 +135,13 @@ const attachmentSchema = zod.object({
 }).strict()
 
 const provenanceSchema = zod.object({
-  kind: zod.enum(['direct_user', 'host_relay']),
+  kind: zod.enum(['direct_user', 'host_relay', 'derived_drill']),
   rpcId: zod.string().optional(),
   clientTimeZone: zod.string().optional(),
   senderSessionId: zod.string().optional(),
+  sourceSessionId: zod.string().optional(),
+  sourcePreparationId: zod.string().optional(),
+  sourceAnswerRef: zod.string().optional(),
 }).strict()
 
 const episodeSchema: ZodType<ErrorEpisode | null> = zod.union([
@@ -111,6 +161,11 @@ const episodeSchema: ZodType<ErrorEpisode | null> = zod.union([
       diagnosisRound: zod.number().int().positive(),
     }).strict()),
     diagnosis: diagnosticLedgerSchema,
+    pendingConclusion: pendingConclusionSchema.nullable(),
+    derivedContextConsumed: zod.boolean(),
+    teachStartedAtTurn: zod.number().int().positive().nullable(),
+    drillStartedAtTurn: zod.number().int().positive().nullable(),
+    pendingClarification: zod.boolean(),
   }).strict(),
   zod.null(),
 ])
@@ -132,6 +187,22 @@ export function initialDiagnosticLedger(): DiagnosticLedger {
     summary: null,
     concludedAtTurn: null,
     anchoredRevision: null,
+    stale: false,
+  }
+}
+
+/** Commit a validated proposal when the learner confirms its exact Error description revision. */
+function completeDiagnosis(ledger: DiagnosticLedger, proposal: PendingDiagnosisConclusion): DiagnosticLedger {
+  return {
+    ...ledger,
+    status: proposal.status,
+    currentProbeId: null,
+    bestHypothesisId: proposal.bestHypothesisId,
+    remainingUncertainty: proposal.remainingUncertainty,
+    whatWouldChangeJudgment: proposal.whatWouldChangeJudgment,
+    summary: proposal.summary,
+    concludedAtTurn: proposal.turn,
+    anchoredRevision: proposal.anchorRevision,
     stale: false,
   }
 }
@@ -209,12 +280,30 @@ function mergeEvidence(
         if (!hypIds.has(hId)) throw new Error(`Evidence ${e.id} contradicts unknown hypothesis ${hId}`)
       }
       const source = sources.find(item => item.sourceRef === e.sourceRef)
-      if (source === undefined || source.diagnosisRound !== diagnosisRound
-        || source.probeId === null || source.probeId !== e.probeId) {
-        throw new Error(`Evidence ${e.id} must reference an actual user answer to its probe`)
-      }
-      if (e.quote === undefined || e.quote.trim().length === 0 || !source.text.includes(e.quote)) {
-        throw new Error(`Evidence ${e.id} quote must match the referenced user answer`)
+      if (source === undefined) throw new Error(`Evidence ${e.id} must reference recorded input`)
+      const isAttachment = source.sourceRef.includes('attachment:')
+      if (source.probeId === null) {
+        if (e.probeId !== undefined && e.probeId.length > 0) {
+          throw new Error(source.sourceRef.startsWith('initial-')
+            ? `Initial Evidence ${e.id} cannot claim a probe answer`
+            : `Evidence ${e.id} cannot claim a probe answer for a non-probe source`)
+        }
+        if (isAttachment) {
+          if (e.quote !== '') throw new Error(`Attachment Evidence ${e.id} must use an empty quote`)
+        } else if (e.quote === undefined || e.quote.trim().length === 0 || !source.text.includes(e.quote)) {
+          throw new Error(source.sourceRef.startsWith('initial-')
+            ? `Initial Evidence ${e.id} quote must match the recorded text`
+            : `Evidence ${e.id} quote must match the recorded text`)
+        }
+      } else {
+        if (source.diagnosisRound !== diagnosisRound || source.probeId !== e.probeId) {
+          throw new Error(`Evidence ${e.id} must reference an actual user answer to its probe`)
+        }
+        if (isAttachment) {
+          if (e.quote !== '') throw new Error(`Attachment Evidence ${e.id} must use an empty quote`)
+        } else if (e.quote === undefined || e.quote.trim().length === 0 || !source.text.includes(e.quote)) {
+          throw new Error(`Evidence ${e.id} quote must match the referenced user answer`)
+        }
       }
       ids.add(e.id)
       result.push(e)
@@ -222,6 +311,135 @@ function mergeEvidence(
   }
 
   return result
+}
+
+function extractUserEventSeq(sourceRef: string): number {
+  const match = sourceRef.match(/^user-event:(\d+)/)
+  return match ? Number(match[1]) : 0
+}
+
+/** Resolve model-friendly aliases to exact durable references before logging. */
+function resolveEvidenceAliases(
+  evidence: readonly DiagnosticEvidence[] | undefined,
+  sources: ErrorEpisode['evidenceSources'],
+  diagnosisRound: number,
+): DiagnosticEvidence[] | undefined {
+  if (!evidence) return undefined
+
+  return evidence.map((item) => {
+    const ref = item.sourceRef
+
+    if (ref === 'derived-answer') {
+      const exists = sources.some(s => s.sourceRef === 'derived-answer')
+      if (!exists) throw new Error('No persisted source is available for derived-answer')
+      return item
+    }
+
+    if (ref === 'latest-probe-answer') {
+      const probeSources = sources.filter(
+        s => s.probeId !== null && s.diagnosisRound === diagnosisRound && s.sourceRef.startsWith('user-event:'),
+      )
+      if (probeSources.length === 0) {
+        throw new Error('No persisted probe answer is available for latest-probe-answer')
+      }
+      const maxSeq = Math.max(...probeSources.map(s => extractUserEventSeq(s.sourceRef)))
+      const latestSources = probeSources.filter(s => extractUserEventSeq(s.sourceRef) === maxSeq)
+      const textSource = latestSources.find(s => !s.sourceRef.includes(':attachment:'))
+      const resolved = textSource ?? latestSources.find(s => s.sourceRef.includes(':attachment:'))
+      if (!resolved) {
+        throw new Error('No persisted probe answer is available for latest-probe-answer')
+      }
+      return { ...item, sourceRef: resolved.sourceRef }
+    }
+
+    const probeAttMatch = ref.match(/^latest-probe-attachment:([1-9][0-9]*)$/)
+    if (probeAttMatch) {
+      const n = probeAttMatch[1]
+      const probeSources = sources.filter(
+        s => s.probeId !== null && s.diagnosisRound === diagnosisRound && s.sourceRef.startsWith('user-event:'),
+      )
+      if (probeSources.length === 0) {
+        throw new Error(`No persisted probe answer is available for ${ref}`)
+      }
+      const maxSeq = Math.max(...probeSources.map(s => extractUserEventSeq(s.sourceRef)))
+      const targetRef = `user-event:${maxSeq}:attachment:${n}`
+      const attSource = probeSources.find(s => s.sourceRef === targetRef)
+      if (!attSource) {
+        throw new Error(`No persisted probe attachment ${n} is available for ${ref}`)
+      }
+      return { ...item, sourceRef: targetRef }
+    }
+
+    if (ref === 'latest-clarification-answer') {
+      const clarSources = sources.filter(
+        s => s.probeId === null && s.diagnosisRound === diagnosisRound && s.sourceRef.startsWith('user-event:'),
+      )
+      if (clarSources.length === 0) {
+        throw new Error('No persisted clarification answer is available for latest-clarification-answer')
+      }
+      const maxSeq = Math.max(...clarSources.map(s => extractUserEventSeq(s.sourceRef)))
+      const latestSources = clarSources.filter(s => extractUserEventSeq(s.sourceRef) === maxSeq)
+      const textSource = latestSources.find(s => !s.sourceRef.includes(':attachment:'))
+      const resolved = textSource ?? latestSources.find(s => s.sourceRef.includes(':attachment:'))
+      if (!resolved) {
+        throw new Error('No persisted clarification answer is available for latest-clarification-answer')
+      }
+      return { ...item, sourceRef: resolved.sourceRef }
+    }
+
+    const clarAttMatch = ref.match(/^latest-clarification-attachment:([1-9][0-9]*)$/)
+    if (clarAttMatch) {
+      const n = clarAttMatch[1]
+      const clarSources = sources.filter(
+        s => s.probeId === null && s.diagnosisRound === diagnosisRound && s.sourceRef.startsWith('user-event:'),
+      )
+      if (clarSources.length === 0) {
+        throw new Error(`No persisted clarification answer is available for ${ref}`)
+      }
+      const maxSeq = Math.max(...clarSources.map(s => extractUserEventSeq(s.sourceRef)))
+      const targetRef = `user-event:${maxSeq}:attachment:${n}`
+      const attSource = clarSources.find(s => s.sourceRef === targetRef)
+      if (!attSource) {
+        throw new Error(`No persisted clarification attachment ${n} is available for ${ref}`)
+      }
+      return { ...item, sourceRef: targetRef }
+    }
+
+    return item
+  })
+}
+
+function assertLatestProbeReplyObserved(
+  sources: ErrorEpisode['evidenceSources'],
+  diagnosisEvidence: readonly DiagnosticEvidence[],
+  newEvidence: readonly DiagnosticEvidence[] | undefined,
+  diagnosisRound: number,
+  isReopening: boolean,
+): void {
+  if (isReopening) return
+
+  const roundProbeSources = sources.filter(
+    s => s.probeId !== null && s.diagnosisRound === diagnosisRound && s.sourceRef.startsWith('user-event:'),
+  )
+  if (roundProbeSources.length === 0) return
+
+  const maxSeq = Math.max(...roundProbeSources.map(s => extractUserEventSeq(s.sourceRef)))
+  if (maxSeq === 0) return
+
+  const latestReplySources = roundProbeSources.filter(s => extractUserEventSeq(s.sourceRef) === maxSeq)
+  if (latestReplySources.length === 0) return
+
+  const alreadyRepresented = latestReplySources.some(
+    latest => diagnosisEvidence.some(e => e.sourceRef === latest.sourceRef),
+  )
+  if (alreadyRepresented) return
+
+  const observedInNew = newEvidence?.some(
+    e => latestReplySources.some(latest => latest.sourceRef === e.sourceRef),
+  )
+  if (!observedInNew) {
+    throw new Error('Latest probe reply must be observed in evidence before continuing diagnosis')
+  }
 }
 
 function validateProbe(probe: DiagnosticProbe, probes: readonly DiagnosticProbe[], hypotheses: readonly Hypothesis[]): void {
@@ -272,6 +490,13 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
       const hasImage = event.data.hasImage ?? attachments.some(a => a.mediaType.startsWith('image/'))
       if (text.length === 0 && !hasImage && attachments.length === 0) throw new Error('Error input is empty')
       const provenance: InputProvenance = event.data.provenance ?? { kind: 'direct_user' }
+      const prefix = provenance.kind === 'host_relay' ? 'host-relay' : 'initial'
+      const evidenceSources: ErrorEpisode['evidenceSources'] = [
+        ...(text.trim().length > 0 ? [{ sourceRef: `${prefix}-input`, text, probeId: null, diagnosisRound: 1 }] : []),
+        ...attachments.map((_, index) => ({
+          sourceRef: `${prefix}-attachment:${index + 1}`, text: '', probeId: null, diagnosisRound: 1,
+        })),
+      ]
       return {
         firstInput: text,
         firstInputHasImage: hasImage,
@@ -283,12 +508,52 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         confirmedRevision: null,
         diagnosisRound: 1,
         diagnosisHistory: [],
-        evidenceSources: [],
+        evidenceSources,
         diagnosis: initialDiagnosticLedger(),
+        pendingConclusion: null,
+        derivedContextConsumed: false,
+        teachStartedAtTurn: null,
+        drillStartedAtTurn: null,
+        pendingClarification: false,
+      }
+    }
+    case 'errgrind/derived-error-open': {
+      if (state !== null) throw new Error('Error episode already open')
+      const data = event.data
+      if (!data.text.includes(data.question) || !data.text.includes(data.userResponse)
+        || !data.sourceSessionId || !data.sourcePreparationId || !data.sourceAnswerRef
+        || !data.referenceAnswer.trim()) {
+        throw new Error('Derived Error must retain its Drill source and original answer')
+      }
+      return {
+        firstInput: data.text,
+        firstInputHasImage: false,
+        firstInputTurn: 1,
+        latestTurn: 1,
+        provenance: {
+          kind: 'derived_drill', sourceSessionId: data.sourceSessionId,
+          sourcePreparationId: data.sourcePreparationId, sourceAnswerRef: data.sourceAnswerRef,
+        },
+        attachments: [], draft: null, confirmedRevision: null,
+        diagnosisRound: 1, diagnosisHistory: [],
+        evidenceSources: [
+          { sourceRef: 'derived-answer', text: data.userResponse, probeId: null, diagnosisRound: 1 },
+        ],
+        diagnosis: initialDiagnosticLedger(), pendingConclusion: null,
+        derivedContextConsumed: false,
+        teachStartedAtTurn: null,
+        drillStartedAtTurn: null,
+        pendingClarification: false,
       }
     }
     case 'errgrind/error-draft': {
       if (state === null) throw new Error('Error episode is not open')
+      if (state.teachStartedAtTurn !== null) {
+        throw new Error('The original Error description is locked after Teach begins; open a new Error for later observations')
+      }
+      if (state.drillStartedAtTurn !== null) {
+        throw new Error('The original Error description is locked after Drill begins; open a new Error for later observations')
+      }
       if (event.data.revision !== (state.draft?.revision ?? 0) + 1 || event.data.text.trim().length === 0) {
         throw new Error('Error description revision is invalid')
       }
@@ -299,7 +564,20 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         ...state,
         draft: { revision: event.data.revision, text: event.data.text },
         confirmedRevision: null,
+        pendingConclusion: null,
         diagnosis: stale ? { ...state.diagnosis, stale: true } : state.diagnosis,
+      }
+    }
+    case 'errgrind/error-clarify': {
+      if (state === null) return null
+      return {
+        ...state,
+        pendingClarification: true,
+        pendingConclusion: null,
+        diagnosis: {
+          ...state.diagnosis,
+          currentProbeId: null,
+        },
       }
     }
     case 'errgrind/error-confirm': {
@@ -307,22 +585,34 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         throw new Error('Error description revision is not current')
       }
       if (state.confirmedRevision === event.data.revision) throw new Error('Error description already confirmed')
+      const proposal = state.pendingConclusion
+      if (proposal !== null && proposal.anchorRevision !== event.data.revision) {
+        throw new Error('Pending diagnosis does not match this Error description revision')
+      }
       const stale = state.diagnosis.status !== 'active'
         && state.diagnosis.anchoredRevision !== null
         && state.diagnosis.anchoredRevision !== event.data.revision
       return {
         ...state,
         confirmedRevision: event.data.revision,
-        diagnosis: { ...state.diagnosis, stale },
+        pendingConclusion: null,
+        // Older fork sessions confirmed the draft before the model conclusion.
+        diagnosis: proposal === null
+          ? { ...state.diagnosis, stale }
+          : completeDiagnosis(state.diagnosis, proposal),
       }
     }
     case 'errgrind/grill-probe': {
       if (state === null) throw new Error('Error episode is not open')
+      if (state.teachStartedAtTurn !== null || state.drillStartedAtTurn !== null) {
+        throw new Error('Cannot add probe after intervention has begun')
+      }
+      if (event.data.anchorRevision !== undefined
+        && event.data.anchorRevision !== state.draft?.revision) {
+        throw new Error('Grill probe must use the current Error description')
+      }
       if (state.diagnosis.status !== 'active' && !state.diagnosis.stale) throw new Error('Cannot add probe to completed diagnosis')
       const reopening = state.diagnosis.status !== 'active' && state.diagnosis.stale
-      if (reopening && state.confirmedRevision !== state.draft?.revision) {
-        throw new Error('Confirm the corrected Error description before re-probing the stale diagnosis')
-      }
       const prior = reopening ? initialDiagnosticLedger() : state.diagnosis
       const hypotheses = mergeHypotheses(prior.hypotheses, event.data.newHypotheses, event.data.hypothesisStatusUpdates)
       validateProbe(event.data.probe, prior.probes, hypotheses)
@@ -333,6 +623,8 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         ...state,
         diagnosisRound,
         diagnosisHistory: reopening ? [...state.diagnosisHistory, state.diagnosis] : state.diagnosisHistory,
+        pendingConclusion: null,
+        pendingClarification: false,
         diagnosis: {
           ...prior,
           hypotheses,
@@ -344,10 +636,14 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
     }
     case 'errgrind/grill-conclude': {
       if (state === null) throw new Error('Error episode is not open')
-      if (state.diagnosis.status !== 'active') throw new Error('Diagnosis already concluded')
-      if (state.confirmedRevision === null) {
-        throw new Error('Cannot conclude diagnosis before Error description draft is confirmed')
+      if (state.teachStartedAtTurn !== null || state.drillStartedAtTurn !== null) {
+        throw new Error('Cannot conclude diagnosis after intervention has begun')
       }
+      if (event.data.anchorRevision !== undefined
+        && event.data.anchorRevision !== state.draft?.revision) {
+        throw new Error('Diagnosis conclusion must use the current Error description')
+      }
+      if (state.diagnosis.status !== 'active') throw new Error('Diagnosis already concluded')
       const hypotheses = mergeHypotheses(state.diagnosis.hypotheses, event.data.newHypotheses, event.data.hypothesisStatusUpdates)
       const evidence = mergeEvidence(
         state.diagnosis.evidence, event.data.newEvidence, hypotheses, state.diagnosis.probes,
@@ -391,22 +687,59 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         }
       }
 
+      const anchorRevision = event.data.anchorRevision ?? state.draft?.revision
+      if (anchorRevision === undefined) throw new Error('Diagnosis conclusion requires an Error description')
+      const proposal: PendingDiagnosisConclusion = {
+        status,
+        summary: event.data.summary,
+        bestHypothesisId: bestId,
+        remainingUncertainty,
+        whatWouldChangeJudgment: event.data.whatWouldChangeJudgment ?? '',
+        turn: event.data.turn,
+        anchorRevision,
+      }
+      const diagnosis: DiagnosticLedger = {
+        ...state.diagnosis,
+        hypotheses,
+        evidence,
+        currentProbeId: null,
+      }
+      const legacyConfirmed = state.confirmedRevision === anchorRevision
       return {
         ...state,
-        diagnosis: {
-          status,
-          hypotheses,
-          probes: state.diagnosis.probes,
-          evidence,
-          currentProbeId: null,
-          bestHypothesisId: bestId,
-          remainingUncertainty,
-          whatWouldChangeJudgment: event.data.whatWouldChangeJudgment ?? '',
-          summary: event.data.summary,
-          concludedAtTurn: event.data.turn,
-          anchoredRevision: state.confirmedRevision,
-          stale: false,
-        },
+        pendingClarification: false,
+        diagnosis: legacyConfirmed ? completeDiagnosis(diagnosis, proposal) : diagnosis,
+        pendingConclusion: legacyConfirmed ? null : proposal,
+      }
+    }
+    case 'errgrind/teach-step': {
+      if (state === null) throw new Error('Teach requires an Error episode')
+      if (!['question', 'hint', 'explanation'].includes(event.data.kind)) {
+        throw new Error('Teach step kind is invalid')
+      }
+      if (state.diagnosis.status === 'active' || state.diagnosis.stale) {
+        throw new Error('Teach requires a current completed diagnosis')
+      }
+      if (state.confirmedRevision !== event.data.anchorRevision
+        || state.diagnosis.anchoredRevision !== event.data.anchorRevision
+        || state.diagnosisRound !== event.data.diagnosisRound) {
+        throw new Error('Teach step is not anchored to the current diagnosis')
+      }
+      if (event.data.text.trim().length === 0 || event.data.text.length > MAX_TEACH_STEP_CHARS) {
+        throw new Error('Teach step text is invalid')
+      }
+      return {
+        ...state,
+        teachStartedAtTurn: state.teachStartedAtTurn ?? event.data.turn,
+        pendingClarification: false,
+      }
+    }
+    case 'errgrind/drill-prepared': {
+      if (state === null) return null
+      return {
+        ...state,
+        drillStartedAtTurn: state.drillStartedAtTurn ?? event.data.preparedAtTurn,
+        pendingClarification: false,
       }
     }
     case 'turn/start': {
@@ -417,15 +750,40 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
       return { ...state, latestTurn: turn }
     }
     case 'user/message': {
+      if (state !== null && (event.data.source as { kind: string }).kind === 'errgrind-derived-error') {
+        return { ...state, derivedContextConsumed: true }
+      }
       if (state === null || event.data.source.kind !== 'user') return state
+      if (state.teachStartedAtTurn !== null || state.drillStartedAtTurn !== null) return state
+      if (state.diagnosis.status !== 'active' && !state.diagnosis.stale) return state
+      if (state.diagnosis.currentProbeId === null && !state.pendingClarification) return state
+
       const text = event.data.content.filter(block => block.type === 'text').map(block => block.text).join('\n')
-      if (text.length === 0 || state.diagnosis.currentProbeId === null) return state
-      const sourceRef = `user-event:${event.seq}`
+      const newSources: ErrorEpisode['evidenceSources'][number][] = []
+      if (text.length > 0) {
+        newSources.push({
+          sourceRef: `user-event:${event.seq}`,
+          text,
+          probeId: state.diagnosis.currentProbeId,
+          diagnosisRound: state.diagnosisRound,
+        })
+      }
+      let imageIndex = 1
+      for (const block of event.data.content) {
+        if (block.type === 'image') {
+          newSources.push({
+            sourceRef: `user-event:${event.seq}:attachment:${imageIndex++}`,
+            text: '',
+            probeId: state.diagnosis.currentProbeId,
+            diagnosisRound: state.diagnosisRound,
+          })
+        }
+      }
+      if (newSources.length === 0) return state
       return {
         ...state,
-        evidenceSources: [...state.evidenceSources, {
-          sourceRef, text, probeId: state.diagnosis.currentProbeId, diagnosisRound: state.diagnosisRound,
-        }],
+        pendingClarification: false,
+        evidenceSources: [...state.evidenceSources, ...newSources],
       }
     }
     default:
@@ -441,14 +799,17 @@ function currentEpisode(ctx: Context, session: Session): ErrorEpisode | null {
 }
 
 /** Register the authentic Error intake, draft tool, Grill diagnostic tools, and human commands. */
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config: Config = { statusCommand: true }): void {
+  const toolPrompts = loadToolPrompts()
   ctx.sessionProjections.register({
     key: 'errgrindEpisode',
     stateSchema: episodeSchema,
-    stateVersion: 3,
+    stateVersion: 8,
     init: () => null,
     apply: applyEpisodeEvent,
+    wire: { viewSchema: errorListEntrySchema, view: publicErrorListEntry },
   })
+  applyDrill(ctx, toolPrompts)
 
   // Carry the raw receipt on the exact normalized reference. A process-local
   // digest map cannot distinguish different source files that normalize alike.
@@ -576,11 +937,9 @@ export function apply(ctx: Context): void {
 
   ctx.tools.register(defineTool({
     name: 'error_draft',
-    description: 'Save a draft of the current mathematics Error as one complete description. '
-      + 'Describe only what is known, distinguish the user’s account from your interpretation, '
-      + 'and ask the user to review it. This tool cannot confirm the draft for the user.',
+    description: toolPrompts.description('error_draft'),
     parameters: {
-      description: { type: 'string', required: true, description: 'One complete, user-readable Error description.' },
+      description: { type: 'string', required: true, description: toolPrompts.parameter('error_draft', 'description') },
     },
     output: {
       schema: {
@@ -596,6 +955,12 @@ export function apply(ctx: Context): void {
       if (!exec.agent) throw new Error('error_draft requires an agent session')
       const episode = currentEpisode(ctx, exec.agent.session)
       if (episode === null) throw new Error('No Error input has been recorded')
+      if (episode.teachStartedAtTurn !== null) {
+        throw new Error('The original Error description is locked after Teach begins; open a new Error for later observations')
+      }
+      if (episode.drillStartedAtTurn !== null) {
+        throw new Error('The original Error description is locked after Drill begins; open a new Error for later observations')
+      }
       const description = args.description.trim()
       if (description.length === 0 || description.length > MAX_DESCRIPTION_CHARS) {
         throw new Error(`Error description must contain 1–${MAX_DESCRIPTION_CHARS} characters`)
@@ -608,20 +973,50 @@ export function apply(ctx: Context): void {
   }))
 
   ctx.tools.register(defineTool({
+    name: 'error_clarify',
+    description: toolPrompts.description('error_clarify'),
+    parameters: {
+      text: { type: 'string', required: true, description: toolPrompts.parameter('error_clarify', 'text') },
+    },
+    output: {
+      schema: {
+        type: 'object', additionalProperties: false,
+        properties: { accepted: { type: 'boolean', required: true } },
+      },
+      render: (_args, value) => [{ type: 'text', text: value.accepted ? 'Clarification shown.' : 'Clarification not shown.' }],
+    },
+    execute(args, exec) {
+      if (!exec.agent) throw new Error('error_clarify requires an agent session')
+      const episode = currentEpisode(ctx, exec.agent.session)
+      if (episode === null) throw new Error('No Error episode has been opened')
+      const text = args.text.trim()
+      if (text.length === 0 || text.length > MAX_CLARIFICATION_CHARS) {
+        throw new Error(`Clarification must contain 1–${MAX_CLARIFICATION_CHARS} characters`)
+      }
+      if (episode.diagnosis.status !== 'active') throw new Error('Cannot clarify a completed Grill diagnosis')
+      if (episode.teachStartedAtTurn !== null || episode.drillStartedAtTurn !== null) {
+        throw new Error('Cannot clarify after intervention has begun')
+      }
+      exec.agent.session.append('errgrind/error-clarify', { text, turn: episode.latestTurn })
+      return Promise.resolve({ accepted: true })
+    },
+    presentCall: args => ({ card: 'generic', title: 'Clarify Error', kind: 'other', rawInput: args.text }),
+  }))
+
+  ctx.tools.register(defineTool({
     name: 'grill_probe',
-    description: 'Pose a discriminative diagnostic question or variant problem during Grill to differentiate candidate error hypotheses. '
-      + 'Internal predictions and answer keys are diagnostic metadata; ask only the question in user-visible prose.',
+    description: toolPrompts.description('grill_probe'),
     parameters: {
       probe: {
         type: 'object',
         required: true,
         additionalProperties: false,
         properties: {
-          id: { type: 'string', required: true, description: 'Probe identifier, e.g. P1, P2.' },
-          type: { type: 'string', required: true, enum: ['reasoning_question', 'variant_problem'], description: 'Type of diagnostic probe.' },
-          question: { type: 'string', required: true, description: 'The question or problem presented to the user.' },
-          targetHypothesisIds: { type: 'array', required: true, items: { type: 'string' }, description: 'Hypothesis IDs to discriminate.' },
-          discriminationGoal: { type: 'string', required: true, description: 'What this probe is designed to differentiate.' },
+          id: { type: 'string', required: true, description: toolPrompts.parameter('grill_probe', 'probe.id') },
+          type: { type: 'string', required: true, enum: ['reasoning_question', 'variant_problem'], description: toolPrompts.parameter('grill_probe', 'probe.type') },
+          question: { type: 'string', required: true, description: toolPrompts.parameter('grill_probe', 'probe.question') },
+          targetHypothesisIds: { type: 'array', required: true, items: { type: 'string' }, description: toolPrompts.parameter('grill_probe', 'probe.targetHypothesisIds') },
+          discriminationGoal: { type: 'string', required: true, description: toolPrompts.parameter('grill_probe', 'probe.discriminationGoal') },
           predictions: {
             type: 'array',
             required: true,
@@ -633,48 +1028,51 @@ export function apply(ctx: Context): void {
                 expectedObservation: { type: 'string', required: true },
               },
             },
-            description: 'Expected observation per hypothesis.',
+            description: toolPrompts.parameter('grill_probe', 'probe.predictions'),
           },
-          answerKey: { type: 'string', description: 'Hidden reference answer for variant problems.' },
-          preservedMechanism: { type: 'string' },
-          surfaceChange: { type: 'string' },
+          answerKey: { type: 'string', description: toolPrompts.parameter('grill_probe', 'probe.answerKey') },
+          preservedMechanism: { type: 'string', description: toolPrompts.parameter('grill_probe', 'probe.preservedMechanism') },
+          surfaceChange: { type: 'string', description: toolPrompts.parameter('grill_probe', 'probe.surfaceChange') },
         },
       },
       newHypotheses: {
         type: 'array',
+        description: toolPrompts.parameter('grill_probe', 'newHypotheses'),
         items: {
           type: 'object',
           additionalProperties: false,
           properties: {
-            id: { type: 'string', required: true },
-            claim: { type: 'string', required: true },
+            id: { type: 'string', required: true, description: toolPrompts.parameter('grill_probe', 'newHypotheses.id') },
+            claim: { type: 'string', required: true, description: toolPrompts.parameter('grill_probe', 'newHypotheses.claim') },
           },
         },
       },
       hypothesisStatusUpdates: {
         type: 'array',
+        description: toolPrompts.parameter('grill_probe', 'hypothesisStatusUpdates'),
         items: {
           type: 'object',
           additionalProperties: false,
           properties: {
-            id: { type: 'string', required: true },
-            status: { type: 'string', required: true, enum: ['plausible', 'supported', 'weakened', 'rejected'] },
+            id: { type: 'string', required: true, description: toolPrompts.parameter('grill_probe', 'hypothesisStatusUpdates.id') },
+            status: { type: 'string', required: true, enum: ['plausible', 'supported', 'weakened', 'rejected'], description: toolPrompts.parameter('grill_probe', 'hypothesisStatusUpdates.status') },
           },
         },
       },
       newEvidence: {
         type: 'array',
+        description: toolPrompts.parameter('grill_probe', 'newEvidence'),
         items: {
           type: 'object',
           additionalProperties: false,
           properties: {
-            id: { type: 'string', required: true },
-            sourceRef: { type: 'string', required: true },
-            quote: { type: 'string' },
-            interpretation: { type: 'string', required: true },
-            supports: { type: 'array', required: true, items: { type: 'string' } },
-            contradicts: { type: 'array', required: true, items: { type: 'string' } },
-            probeId: { type: 'string' },
+            id: { type: 'string', required: true, description: toolPrompts.parameter('grill_probe', 'newEvidence.id') },
+            sourceRef: { type: 'string', required: true, description: toolPrompts.parameter('grill_probe', 'newEvidence.sourceRef') },
+            quote: { type: 'string', description: toolPrompts.parameter('grill_probe', 'newEvidence.quote') },
+            interpretation: { type: 'string', required: true, description: toolPrompts.parameter('grill_probe', 'newEvidence.interpretation') },
+            supports: { type: 'array', required: true, items: { type: 'string' }, description: toolPrompts.parameter('grill_probe', 'newEvidence.supports') },
+            contradicts: { type: 'array', required: true, items: { type: 'string' }, description: toolPrompts.parameter('grill_probe', 'newEvidence.contradicts') },
+            probeId: { type: 'string', description: toolPrompts.parameter('grill_probe', 'newEvidence.probeId') },
           },
         },
       },
@@ -694,11 +1092,11 @@ export function apply(ctx: Context): void {
       if (!exec.agent) throw new Error('grill_probe requires an agent session')
       const episode = currentEpisode(ctx, exec.agent.session)
       if (episode === null) throw new Error('No Error episode has been opened')
-      if (episode.diagnosis.status !== 'active' && !episode.diagnosis.stale) throw new Error('Diagnosis already concluded')
-      if (episode.diagnosis.stale && episode.confirmedRevision !== episode.draft?.revision) {
-        throw new Error('Confirm the corrected Error description before re-probing the stale diagnosis')
+      if (episode.teachStartedAtTurn !== null || episode.drillStartedAtTurn !== null) {
+        throw new Error('Cannot add probe after intervention has begun')
       }
-
+      if (episode.diagnosis.status !== 'active' && !episode.diagnosis.stale) throw new Error('Diagnosis already concluded')
+      if (episode.draft === null) throw new Error('Create an Error description before starting Grill')
       const turn = episode.latestTurn
 
       const newHypotheses = args.newHypotheses?.map(h => ({
@@ -737,18 +1135,24 @@ export function apply(ctx: Context): void {
         ...(args.probe.surfaceChange !== undefined ? { surfaceChange: args.probe.surfaceChange } : {}),
       }
 
+      const diagnosisRound = episode.diagnosisRound + (episode.diagnosis.stale ? 1 : 0)
+      const groundedEvidence = resolveEvidenceAliases(newEvidence, episode.evidenceSources, diagnosisRound)
+      assertLatestProbeReplyObserved(
+        episode.evidenceSources, episode.diagnosis.evidence, groundedEvidence, episode.diagnosisRound, episode.diagnosis.stale,
+      )
       const prior = episode.diagnosis.stale ? initialDiagnosticLedger() : episode.diagnosis
       const mergedHypotheses = mergeHypotheses(prior.hypotheses, newHypotheses, hypothesisStatusUpdates)
       validateProbe(probe, prior.probes, mergedHypotheses)
       const mergedProbes = [...prior.probes, probe]
-      mergeEvidence(prior.evidence, newEvidence, mergedHypotheses, mergedProbes,
-        episode.evidenceSources, episode.diagnosisRound + (episode.diagnosis.stale ? 1 : 0))
+      mergeEvidence(prior.evidence, groundedEvidence, mergedHypotheses, mergedProbes,
+        episode.evidenceSources, diagnosisRound)
 
       exec.agent.session.append('errgrind/grill-probe', {
+        anchorRevision: episode.draft.revision,
         probe,
         ...(newHypotheses !== undefined ? { newHypotheses } : {}),
         ...(hypothesisStatusUpdates !== undefined ? { hypothesisStatusUpdates } : {}),
-        ...(newEvidence !== undefined ? { newEvidence } : {}),
+        ...(groundedEvidence !== undefined ? { newEvidence: groundedEvidence } : {}),
         turn,
       })
       return Promise.resolve({ probeId: args.probe.id, question: args.probe.question })
@@ -758,57 +1162,57 @@ export function apply(ctx: Context): void {
 
   ctx.tools.register(defineTool({
     name: 'grill_conclude',
-    description: 'Conclude the episode diagnosis after collecting sufficient evidence. '
-      + 'Requires that the user has reviewed and confirmed the Error description draft via /error-confirm. '
-      + 'Supported diagnoses require a validated best hypothesis; undetermined diagnoses require explicit remaining uncertainty.',
+    description: toolPrompts.description('grill_conclude'),
     parameters: {
       diagnosisStatus: {
         type: 'string',
         enum: ['supported', 'undetermined'],
         required: true,
-        description: 'Conclusion status of the diagnosis.',
+        description: toolPrompts.parameter('grill_conclude', 'diagnosisStatus'),
       },
       summary: {
         type: 'string',
         required: true,
-        description: 'Readable summary of the diagnostic finding and error mechanism.',
+        description: toolPrompts.parameter('grill_conclude', 'summary'),
       },
       bestHypothesisId: {
         type: 'string',
-        description: 'ID of the supported error mechanism hypothesis. Required if status is supported.',
+        description: toolPrompts.parameter('grill_conclude', 'bestHypothesisId'),
       },
       remainingUncertainty: {
         type: 'string',
-        description: 'Reasoning about remaining ambiguity. Required if status is undetermined.',
+        description: toolPrompts.parameter('grill_conclude', 'remainingUncertainty'),
       },
       whatWouldChangeJudgment: {
         type: 'string',
-        description: 'What future observations or facts would alter this conclusion.',
+        description: toolPrompts.parameter('grill_conclude', 'whatWouldChangeJudgment'),
       },
       hypothesisStatusUpdates: {
         type: 'array',
+        description: toolPrompts.parameter('grill_conclude', 'hypothesisStatusUpdates'),
         items: {
           type: 'object',
           additionalProperties: false,
           properties: {
-            id: { type: 'string', required: true },
-            status: { type: 'string', required: true, enum: ['plausible', 'supported', 'weakened', 'rejected'] },
+            id: { type: 'string', required: true, description: toolPrompts.parameter('grill_conclude', 'hypothesisStatusUpdates.id') },
+            status: { type: 'string', required: true, enum: ['plausible', 'supported', 'weakened', 'rejected'], description: toolPrompts.parameter('grill_conclude', 'hypothesisStatusUpdates.status') },
           },
         },
       },
       newEvidence: {
         type: 'array',
+        description: toolPrompts.parameter('grill_conclude', 'newEvidence'),
         items: {
           type: 'object',
           additionalProperties: false,
           properties: {
-            id: { type: 'string', required: true },
-            sourceRef: { type: 'string', required: true },
-            quote: { type: 'string' },
-            interpretation: { type: 'string', required: true },
-            supports: { type: 'array', required: true, items: { type: 'string' } },
-            contradicts: { type: 'array', required: true, items: { type: 'string' } },
-            probeId: { type: 'string' },
+            id: { type: 'string', required: true, description: toolPrompts.parameter('grill_conclude', 'newEvidence.id') },
+            sourceRef: { type: 'string', required: true, description: toolPrompts.parameter('grill_conclude', 'newEvidence.sourceRef') },
+            quote: { type: 'string', description: toolPrompts.parameter('grill_conclude', 'newEvidence.quote') },
+            interpretation: { type: 'string', required: true, description: toolPrompts.parameter('grill_conclude', 'newEvidence.interpretation') },
+            supports: { type: 'array', required: true, items: { type: 'string' }, description: toolPrompts.parameter('grill_conclude', 'newEvidence.supports') },
+            contradicts: { type: 'array', required: true, items: { type: 'string' }, description: toolPrompts.parameter('grill_conclude', 'newEvidence.contradicts') },
+            probeId: { type: 'string', description: toolPrompts.parameter('grill_conclude', 'newEvidence.probeId') },
           },
         },
       },
@@ -825,17 +1229,18 @@ export function apply(ctx: Context): void {
       },
       render: (_args, value) => [{
         type: 'text',
-        text: `Diagnosis concluded (${value.diagnosisStatus}): ${value.summary}`,
+        text: `Diagnosis proposed (${value.diagnosisStatus}): ${value.summary}`,
       }],
     },
     execute(args, exec) {
       if (!exec.agent) throw new Error('grill_conclude requires an agent session')
       const episode = currentEpisode(ctx, exec.agent.session)
       if (episode === null) throw new Error('No Error episode has been opened')
-      if (episode.diagnosis.status !== 'active') throw new Error('Diagnosis already concluded; re-probe a stale diagnosis first')
-      if (episode.confirmedRevision === null) {
-        throw new Error('Cannot conclude diagnosis before Error description draft is confirmed by the user (/error-confirm).')
+      if (episode.teachStartedAtTurn !== null || episode.drillStartedAtTurn !== null) {
+        throw new Error('Cannot conclude diagnosis after intervention has begun')
       }
+      if (episode.diagnosis.status !== 'active') throw new Error('Diagnosis already concluded; re-probe a stale diagnosis first')
+      if (episode.draft === null) throw new Error('Create an Error description before concluding diagnosis')
 
       const turn = episode.latestTurn
 
@@ -853,6 +1258,10 @@ export function apply(ctx: Context): void {
         contradicts: e.contradicts,
         ...(e.probeId !== undefined ? { probeId: e.probeId } : {}),
       }))
+      const groundedEvidence = resolveEvidenceAliases(newEvidence, episode.evidenceSources, episode.diagnosisRound)
+      assertLatestProbeReplyObserved(
+        episode.evidenceSources, episode.diagnosis.evidence, groundedEvidence, episode.diagnosisRound, false,
+      )
 
       const summary = args.summary.trim()
       const bestHypothesisId = args.bestHypothesisId?.trim() || undefined
@@ -860,7 +1269,7 @@ export function apply(ctx: Context): void {
       const whatWouldChangeJudgment = args.whatWouldChangeJudgment?.trim() || undefined
 
       const hypotheses = mergeHypotheses(episode.diagnosis.hypotheses, undefined, hypothesisStatusUpdates)
-      const evidence = mergeEvidence(episode.diagnosis.evidence, newEvidence, hypotheses,
+      const evidence = mergeEvidence(episode.diagnosis.evidence, groundedEvidence, hypotheses,
         episode.diagnosis.probes, episode.evidenceSources, episode.diagnosisRound)
       if (args.diagnosisStatus === 'supported') {
         if (bestHypothesisId === undefined) throw new Error('Supported diagnosis requires bestHypothesisId')
@@ -872,18 +1281,22 @@ export function apply(ctx: Context): void {
             && source.probeId !== null && source.probeId === item.probeId))) {
           throw new Error('Supported diagnosis requires evidence grounded in a user\'s answer to a probe')
         }
+        if (whatWouldChangeJudgment === undefined || whatWouldChangeJudgment.length === 0) {
+          throw new Error('Supported diagnosis requires whatWouldChangeJudgment')
+        }
       } else if (remainingUncertainty === undefined || remainingUncertainty.length === 0) {
         throw new Error('Undetermined diagnosis must specify remainingUncertainty')
       }
 
       exec.agent.session.append('errgrind/grill-conclude', {
+        anchorRevision: episode.draft.revision,
         diagnosisStatus: args.diagnosisStatus,
         summary,
         ...(bestHypothesisId !== undefined ? { bestHypothesisId } : {}),
         ...(remainingUncertainty !== undefined ? { remainingUncertainty } : {}),
         ...(whatWouldChangeJudgment !== undefined ? { whatWouldChangeJudgment } : {}),
         ...(hypothesisStatusUpdates !== undefined ? { hypothesisStatusUpdates } : {}),
-        ...(newEvidence !== undefined ? { newEvidence } : {}),
+        ...(groundedEvidence !== undefined ? { newEvidence: groundedEvidence } : {}),
         turn,
       })
       return Promise.resolve({
@@ -892,29 +1305,82 @@ export function apply(ctx: Context): void {
         ...(bestHypothesisId !== undefined ? { bestHypothesisId } : {}),
       })
     },
-    presentCall: args => ({ card: 'generic', title: 'Diagnosis Concluded', kind: 'other', rawInput: args.summary }),
+    presentCall: args => ({ card: 'generic', title: 'Diagnosis Proposed', kind: 'other', rawInput: args.summary }),
+  }))
+
+  ctx.tools.register(defineTool({
+    name: 'teach_step',
+    description: toolPrompts.description('teach_step'),
+    parameters: {
+      kind: { type: 'string', required: true, enum: ['question', 'hint', 'explanation'], description: toolPrompts.parameter('teach_step', 'kind') },
+      text: { type: 'string', required: true, description: toolPrompts.parameter('teach_step', 'text') },
+    },
+    output: {
+      schema: {
+        type: 'object', additionalProperties: false,
+        properties: { accepted: { type: 'boolean', required: true } },
+      },
+      render: (_args, value) => [{ type: 'text', text: value.accepted ? 'Teach step shown.' : 'Teach step not shown.' }],
+    },
+    execute(args, exec) {
+      if (!exec.agent) throw new Error('teach_step requires an agent session')
+      const episode = currentEpisode(ctx, exec.agent.session)
+      if (episode === null) throw new Error('No Error episode has been opened')
+      if (episode.diagnosis.status === 'active' || episode.diagnosis.stale) {
+        throw new Error('Finish the current Grill diagnosis before Teach')
+      }
+      if (episode.confirmedRevision === null
+        || episode.confirmedRevision !== episode.draft?.revision
+        || episode.diagnosis.anchoredRevision !== episode.confirmedRevision) {
+        throw new Error('Confirm the final Error description after diagnosis before Teach')
+      }
+      const text = args.text.trim()
+      if (text.length === 0 || text.length > MAX_TEACH_STEP_CHARS) {
+        throw new Error(`Teach step must contain 1–${MAX_TEACH_STEP_CHARS} characters`)
+      }
+      exec.agent.session.append('errgrind/teach-step', {
+        kind: args.kind,
+        text,
+        anchorRevision: episode.confirmedRevision,
+        diagnosisRound: episode.diagnosisRound,
+        turn: episode.latestTurn,
+      })
+      return Promise.resolve({ accepted: true })
+    },
+    presentCall: args => ({ card: 'generic', title: 'Teach Step', kind: 'other', rawInput: args.text }),
   }))
 
   ctx.commands.register({
     name: 'error-confirm',
-    description: 'Confirm the current Error description after reviewing it',
+    description: 'Confirm the reviewed final Error description and finish Grill together, for example /error-confirm 2',
     handler: (invocation) => {
-      if (invocation.rawInput.trim().length !== 0) return { kind: 'error', text: '使用 /error-confirm 确认当前描述。' }
+      const revisionText = invocation.rawInput.trim()
+      if (!/^[1-9][0-9]*$/.test(revisionText)) {
+        return { kind: 'error', text: '请使用 /error-confirm <修订号>，并确认你刚刚查看的版本。' }
+      }
+      const expectedRevision = Number(revisionText)
+      if (!Number.isSafeInteger(expectedRevision)) return { kind: 'error', text: '修订号无效，请查看当前描述卡片。' }
       const session = invocation.agent.session
       const episode = currentEpisode(ctx, session)
-      if (episode?.draft == null) return { kind: 'error', text: '请先生成并核对 Error 描述。' }
+      if (episode?.draft == null) return { kind: 'error', text: '请先生成 Error 描述。' }
+      if (expectedRevision !== episode.draft.revision) {
+        return { kind: 'error', text: 'Error 描述已有更新，请先查看最新修订，再确认。' }
+      }
       if (episode.confirmedRevision === episode.draft.revision) {
         return { kind: 'success', text: '这版 Error 描述已经确认。' }
       }
+      if (episode.pendingConclusion?.anchorRevision !== expectedRevision) {
+        return { kind: 'error', text: 'Grill 仍在进行；请先继续核对 Error 描述和诊断。' }
+      }
       session.append('errgrind/error-confirm', {
-        revision: episode.draft.revision,
+        revision: expectedRevision,
         commandId: invocation.commandId,
       })
-      return { kind: 'success', text: `已确认 Error 描述第 ${episode.draft.revision} 版。` }
+      return { kind: 'success', text: `已确认 Error 描述第 ${expectedRevision} 版，Grill 已完成。` }
     },
   })
 
-  ctx.commands.register({
+  if (config.statusCommand !== false) ctx.commands.register({
     name: 'error-status',
     description: 'Display the current status of the Error episode, draft, and diagnosis',
     handler: (invocation) => {
@@ -940,6 +1406,9 @@ export function apply(ctx: Context): void {
       const diag = episode.diagnosis
       const staleNotice = diag.stale ? ' [草稿已更正，诊断待复核]' : ''
       lines.push(`• 诊断状态: ${diag.status}${staleNotice}`)
+      if (episode.pendingConclusion !== null) {
+        lines.push(`  暂定结论: ${episode.pendingConclusion.status}（等待确认第 ${episode.pendingConclusion.anchorRevision} 版描述；Grill 未结束）`)
+      }
       if (diag.status === 'active') {
         lines.push(`  当前探针: ${diag.currentProbeId ?? '无待回答探针'}`)
       } else if (diag.status === 'supported') {

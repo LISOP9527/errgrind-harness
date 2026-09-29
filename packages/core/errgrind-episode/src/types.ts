@@ -25,7 +25,7 @@ export interface ErrorAttachment {
 }
 
 /** Whether the first Error input came directly from the learner or through an agent host. */
-export type InputProvenanceKind = 'direct_user' | 'host_relay'
+export type InputProvenanceKind = 'direct_user' | 'host_relay' | 'derived_drill'
 
 /** Source metadata for the first Error input. */
 export interface InputProvenance {
@@ -33,6 +33,9 @@ export interface InputProvenance {
   readonly rpcId?: string | undefined
   readonly clientTimeZone?: string | undefined
   readonly senderSessionId?: string | undefined
+  readonly sourceSessionId?: string | undefined
+  readonly sourcePreparationId?: string | undefined
+  readonly sourceAnswerRef?: string | undefined
 }
 
 /** The current public description is model authored until the user confirms it. */
@@ -103,6 +106,17 @@ export interface DiagnosticLedger {
   readonly stale: boolean
 }
 
+/** Validated model conclusion awaiting the learner's approval of its Error description anchor. */
+export interface PendingDiagnosisConclusion {
+  readonly status: 'supported' | 'undetermined'
+  readonly summary: string
+  readonly bestHypothesisId: string | null
+  readonly remainingUncertainty: string
+  readonly whatWouldChangeJudgment: string
+  readonly turn: number
+  readonly anchorRevision: number
+}
+
 /** One Error investigation in one DSH Session. */
 export interface ErrorEpisode {
   readonly firstInput: string
@@ -125,6 +139,23 @@ export interface ErrorEpisode {
     readonly diagnosisRound: number
   }[]
   readonly diagnosis: DiagnosticLedger
+  /** A proposed conclusion does not finish Grill until the current description is confirmed. */
+  readonly pendingConclusion: PendingDiagnosisConclusion | null
+  /** Whether the private Host context for a derived Drill Error reached a model turn. */
+  readonly derivedContextConsumed: boolean
+  /** First explicit teaching intervention; later answers are post-intervention observations. */
+  readonly teachStartedAtTurn: number | null
+  /** First drill practice intervention; later answers are post-intervention practice attempts. */
+  readonly drillStartedAtTurn: number | null
+  /** Whether a factual clarification has been posed and is awaiting a user reply. */
+  readonly pendingClarification: boolean
+}
+
+/** Public, minimal Error row for the Session list; no diagnostic ledger or original attachments. */
+export interface ErrorListEntry {
+  readonly description: string | null
+  readonly status: 'grill' | 'confirm' | 'teach'
+  readonly drillEligible: boolean
 }
 
 declare module '@deepseek-ai/dsh-session/types' {
@@ -137,20 +168,36 @@ declare module '@deepseek-ai/dsh-session/types' {
       provenance?: InputProvenance | undefined
       attachments?: readonly ErrorAttachment[] | undefined
     }
+    /** A wrong Drill answer promoted into a separate Error investigation with exact source lineage. */
+    'errgrind/derived-error-open': {
+      text: string
+      sourceSessionId: string
+      sourcePreparationId: string
+      sourceAnswerRef: string
+      question: string
+      userResponse: string
+      referenceAnswer: string
+    }
     /** Model-authored public description; each call replaces the draft. */
     'errgrind/error-draft': { revision: number; text: string }
-    /** Explicit human command accepting the current description revision. */
+    /** Public factual clarification during Grill; a new question invalidates a pending conclusion. */
+    'errgrind/error-clarify': { text: string; turn: number }
+    /** Explicit human command accepting the current description revision and pending diagnosis together. */
     'errgrind/error-confirm': { revision: number; commandId: string }
     /** Model-authored diagnostic probe and hypotheses/evidence updates during Grill. */
     'errgrind/grill-probe': {
+      /** Current Error description this diagnostic question investigates. */
+      anchorRevision?: number | undefined
       probe: DiagnosticProbe
       newHypotheses?: readonly Hypothesis[] | undefined
       hypothesisStatusUpdates?: readonly { id: string; status: HypothesisStatus }[] | undefined
       newEvidence?: readonly DiagnosticEvidence[] | undefined
       turn: number
     }
-    /** Final conclusion of episode diagnosis. Requires confirmed draft anchor. */
+    /** Model conclusion proposal; the diagnosis remains active until human confirmation. */
     'errgrind/grill-conclude': {
+      /** Current Error description this conclusion investigates. */
+      anchorRevision?: number | undefined
       diagnosisStatus: 'supported' | 'undetermined'
       summary: string
       bestHypothesisId?: string | undefined
@@ -161,11 +208,23 @@ declare module '@deepseek-ai/dsh-session/types' {
       newEvidence?: readonly DiagnosticEvidence[] | undefined
       turn: number
     }
+    /** Public model-authored teaching move after this episode's diagnosis. */
+    'errgrind/teach-step': {
+      kind: 'question' | 'hint' | 'explanation'
+      text: string
+      anchorRevision: number
+      diagnosisRound: number
+      turn: number
+    }
   }
 }
 
 declare module '@deepseek-ai/dsh-session-projection/types' {
   interface SessionProjectionStateMap {
     errgrindEpisode: ErrorEpisode | null
+  }
+  interface SessionProjectionMap {
+    /** Public Error history row; null means this Session is not an Error. */
+    errgrindEpisode: ErrorListEntry | null
   }
 }

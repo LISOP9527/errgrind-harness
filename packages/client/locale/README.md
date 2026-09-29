@@ -35,7 +35,7 @@ Native shells may provide `__DSH_LOCALE__` with an asynchronous `read()` and an 
 
 ### Registering a dictionary
 
-Call `ctx.locale.register(ns, { zh, en })` with a namespace merged into `LocaleNamespaceMap`; the compiler checks every key against the namespace's typed key union and requires both shipped locales. Consumers translate through `ctx.locale.bind(ns)` or the framework-injected `t` seat. A dictionary registered after the UI is already mounted is picked up without a remount.
+Call `ctx.locale.register(ns, { zh, en })` with a namespace merged into `LocaleNamespaceMap`; the compiler checks every key against the namespace's typed key union and requires both shipped locales. Consumers translate through `ctx.locale.bind(ns)` or the framework-injected `t` seat. A dictionary registered after the UI is already mounted is picked up without a remount. For product-specific variations, `ctx.locale.registerOverride(ns, { zh, en })` replaces selected keys in an existing namespace and keeps its other copy intact. Override keys must exist in the matching base dictionary; each namespace and locale has one override owner, and disposal restores the base copy.
 
 ### Resolving package text
 
@@ -91,7 +91,7 @@ The provisional locale comes from the browser (`navigator.languages` matched by 
 
 Document language synchronization writes `<html lang>` only when its value changes; dictionary-only revisions leave the attribute untouched.
 
-The typed object form requires complete dictionaries for both built-in locales. The per-locale form lets language packs register each namespace independently. For each key, lookup walks the active language's declared fallback chain in the requested namespace, repeats that chain in `common`, then displays the key itself. Bound translate functions retain stable identity per namespace so they can ride inject surfaces without breaking memoization.
+The typed object form requires complete dictionaries for both built-in locales. The per-locale form lets language packs register each namespace independently. For each locale in the active language's fallback chain, lookup checks selected-key overrides before the base dictionary, then repeats that chain in `common` before displaying the key itself. Bound translate functions retain stable identity per namespace so they can ride inject surfaces without breaking memoization.
 
 ### Source map
 

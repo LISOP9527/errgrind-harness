@@ -1,0 +1,10 @@
+{
+  "name": "@errgrind/web-e2e-profile",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@errgrind/episode": "workspace:*",
+    "@errgrind/ui-errgrind-episode": "workspace:*"
+  }
+}

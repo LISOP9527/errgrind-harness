@@ -1,0 +1,20 @@
+.mark {
+  display: block;
+  flex: none;
+  color: currentColor;
+}
+
+.heroMark {
+  display: block;
+  flex: none;
+  color: currentColor;
+}
+
+.name {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  line-height: inherit;
+  color: inherit;
+  white-space: nowrap;
+}

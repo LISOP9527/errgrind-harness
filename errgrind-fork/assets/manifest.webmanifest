@@ -1,0 +1,15 @@
+{
+  "name": "ErrGrind",
+  "short_name": "ErrGrind",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "icons": [
+    {
+      "src": "errgrind-favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

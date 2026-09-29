@@ -102,7 +102,7 @@ export function ConversationContent(props: ConversationContentProps) {
           : workspaceLabel(cwd)))
 
   const heroWorkspaceRow = (
-    <div className={css.heroWorkspaceRow}>
+    <div className={css.heroWorkspaceRow} data-hero-workspace-picker="">
       <WorkspaceChip
         buttonRef={pickerAnchor}
         label={chipTitle}

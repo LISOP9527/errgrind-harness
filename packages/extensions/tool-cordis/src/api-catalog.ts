@@ -605,6 +605,36 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'codexAuthController',
+    summary: 'Host Remote owner for the fixed `errgrindCodexAuth` namespace.',
+    description: 'Host Remote owner for the fixed `errgrindCodexAuth` namespace.',
+    methods: [
+      {
+        signature: '@Remote async status(): Promise<CodexAuthStatus>',
+        description: 'Read whether the fixed device-code flow is available and its safe lifecycle state.',
+        parameters: [],
+        returns: 'no credential or authorization payload.',
+      },
+      {
+        signature: '@Remote beginDeviceCode(): { readonly started: boolean }',
+        description: 'Start the fixed Codex OAuth flow and return immediately; callers poll `notices` and `status`.',
+        parameters: [],
+        returns: 'whether this call admitted a new attempt.',
+      },
+      {
+        signature: '@Remote noticesAfter(after: number): { readonly notices: readonly CodexAuthNotice[]; readonly next: number }',
+        description: 'Poll only validated device-code instructions emitted by this attempt.',
+        parameters: [{ name: 'after', description: 'last notice id already displayed by the caller.' }],
+        returns: 'bounded safe notices and the latest cursor.',
+      },
+      {
+        signature: '@Remote cancel(): void',
+        description: 'Cancel the in-flight attempt for the fixed credential key.',
+        parameters: [],
+      },
+    ],
+  },
+  {
     key: 'commands',
     summary: 'Human-command registry.',
     description: 'Human-command registry. Plain-context definitions are global; definitions registered through a command-injected child of an agent context shadow globals for that agent.',
@@ -1812,6 +1842,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Create or idempotently adopt one ordinary Session.',
         parameters: [{ name: 'request', description: 'requested identity, location, and Agent preset.' }],
         returns: 'the Session identity and resolved preset when configured.',
+      },
+      {
+        signature: '@Remote(\'openDerivedError\') async openDerivedError(request: DerivedErrorOpenRequest): Promise<DerivedErrorOpenValue>',
+        description: 'Materialize one incorrect Drill attempt as an idempotent, separately recoverable Error Session.',
+        parameters: [{ name: 'request', description: 'Source Session and the exact judged Drill preparation to promote.' }],
+        returns: 'The stable target Session identity; repeated calls return the same Error.',
       },
       {
         signature: '@Remote(\'selectModel\') selectModel(request: SessionSelectModelRequest): Promise<SessionSelectModelValue>',
@@ -4502,6 +4538,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ClientArtifactBaseline {\n    readonly path: string;\n    readonly mtimeMs: number;\n    readonly ctimeMs: number;\n    readonly size: number;\n}',
   },
   {
+    name: 'CodexAuthNotice',
+    declaration: 'export interface CodexAuthNotice {\n    readonly id: number;\n    readonly verificationUri: \'https://auth.openai.com/codex/device\';\n    readonly userCode: string;\n}',
+  },
+  {
+    name: 'CodexAuthStatus',
+    declaration: 'export interface CodexAuthStatus {\n    readonly available: boolean;\n    readonly authorized: boolean;\n    readonly inFlight: boolean;\n    readonly phase: \'idle\' | \'waiting\' | \'authorized\' | \'cancelled\' | \'failed\';\n}',
+  },
+  {
     name: 'CollectedOutput',
     declaration: 'export interface CollectedOutput {\n    text: string;\n    truncated: boolean;\n    spillPath?: string;\n}',
   },
@@ -4788,6 +4832,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DeepSeekLlmApiJson',
     declaration: 'export type DeepSeekLlmApiJson = null | boolean | number | string | DeepSeekLlmApiJson[] | {\n    [key: string]: DeepSeekLlmApiJson;\n};',
+  },
+  {
+    name: 'DerivedErrorOpenRequest',
+    declaration: 'export interface DerivedErrorOpenRequest {\n    readonly sourceSessionId: SessionId;\n    readonly preparationId: string;\n}',
+  },
+  {
+    name: 'DerivedErrorOpenValue',
+    declaration: 'export interface DerivedErrorOpenValue {\n    readonly sessionId: SessionId;\n}',
   },
   {
     name: 'DeveloperMessage',

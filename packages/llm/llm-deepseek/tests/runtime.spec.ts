@@ -1765,6 +1765,17 @@ describe('plugin registration and config', () => {
       })
   })
 
+  it('hides the ErrGrind catalog when no DeepSeek credential exists', async () => {
+    vi.stubEnv('DEEPSEEK_API_KEY', '')
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LlmDeepSeek, {
+      baseURL: 'http://127.0.0.1:1',
+      hideModelsWithoutCredential: true,
+    })
+    await expect(ctx.llm.listModels('deepseek-official')).resolves.toEqual([])
+  })
+
   it('keeps deepseek-v4-pro available with its V4 capabilities', async () => {
     const ctx = new Context()
     await ctx.plugin(LlmRuntime)

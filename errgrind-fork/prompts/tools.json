@@ -1,0 +1,128 @@
+{
+  "error_draft": {
+    "description": [
+      "Save one complete, user-readable description of the authentic mathematics Error. This is a revisable draft during Grill, not a three-field Record or a diagnosis.",
+      "Use only supplied facts. Invite the learner to provide the problem or image, their original answer or thinking, and the result learned later when useful, but never require three fields. Distinguish the learner's own account, image content you inferred, and your interpretation; preserve wrong work and unknown facts. Mark unreadable image content as unreadable instead of guessing. Preserve the learner's edits unless they explicitly change them. A later correction should create a new revision. Do not ask for confirmation until the Grill conclusion and final description are ready together."
+    ],
+    "parameters": {
+      "description": "One complete Error description in clear Chinese; attribute sources and uncertainty without inventing missing work."
+    }
+  },
+  "error_clarify": {
+    "description": [
+      "Show one concise factual clarification during active Grill, including when the learner does not confirm a proposed conclusion. The answer may improve the Error description or inform a later diagnostic question.",
+      "Ask about missing or ambiguous material without teaching, leading the learner toward a cause, or treating their current explanation as a verbatim account of their past thinking. Ordinary assistant text is hidden in ErrGrind Web."
+    ],
+    "parameters": {
+      "text": "One clear, user-visible factual question."
+    }
+  },
+  "grill_probe": {
+    "description": [
+      "Show one diagnostic question or short mathematics variant during active Grill. Preserve plausible competing Error-time mechanisms; choose a probe only when the candidates predict meaningfully different observations. Avoid vague labels such as careless or weak at math. Grill's primary objective is diagnosis rather than teaching; incidental learning is permissible, so do not reject valuable probes solely for possible incidental learning, do not estimate how much a probe changed learner state, and never interpret hinted performance as unprompted Error-time evidence.",
+      "A reasoning question asks what the learner noticed, assumed, or judged when the original Error occurred. A variant preserves the suspected trigger while changing surface structure and limiting extra knowledge, calculation, and writing. Do not reveal the tested mechanism, private predictions, answer key, or a leading hint in the public question. Predictions must cover exactly the targetHypothesisIds, one per target, with no extras or duplicates. This is a Grill probe, never an independent Drill attempt.",
+      "Update hypotheses and grounded evidence from authentic initial input, attachments, or an actual persisted answer to a prior probe. Initial text uses an exact nonempty quote; initial attachment Evidence uses an empty quote because visual interpretation is not user-verbatim text. A short, uncertain, or non-discriminating answer can be recorded with empty supports and contradicts; after repeated non-discriminating answers, prefer an undetermined conclusion over more low-value probing. Keep retrospective recollection distinct from present understanding and do not infer past knowledge from a hinted variant response."
+    ],
+    "parameters": {
+      "probe.id": "New stable probe ID, such as P1 or P2.",
+      "probe.type": "reasoning_question or variant_problem.",
+      "probe.question": "Only the neutral question or short problem shown to the learner.",
+      "probe.targetHypothesisIds": "Existing or newly supplied hypothesis IDs that this probe distinguishes.",
+      "probe.discriminationGoal": "Private explanation of which candidate causes the probe separates.",
+      "probe.predictions": "Private, different expected observable answers covering exactly the targetHypothesisIds, one per target, with no extras or duplicates.",
+      "probe.answerKey": "Private reference answer for a variant problem; never reveal before the learner answers.",
+      "probe.preservedMechanism": "Private trigger or mechanism retained in a variant problem.",
+      "probe.surfaceChange": "Private account of how the variant changes the original problem's surface.",
+      "newHypotheses": "New, genuinely plausible candidate Error-time mechanisms; omit when none are needed.",
+      "newHypotheses.id": "Stable new hypothesis ID such as H1 or H2.",
+      "newHypotheses.claim": "Specific mechanism that later evidence could weaken or falsify.",
+      "hypothesisStatusUpdates": "Updates to existing hypothesis working status; do not rewrite prior claims.",
+      "hypothesisStatusUpdates.id": "Existing hypothesis ID.",
+      "hypothesisStatusUpdates.status": "plausible, supported, weakened, or rejected from current evidence.",
+      "newEvidence": "Grounded observations from initial input, original attachments, or persisted probe answers.",
+      "newEvidence.id": "New stable evidence ID such as E1 or E2.",
+      "newEvidence.sourceRef": "Use initial-input or host-relay-input for the first text; initial-attachment:1, :2, etc. for direct-user attachments (host-relay-attachment:N for relayed ones); latest-probe-answer for the most recent persisted probe response. The Host resolves the latest alias to its durable event reference.",
+      "newEvidence.quote": "Exact nonempty substring for text, empty string for an attachment; never quote a model visual reading as user words.",
+      "newEvidence.interpretation": "What the observation does and does not show about the original Error-time mechanism.",
+      "newEvidence.supports": "Hypothesis IDs strengthened by this observation; empty when nondiscriminating.",
+      "newEvidence.contradicts": "Hypothesis IDs weakened by this observation; empty when nondiscriminating.",
+      "newEvidence.probeId": "ID of the probe answered, only for probe-answer Evidence; omit for initial input or attachment."
+    }
+  },
+  "grill_conclude": {
+    "description": [
+      "Propose this Error episode's diagnosis when a further discriminating probe has little expected value. For supported, identify a concrete supported hypothesis backed by grounded evidence from an actual probe answer, and say what could change the judgment. Otherwise propose undetermined and state the remaining uncertainty; do not force a cause or numeric confidence.",
+      "This proposal is anchored to the current Error description revision and does not end Grill. Only the learner's confirmation of that exact final description commits the proposal and ends Grill. If the learner does not confirm, continue clarification, probing, and revision. Confirmation of the description does not prove your causal inference. Do not expose private alternatives, predictions, or answer keys in the public summary."
+    ],
+    "parameters": {
+      "diagnosisStatus": "supported or undetermined for this episode only.",
+      "summary": "Readable, calibrated conclusion in clear Chinese; state the observed mechanism or inability to distinguish one.",
+      "bestHypothesisId": "Supported hypothesis ID; required only for a supported proposal.",
+      "remainingUncertainty": "What remains unresolved; required for an undetermined proposal.",
+      "whatWouldChangeJudgment": "Future observation or fact that would alter this episode-level judgment.",
+      "hypothesisStatusUpdates": "Final updates to existing hypothesis working status.",
+      "hypothesisStatusUpdates.id": "Existing hypothesis ID.",
+      "hypothesisStatusUpdates.status": "plausible, supported, weakened, or rejected from current evidence.",
+      "newEvidence": "Grounded observations from initial input, original attachments, or persisted probe answers.",
+      "newEvidence.id": "New stable evidence ID such as E1 or E2.",
+      "newEvidence.sourceRef": "Use initial-input or host-relay-input for first text, initial-attachment:N or host-relay-attachment:N for original attachments, or latest-probe-answer for the latest persisted probe response.",
+      "newEvidence.quote": "Exact nonempty substring for text; empty string for an attachment. Never invent a visual quote.",
+      "newEvidence.interpretation": "What the observation does and does not show about the original Error-time mechanism.",
+      "newEvidence.supports": "Hypothesis IDs strengthened by this observation; empty when nondiscriminating.",
+      "newEvidence.contradicts": "Hypothesis IDs weakened by this observation; empty when nondiscriminating.",
+      "newEvidence.probeId": "ID of the probe answered, only for probe-answer Evidence; omit for initial input or attachment."
+    }
+  },
+  "teach_step": {
+    "description": [
+      "Show one concise Socratic question, hint, or explanation after the Error description and diagnosis have been jointly confirmed. Teach is an intervention, not evidence about what originally caused the Error.",
+      "Address the observed mathematical mistake, explain why a supported mechanism could have seemed reasonable, and help the learner derive the correct method, its conditions, and a reusable check for a similar future problem. If diagnosis is undetermined, do not claim a proven cause. Follow the learner's remaining confusion instead of restarting a full lecture. Keep a respectful, non-blaming tone. Ordinary assistant text is hidden in ErrGrind Web."
+    ],
+    "parameters": {
+      "kind": "question, hint, or explanation.",
+      "text": "One clear, user-visible teaching move in Chinese."
+    }
+  },
+  "drill_prepare": {
+    "description": [
+      "Prepare a structured specification for one new independent mathematics practice problem from a completed Error diagnosis. An isolated model call then drafts the private reference answer and public question from this specification. Do not accept or provide question or referenceAnswer here.",
+      "Specify targetMechanism, trigger, failureBehavior, desiredBehavior, successSignal, domain, taskType, setting, taskGoal, essentialTrigger, solutionStrategy, avoid, difficultyLevel, reasoningDepth, and calculationLoad. Change surface structure rather than merely numbers or letters. Keep difficulty reasonably comparable with the source Error unless the learner requests otherwise, and do not substitute calculation burden for reasoning depth. Describe the new problem positively; no original distinctive content may enter the specification, because the isolated Draft receives this specification verbatim. If draft generation fails or is interrupted, invoking drill_prepare again resumes the saved specification to retry."
+    ],
+    "parameters": {
+      "targetMechanism": "Episode-level mechanism being practiced, without claiming a verified long-term Pattern.",
+      "trigger": "Situation that can elicit the suspected error mechanism.",
+      "failureBehavior": "Specific erroneous reasoning or behavior observed or suspected during the Error.",
+      "desiredBehavior": "Correct reasoning or checking behavior the learner should practice.",
+      "successSignal": "Observable reasoning that would demonstrate the desired behavior; allow equivalent valid methods.",
+      "domain": "Mathematical domain or topic (e.g. fractions, linear equations, geometry).",
+      "taskType": "Task archetype: calculate, simplify, solve, prove, classify, construct, optimize, explain, or determine_truth.",
+      "setting": "Problem setting or context (e.g. abstract algebraic, geometric configuration, real-world scenario); change surface structure rather than merely numbers or letters.",
+      "taskGoal": "Clear mathematical goal of the problem.",
+      "essentialTrigger": "Essential mathematical condition or feature that activates the targeted reasoning check.",
+      "solutionStrategy": "Standard mathematical strategy or steps expected to solve the problem.",
+      "avoid": "List of traps, superficial surface clues, unrelated heavy calculation, or knowledge burdens to avoid.",
+      "difficultyLevel": "Overall integer difficulty level from 1 through 5; keep reasonably comparable with source Error unless learner requests otherwise.",
+      "reasoningDepth": "Integer reasoning depth from 1 through 5.",
+      "calculationLoad": "Integer calculation load from 1 through 5; do not substitute calculation burden for reasoning depth."
+    }
+  },
+  "drill_answer_draft": {
+    "description": [
+      "When the learner submits an image as the answer to the active Drill, transcribe only the visible answer into an editable draft. Do not judge it yet. Show the draft and wait for an explicit learner reply: 确认 to accept the exact draft, or 修正：followed by their complete corrected answer. The learner may also send 修正：complete answer before a draft is shown.",
+      "Preserve mathematical notation, steps and uncertainty. State illegible parts as uncertain rather than inventing them. This is model-authored OCR or vision output, not the learner's own text or evidence about the original Error-time cause. A new image replaces the pending image draft."
+    ],
+    "parameters": {
+      "text": "Complete transcription of the learner's visible answer in clear Chinese and mathematical notation; mark unreadable parts explicitly."
+    }
+  },
+  "drill_judge": {
+    "description": [
+      "Judge the latest persisted learner response to the active Drill question. For an image answer, wait until the learner has explicitly confirmed or corrected its transcription; never judge an unreviewed image or model-authored draft. Compare mathematical correctness and reasoning fairly against the private reference answer; accept equivalent methods and valid alternatives, not just matching wording.",
+      "If the mathematical result is correct but the explanation is too short to show the target reasoning, describe the missing evidence concisely instead of claiming that the mathematical answer is wrong. The current boolean verdict cannot separately encode mechanism evidence, so do not turn lack of that evidence alone into a wrong-answer derived Error. A genuinely wrong judgment records an attempt and one lineage-bound derived Error atomically. This post-intervention answer is not evidence about the original Error-time cause."
+    ],
+    "parameters": {
+      "isCorrect": "Whether the persisted answer is mathematically correct; insufficient mechanism evidence alone is not mathematical failure.",
+      "feedback": "Concise Chinese feedback that distinguishes mathematical error from missing reasoning evidence."
+    }
+  }
+}

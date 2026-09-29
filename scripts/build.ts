@@ -1,4 +1,4 @@
-/** Run the complete repository build and bind its client artifacts to their public environment. */
+/** Build the repository or its Web shell with a selected public client profile. */
 
 import { spawnSync } from 'node:child_process'
 import { rmSync } from 'node:fs'
@@ -28,10 +28,10 @@ function runScript(script: string, environment: NodeJS.ProcessEnv): void {
   }
 }
 
-/** Run the full build selected by `--profile` or `DSH_BUILD_CLIENT_PROFILE`. */
+/** Run the selected build; a Web-only build has no complete client artifact record. */
 function main(): void {
   const { values } = parseArgs({
-    options: { profile: { type: 'string' } },
+    options: { profile: { type: 'string' }, 'web-only': { type: 'boolean' } },
     allowPositionals: false,
   })
   const root = resolve(import.meta.dirname, '..')
@@ -41,8 +41,19 @@ function main(): void {
   const buildEnvironment = clientBuildProcessEnvironment(process.env, clientEnvironment)
 
   rmSync(resolve(root, CLIENT_BUILD_RECORD_PATH), { force: true })
+  if (values['web-only']) {
+    runScript('build:web', buildEnvironment)
+    console.log('build: Web assets updated; a complete client build record requires the full build')
+    return
+  }
   runScript('build:native-system', buildEnvironment)
-  runScript('build:lib', buildEnvironment)
+  if (profile === 'errgrind') {
+    // Package references emit the same artifacts without compiling the root
+    // Host/Client test aggregates in this memory-constrained product build.
+    runScript('build:lib:errgrind', buildEnvironment)
+  } else {
+    runScript('build:lib', buildEnvironment)
+  }
   runScript('build:web', buildEnvironment)
   const record = writeClientBuildRecord(root, clientEnvironment)
   console.log(

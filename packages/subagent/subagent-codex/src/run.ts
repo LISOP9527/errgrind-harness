@@ -8,9 +8,7 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { readFileSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import { dirname, resolve } from 'node:path'
+import { writeFileSync } from 'node:fs'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session'
@@ -34,23 +32,6 @@ import {
 
 /** Default POSIX grace between subprocess termination tiers. */
 export const DEFAULT_DISPOSE_GRACE_MS = 3_000
-
-interface CodexPackageManifest {
-  readonly bin: {
-    readonly codex: string
-  }
-}
-
-const codexPackageJsonPath = createRequire(import.meta.url).resolve('@openai/codex/package.json')
-const codexPackageManifest = JSON.parse(
-  readFileSync(codexPackageJsonPath, 'utf8'),
-) as CodexPackageManifest
-
-/** Absolute package-local JavaScript wrapper selected by the package manifest. */
-const CODEX_PACKAGE_BIN = resolve(
-  dirname(codexPackageJsonPath),
-  codexPackageManifest.bin.codex,
-)
 
 /** Profile-selectable non-interactive Codex permission mode. */
 export type CodexPermissionMode =
@@ -129,11 +110,11 @@ export function codexStartupFailure(cause: unknown): Error {
 }
 
 /**
- * Fixed package-local app-server command, independent of the host `PATH`.
- * @returns Node, the official wrapper, and the fixed app-server arguments.
+ * The optional Codex subagent uses a separately installed Codex CLI.
+ * @returns the CLI command and app-server arguments.
  */
 export function codexAppServerArgv(): string[] {
-  return [process.execPath, CODEX_PACKAGE_BIN, 'app-server', '--stdio']
+  return ['codex', 'app-server', '--stdio']
 }
 
 /** Fully resolved inputs for one Codex app-server run. */

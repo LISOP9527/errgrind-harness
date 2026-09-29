@@ -227,10 +227,34 @@ Source: [`packages/api/job-controller/src/index.ts:35`](../packages/api/job-cont
 export interface Config {
   /** Override platform desktop-opener detection. */
   readonly nativeOpen?: boolean
+  /** Optional public journal policy; the durable Session log remains unchanged. */
+  readonly browserView?: BrowserViewPolicy
+}
+
+/** Host policy applied before Session history, projections, or assistant frames reach a browser. */
+export interface BrowserViewPolicy {
+  /** Session event types replaced by an ignorable browser placeholder. */
+  readonly privateEventTypes?: string[]
+  /** User-role context sources that the Host may send to the model but not present as learner messages. */
+  readonly privateMessageSourceKinds?: string[]
+  /** If set, every other Session event is replaced by a placeholder. */
+  readonly allowedEventTypes?: string[]
+  /** Data paths retained for each event in the strict allowlist. */
+  readonly publicEventFields?: Record<string, string[]>
+  /** Projection keys exposed by history, list hints, and live control. */
+  readonly allowedProjectionKeys?: string[]
+  /** Recursively remove these object properties from allowed event data. */
+  readonly redactDataKeys?: string[]
+  /** Remove tool-call arguments from durable messages, history, and live frames. */
+  readonly redactToolArguments?: boolean
+  /** Remove Assistant reasoning blocks and deltas from browser output. */
+  readonly redactAssistantReasoning?: boolean
+  /** Do not send any live or reconnect Assistant stream data. */
+  readonly hideAssistantStream?: boolean
 }
 ```
 
-来源： [`packages/api/session-controller/src/index.ts:79`](../packages/api/session-controller/src/index.ts)
+来源： [`packages/api/session-controller/src/index.ts:84`](../packages/api/session-controller/src/index.ts)
 
 <a id="deepseek-aidsh-api-settings-controller"></a>
 
@@ -526,6 +550,8 @@ export interface Config {
 export interface Config {
   /** Offer the browser API-key step when no native shell owns credential onboarding. */
   credentialOnboarding: boolean
+  /** Show the versioned product welcome notice. */
+  welcomeNotice: boolean
 }
 ```
 
@@ -1448,6 +1474,8 @@ export interface Config {
  * reasoning effort resolves to `high`.
  */
 export interface Config {
+  /** Product selectors may omit the catalog until this provider can authenticate. */
+  hideModelsWithoutCredential: boolean
   /** Credential reference (environment-variable name) resolved per request; defaults to `DEEPSEEK_API_KEY`. */
   apiKeyEnv: Volatile<string>
   /** Endpoint base; falls back to $DEEPSEEK_BASE_URL from a trusted environment layer, then the public API. */
@@ -1532,6 +1560,8 @@ Depends on: [`ModelModality`](../packages/llm/llm/src/index.ts) · [`RetryPolicy
 ```ts config-catalog
 /** Plugin configuration: the provider routes this instance owns. */
 export interface Config {
+  /** Use the signed-in account's Codex listing instead of all bundled models. */
+  filterCodexModelsByAccount: boolean
   /**
    * pi-ai provider routes, keyed by provider. An empty (or omitted) dict is
    * the dormant settings-driven posture: the adapter mounts with no routes
@@ -4098,6 +4128,22 @@ export interface Config {
 
 来源： [`packages/deliverables/workspace-changes/src/index.ts:36`](../packages/deliverables/workspace-changes/src/index.ts)
 
+<a id="errgrindepisode"></a>
+
+## `@errgrind/episode`
+
+需要：`sessionProjections` · `tools` · `commands`
+
+```ts config-catalog
+/** Product-specific command visibility. */
+export interface Config {
+  /** Register the diagnostic ledger inspection command; enabled for core and disabled in browser products. */
+  readonly statusCommand?: boolean
+}
+```
+
+来源： [`packages/core/errgrind-episode/src/index.ts:32`](../packages/core/errgrind-episode/src/index.ts)
+
 ## 无配置的可加载插件
 
 这些插件通过 `cordis.yml` 中不含 `config:` 块的条目加载；它们未声明任何配置接口。
@@ -4198,6 +4244,7 @@ export interface Config {
 - `@deepseek-ai/dsh-user-questions`（[`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts)）
 - `@deepseek-ai/dsh-webhook` — 需要 `agents` · `agentDefaultModel` · `agentPresets` · `permissionPresets` · `sessionTitle` · `workspaceRegistry`（[`packages/webhook/webhook/src/index.ts`](../packages/webhook/webhook/src/index.ts)）
 - `@deepseek-ai/dsh-workspace` — 需要 `storageDomain` · `sessionPersistence`（[`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts)）
+- `@errgrind/ui-errgrind-episode`（[`packages/client/ui-errgrind-episode/src/index.ts`](../packages/client/ui-errgrind-episode/src/index.ts)）
 
 ## Seam 包（不可直接加载）
 

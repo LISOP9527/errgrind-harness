@@ -1,5 +1,5 @@
 ---
-description: "settings 与凭据配置界面的 Host Remote owner，涵盖脱敏读取、写入、凭据引用与原生文档打开。"
+description: "settings 与凭据配置界面的 Host Remote owner，也承载 ErrGrind 固定的 Codex 设备码登录。"
 kind: "package-reference"
 ---
 # Settings Controller
@@ -8,7 +8,7 @@ kind: "package-reference"
 
 ## 概述
 
-`@deepseek-ai/dsh-api-settings-controller` 为浏览器配置界面提供生成的 `ctx.remote.settings` 与 `ctx.remote.credentials` namespace。它返回脱敏的 settings 与凭据元数据，支持 settings 与凭据写入而不返回机密值，并在 Host 桌面打开由提供方持有的 settings 或 Agent preset 位置。提供方缺失时，namespace 仍会注册，并返回可操作的配置错误。
+`@deepseek-ai/dsh-api-settings-controller` 提供生成的 `ctx.remote.settings`、`ctx.remote.credentials` 与固定的 `ctx.remote.errgrindCodexAuth` namespace。后者是 ErrGrind fork 中用于 ChatGPT Codex 设备码登录的集成，不是通用授权浏览器。它只返回生命周期状态和经过校验的验证网址/用户码，不返回已存授权 grant 或提供方错误。其他 namespace 服务于浏览器配置界面：返回脱敏的 settings 与凭据元数据，支持 settings 与凭据写入而不返回机密值，并在 Host 桌面打开由提供方持有的 settings 或 Agent preset 位置。提供方缺失时，namespace 仍会注册，并返回可操作的配置错误。
 
 ## 目录
 
@@ -30,6 +30,8 @@ kind: "package-reference"
 `settings.describe()` 返回部署信息，以及在 `redactSecrets: true` 下读取的所有 namespace。`settings.update`、`settings.replace` 与 `settings.mutate` 暴露 settings 服务的三种写入操作，并返回该 namespace 的新脱敏视图；陈旧写入使用 `settings-conflict`，其他提供方拒绝使用 `settings-rejected`。
 
 `settings.openSettingsDocument()` 准备提供方持有的文档，并用原生文本编辑器打开；该方法不接受浏览器提供的文件系统目标。
+
+`errgrindCodexAuth.status()` 读取安全的可用性和登录状态。`beginDeviceCode()` 只启动 `llm-pi-ai/openai-codex` 的 OAuth 流程并立即返回；`noticesAfter(cursor)` 返回数量受限且经过校验的设备码指引，`cancel()` 取消由本 controller 启动的尝试。浏览器不能选择凭据 key 或登录方式、提供任意提示答案，也不能接收 grant 字段。这个固定 namespace 属于 ErrGrind 产品 fork；若 Host Remote 界面要通用化，应迁至 ErrGrind 自有 package。
 
 -----
 

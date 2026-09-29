@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { resolve } from 'node:path'
 import { PassThrough } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
@@ -63,16 +63,6 @@ vi.mock('node:fs', async (importOriginal) => {
 })
 
 type JsonObject = Record<string, unknown>
-
-const CODEX_VERSION = '0.153.4'
-const CODEX_PLATFORM_PACKAGES = [
-  '@openai/codex-darwin-arm64',
-  '@openai/codex-darwin-x64',
-  '@openai/codex-linux-arm64',
-  '@openai/codex-linux-x64',
-  '@openai/codex-win32-arm64',
-  '@openai/codex-win32-x64',
-] as const
 
 const fakeParent = {
   id: 'parent',
@@ -369,38 +359,12 @@ describe('task admission and package contracts', () => {
       '@deepseek-ai/dsh-sdk-protocol',
       'workspace:*',
     )
-    expect(manifest.dependencies).toHaveProperty('@openai/codex', CODEX_VERSION)
+    expect(manifest.dependencies).not.toHaveProperty('@openai/codex')
     expect(manifest.dependencies).not.toHaveProperty('@deepseek-ai/dsh-subagent-claude-code')
-
-    const codexPackageJson = fileURLToPath(import.meta.resolve('@openai/codex/package.json'))
-    const codexManifest = JSON.parse(readFileSync(codexPackageJson, 'utf8')) as {
-      version: string
-      bin: { codex: string }
-      optionalDependencies: Record<string, string>
-    }
-    expect(codexManifest.version).toBe(CODEX_VERSION)
-    expect(codexManifest.bin).toEqual({ codex: 'bin/codex.js' })
-    expect(codexManifest.optionalDependencies).toEqual(Object.fromEntries(
-      CODEX_PLATFORM_PACKAGES.map(packageName => [
-        packageName,
-        `npm:@openai/codex@${CODEX_VERSION}-${packageName.slice('@openai/codex-'.length)}`,
-      ]),
-    ))
-    expect(codexAppServerArgv()).toEqual([
-      process.execPath,
-      resolve(dirname(codexPackageJson), codexManifest.bin.codex),
-      'app-server',
-      '--stdio',
-    ])
+    expect(codexAppServerArgv()).toEqual(['codex', 'app-server', '--stdio'])
 
     const lockfile = readFileSync(resolve(root, '../../../pnpm-lock.yaml'), 'utf8')
-    for (const packageName of CODEX_PLATFORM_PACKAGES) {
-      const suffix = packageName.slice('@openai/codex-'.length)
-      expect(lockfile).toContain(`  '@openai/codex@${CODEX_VERSION}-${suffix}':`)
-      expect(lockfile).toContain(
-        `      '${packageName}': '@openai/codex@${CODEX_VERSION}-${suffix}'`,
-      )
-    }
+    expect(lockfile).not.toContain("  '@openai/codex@")
 
     const parsed = yaml.load(readFileSync(resolve(root, manifest.dsh!.bundle!.patch!), 'utf8'))
     const rows = Array.isArray(parsed)

@@ -1,0 +1,18 @@
+.root {
+  box-sizing: border-box;
+  width: min(100%, 52rem);
+  margin: 0 auto 0.6rem;
+  padding: 0.15rem 0.75rem;
+}
+
+.title {
+  margin: 0;
+  font-weight: 650;
+}
+
+.alternative {
+  margin: 0.35rem 0 0;
+  color: var(--dsh-text-secondary, #5c6572);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}

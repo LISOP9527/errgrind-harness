@@ -25,10 +25,11 @@ export type ConversationPhase = 'blank' | 'engaging' | 'active'
  */
 export function conversationPhase(
   session: SessionSnapshot,
-  conversation: ConversationSnapshot,
+  _conversation: ConversationSnapshot,
 ): ConversationPhase {
-  const active = conversation.activeTargets.size > 0
-    || (!session.blank && !session.awaitingFirstTurn)
+  // A view target becomes active when its UI subscribes, even if the session
+  // has no messages. Subscription alone must not dock the first-input composer.
+  const active = (!session.blank && !session.awaitingFirstTurn)
     || session.running
   return active ? 'active' : session.promptAttempted ? 'engaging' : 'blank'
 }

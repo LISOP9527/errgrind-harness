@@ -17,10 +17,15 @@ import type {
   SessionListMetadata, SessionProjectionHints, SessionProjectionValues, SessionSearchItem,
   SessionSearchValue, SessionSummary,
 } from './types.ts'
+import { browserEvent, browserProjectionValues, type BrowserViewPolicy } from './browser-view.ts'
 
 const SEARCH_PROVIDER_CALL_LIMIT = 100
 const SESSION_SEARCH_QUERY_MAX_CHARS = 500
-const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
+const MESSAGE_TYPES = ['user/message', 'assistant/message'] as const
+
+function startsVisibleConversation(event: SessionEvent): boolean {
+  return event.type === 'turn/start' || event.type === 'errgrind/derived-error-open'
+}
 
 const sessionListMetadataSchema: z.ZodType<SessionListMetadata> = z.object({
   blank: z.boolean(),
@@ -46,7 +51,7 @@ export function applySessionListMetadata(
   state: SessionListMetadata,
   event: SessionEvent,
 ): SessionListMetadata {
-  const blank = state.blank && event.type !== 'turn/start'
+  const blank = state.blank && !startsVisibleConversation(event)
   const lastPromptAt = event.type === 'user/message' && event.data.source.kind === 'user'
     ? event.time
     : state.lastPromptAt
@@ -75,7 +80,7 @@ export function truncateUnicodeCodePoints(value: string, maximum: number): strin
 /** Owns list projection registration, bounded cold summaries, and authorized search. */
 export class ApiSessionList {
   /** @param ctx - Host context carrying Session, query, persistence, and projection services. */
-  constructor(private readonly ctx: Context) {
+  constructor(private readonly ctx: Context, private readonly browserView?: BrowserViewPolicy) {
     ctx.sessionProjections.register<'sessionListMetadata', SessionListMetadata>({
       key: 'sessionListMetadata',
       stateSchema: sessionListMetadataSchema,
@@ -112,7 +117,10 @@ export class ApiSessionList {
       updatedAt: updatedAt(session.header, metadata),
       agentAvailable: this.ctx.agents.get(session.id)?.session === session,
       running: this.ctx.agents.get(session.id)?.status === 'running',
-      blank: metadata?.blank ?? session.seq === 0,
+      // Configuration events may precede the first user turn. Until the
+      // projection is available, inspect the attached log using the same
+      // visible-conversation boundary as sessionListMetadata.
+      blank: metadata?.blank ?? !session.snapshotEvents().some(startsVisibleConversation),
       ...listFields(session.header),
       ...(projections === undefined ? {} : { projections }),
     }
@@ -166,6 +174,8 @@ export class ApiSessionList {
    */
   async search(query: string, signal: AbortSignal): Promise<SessionSearchValue> {
     const normalizedQuery = normalizeSearchQuery(query)
+    // Indexed Assistant content includes tool-call arguments from the private log.
+    const messageTypes = this.browserView?.redactToolArguments ? ['user/message'] as const : MESSAGE_TYPES
     signal.throwIfAborted()
     const provider = this.ctx.get('sessionQuery')
     if (provider === undefined) {
@@ -201,7 +211,7 @@ export class ApiSessionList {
           page = await provider.searchSessions({
             query: normalizedQuery,
             eventFilters: [
-              { kind: 'type', values: ['user/message', 'assistant/message'] },
+              { kind: 'type', values: messageTypes },
               { kind: 'surface', values: ['current'] },
             ],
             limit: requestedLimit,
@@ -236,8 +246,13 @@ export class ApiSessionList {
           if (!visibleIds.has(hit.header.id)
             || hit.bestMatch.sessionId !== hit.header.id
             || hit.bestMatch.surface !== 'current'
-            || !MESSAGE_TYPES.has(hit.bestMatch.type)
+            || !messageTypes.some(type => type === hit.bestMatch.type)
             || acceptedIds.has(hit.header.id)) continue
+          if (this.browserView?.privateMessageSourceKinds?.length) {
+            const window = await provider.readEvent({ sessionId: hit.header.id, seq: hit.bestMatch.seq }, signal)
+            signal.throwIfAborted()
+            if (browserEvent(window.target, this.browserView).type === 'browser/private') continue
+          }
           acceptedIds.add(hit.header.id)
           authorized.push({
             sessionId: hit.header.id,
@@ -274,13 +289,13 @@ export class ApiSessionList {
       if (session !== undefined) {
         // The live registry computed the block for this Session: its watermark
         // shares the sequence space of the Session's baselines and frames.
-        return hintsOf('sequenced', this.ctx.sessionProjections.cachedSnapshot(session))
+        return hintsOf('sequenced', this.ctx.sessionProjections.cachedSnapshot(session), this.browserView)
       }
       // A cold row reads the persisted cache by header alone; the cache serves
       // seeded and unseeded lifecycles alike because a listing never seeds a
       // fold. The watermark is the stored record's own.
       const cache = this.ctx.get('sessionProjectionCache')
-      return hintsOf('cached', cache?.cachedSnapshot(header) ?? cache?.cachedPredecessorTitle(header))
+      return hintsOf('cached', cache?.cachedSnapshot(header) ?? cache?.cachedPredecessorTitle(header), this.browserView)
     } catch (error) {
       this.ctx.logger.warn(
         `api-session.list: projection column for "${header.id}" failed; serving the row without it: ${String(error)}`,
@@ -299,11 +314,14 @@ export class ApiSessionList {
 function hintsOf(
   kind: SessionProjectionHints['kind'],
   block: ProjectionSnapshot | undefined,
+  browserView?: BrowserViewPolicy,
 ): SessionProjectionHints | undefined {
-  if (block === undefined || Object.keys(block.values).length === 0) return undefined
-  // Listing hints contain every wire value the source currently holds but
-  // remain partial: missing cells and cache rows are never materialized here.
-  return { kind, asOfSeq: block.asOfSeq, values: block.values as SessionProjectionValues }
+  if (block === undefined) return undefined
+  const values = browserProjectionValues(block.values, browserView)
+  if (Object.keys(values).length === 0) return undefined
+  // Listing hints stay partial: omitted capabilities and cache rows are never
+  // materialized merely because a browser asks for a Session list.
+  return { kind, asOfSeq: block.asOfSeq, values: values as SessionProjectionValues }
 }
 
 function normalizeSearchQuery(query: string): string {

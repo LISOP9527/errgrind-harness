@@ -4,6 +4,12 @@ import { Context } from '@deepseek-ai/cordis'
 import { stubConfigForm, type StubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
 import type { LocaleSettings, LocaleSnapshot } from '@deepseek-ai/dsh-client-locale/client'
 import { FALLBACK_LOCALE, LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface LocaleNamespaceMap {
+    testLocale: 'hero' | 'onlyZh' | 'onlyEn' | 'fallbackText'
+  }
+}
 const make = (host?: StubConfigForm<LocaleSettings>): {
   ctx: Context
   svc: LocaleRuntime
@@ -95,6 +101,55 @@ describe('LocaleRuntime', () => {
     expect(t('k')).toBe('v2')
     dispose()
     expect(t('k')).toBe('v2')
+  })
+
+  it('overrides existing keys per locale, falls back through base dictionaries, and restores them on disposal', () => {
+    const { svc } = make()
+    svc.register('testLocale', 'zh', { hero: '通用中文', onlyZh: '仅中文' })
+    svc.register('testLocale', 'en', { hero: 'Generic English', onlyEn: 'English fallback', fallbackText: 'Base English' })
+    const t = svc.bind('testLocale')
+    const overrides = {
+      zh: { hero: 'ErrGrind 中文', onlyZh: 'ErrGrind only Chinese' },
+      en: { hero: 'ErrGrind English', fallbackText: 'ErrGrind fallback English' },
+    }
+    const invalidOverrides: Record<'zh' | 'en', Partial<Record<string, string>>> = {
+      zh: { missing: 'Unknown' },
+      en: {},
+    }
+    expect(() => svc.registerOverride('testLocale', invalidOverrides)).toThrow('has no base key')
+    const revision = svc.getLocale().revision
+    const dispose = svc.registerOverride('testLocale', overrides)
+
+    expect(svc.getLocale().revision).toBe(revision + 1)
+    expect(t('hero')).toBe('ErrGrind 中文')
+    expect(t('onlyEn')).toBe('English fallback')
+    expect(t('fallbackText')).toBe('ErrGrind fallback English')
+    svc.setLocale('en')
+    expect(t('hero')).toBe('ErrGrind English')
+
+    expect(() => svc.registerOverride('testLocale', overrides)).toThrow('already has an override')
+
+    const beforeDispose = svc.getLocale().revision
+    dispose()
+    expect(svc.getLocale().revision).toBe(beforeDispose + 1)
+    expect(t('hero')).toBe('Generic English')
+    expect(t('fallbackText')).toBe('Base English')
+    dispose()
+    expect(svc.getLocale().revision).toBe(beforeDispose + 1)
+  })
+
+  it('does not apply an override after its base locale dictionary is disposed', () => {
+    const { svc } = make()
+    const disposeZh = svc.register('testLocale', 'zh', { hero: '基础中文' })
+    svc.register('testLocale', 'en', { hero: 'English base' })
+    const disposeOverride = svc.registerOverride('testLocale', {
+      zh: { hero: '覆盖中文' },
+      en: {},
+    })
+
+    disposeZh()
+    expect(svc.bind('testLocale')('hero')).toBe('English base')
+    disposeOverride()
   })
 
   it('serves the LocaleFace: snapshot revision moves on switch and registration, subscribers fire, unsubscribe stops them', () => {

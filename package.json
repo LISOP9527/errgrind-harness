@@ -22,6 +22,7 @@
     "build:bench": "npm run build:native-system && npm run build:lib && tsdown --config benchmarks/tsdown.config.ts",
     "build:official": "tsx scripts/build.ts --profile official",
     "build:lib": "pnpm run build:lib:host && pnpm run build:lib:client",
+    "build:lib:errgrind": "tsx scripts/build-reference-face.ts host && tsx scripts/build-reference-face.ts client",
     "build:lib:host": "node --max-old-space-size=4096 ./node_modules/typescript/bin/tsc -b tsconfig.host.json && tsdown --env.DSH_BUILD_FACE host",
     "build:lib:client": "tsc -b tsconfig.client.json && tsdown --env.DSH_BUILD_FACE client",
     "build:web": "pnpm --filter @deepseek-ai/dsh-web-frontend run build",
@@ -201,7 +202,10 @@
     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
     "start:web": "node --import tsx/esm apps/cli/src/bin.ts web",
     "dev:web": "tsx scripts/dev-web.ts --poll",
-    "postinstall": "node scripts/install-lefthook.mjs"
+    "postinstall": "node scripts/install-lefthook.mjs",
+    "errgrind:start": "node errgrind-fork/start.mjs",
+    "errgrind:build": "tsx scripts/build.ts --profile errgrind",
+    "errgrind:build:web": "tsx scripts/build.ts --profile errgrind --web-only"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:*",

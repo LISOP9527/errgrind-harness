@@ -1,0 +1,248 @@
+.episodeCard,
+.questionCard,
+.teachCard,
+.authCard {
+  box-sizing: border-box;
+  width: min(100%, 52rem);
+  min-width: 0;
+  margin: 0.75rem auto;
+  padding: 1rem;
+  border: 1px solid var(--dsh-border-subtle, #d8dce3);
+  border-radius: 0.9rem;
+  background: var(--dsh-surface-raised, #fff);
+  color: var(--dsh-text-primary, #20242c);
+}
+
+.questionCard {
+  margin-top: 0.35rem;
+  border-inline-start: 3px solid var(--dsh-accent, #6474c8);
+}
+
+.teachCard {
+  margin-top: 0.35rem;
+  border-inline-start: 3px solid var(--dsh-accent-teach, #0d9488);
+}
+
+.teachKind {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--dsh-border-subtle, #d8dce3);
+  border-radius: 9999px;
+  background: var(--dsh-surface, #f7f8fa);
+  color: var(--dsh-text-secondary, #5c6572);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.teachCard[data-kind="question"] .teachKind {
+  color: var(--dsh-accent, #4257b2);
+}
+
+.teachCard[data-kind="hint"] .teachKind {
+  color: var(--dsh-accent-warn, #b45309);
+}
+
+.teachCard[data-kind="explanation"] .teachKind {
+  color: var(--dsh-accent-teach, #0d9488);
+}
+
+.header,
+.footer,
+.statusLine {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.header {
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.revision,
+.status {
+  color: var(--dsh-text-secondary, #5c6572);
+  font-size: 0.84rem;
+}
+
+.description,
+.question,
+.teachText,
+.summary,
+.uncertainty,
+.hint {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.description {
+  margin: 0;
+  font-family: inherit;
+}
+
+.hint,
+.statusLine,
+.uncertaintyLabel {
+  color: var(--dsh-text-secondary, #5c6572);
+  font-size: 0.88rem;
+}
+
+.hint {
+  margin: 0.75rem 0 0;
+}
+
+.footer {
+  justify-content: space-between;
+  margin-top: 0.85rem;
+}
+
+.authCard {
+  margin-top: 1rem;
+}
+
+.authPending {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.authLink {
+  color: var(--dsh-accent, #4257b2);
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.authLinkRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  max-width: 100%;
+}
+
+.authCodeRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.authCodeLabel {
+  color: var(--dsh-text-secondary, #5c6572);
+  font-size: 0.88rem;
+}
+
+.authCode {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--dsh-border-subtle, #d8dce3);
+  border-radius: 0.45rem;
+  background: var(--dsh-surface, #f7f8fa);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+}
+
+.copyButton,
+.secondaryButton {
+  min-height: 2.5rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--dsh-border-subtle, #d8dce3);
+  border-radius: 0.6rem;
+  background: var(--dsh-surface-raised, #fff);
+  color: var(--dsh-text-primary, #20242c);
+  font: inherit;
+  cursor: pointer;
+}
+
+.secondaryButton {
+  color: var(--dsh-text-secondary, #5c6572);
+}
+
+.confirmButton {
+  min-height: 2.75rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: var(--dsh-accent, #4257b2);
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirmButton:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.feedback {
+  flex-basis: 100%;
+  color: var(--dsh-text-secondary, #5c6572);
+  font-size: 0.88rem;
+}
+
+.question {
+  margin: 0.45rem 0 0;
+  font-size: 1rem;
+}
+
+.teachText {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.summary {
+  margin: 0.5rem 0 0;
+}
+
+.uncertainty {
+  margin: 0.5rem 0 0;
+}
+
+.uncertaintyLabel {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .episodeCard,
+  .questionCard,
+  .teachCard {
+    margin-inline: 0;
+    padding: 0.85rem;
+    border-radius: 0.75rem;
+  }
+
+  .footer {
+    align-items: stretch;
+  }
+
+  .confirmButton {
+    width: 100%;
+  }
+
+  .authCodeRow {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .authCode {
+    flex: 1 1 8rem;
+    text-align: center;
+  }
+}

@@ -204,7 +204,19 @@ export function resolveClientBuildEnvironment(
       ...OFFICIAL_CLIENT_BUILD_ENVIRONMENT,
     }
   }
-  throw new Error(`unknown client build profile ${JSON.stringify(profile)}; expected "official"`)
+  if (profile === 'errgrind') {
+    const commitHash = environment[CLIENT_COMMIT_HASH_VARIABLE]
+    const version = environment[CLIENT_VERSION_VARIABLE]
+    if (commitHash === undefined) throw new Error(`${CLIENT_COMMIT_HASH_VARIABLE} is required for the ErrGrind client build profile`)
+    if (version === undefined) throw new Error(`${CLIENT_VERSION_VARIABLE} is required for the ErrGrind client build profile`)
+    return {
+      DSH_CLIENT_BUILD_PROFILE: 'errgrind',
+      DSH_CLIENT_COMMIT_HASH: commitHash,
+      DSH_CLIENT_TITLE: 'ErrGrind',
+      DSH_CLIENT_VERSION: version,
+    }
+  }
+  throw new Error(`unknown client build profile ${JSON.stringify(profile)}; expected "official" or "errgrind"`)
 }
 
 /**

@@ -72,6 +72,8 @@ interface PiAiSnapshot {
 
 /** Constructor options for {@link PiAiAdapter}: the two resolution hooks the plugin owns. */
 export interface PiAiAdapterOptions {
+  /** Optional account-visible Codex catalog for product selectors. */
+  codexModelIds?: (models: Models) => Promise<ReadonlySet<string>>
   /** Current validated profiles by provider route; called once per operation. */
   profiles: () => ReadonlyMap<string, ResolvedPiAiProviderProfile>
   /**
@@ -273,17 +275,17 @@ export class PiAiAdapter extends LlmAdapter {
     return this.current().profiles.get(provider)?.retryPolicy
   }
 
-  override listModels(provider: string): Promise<readonly LlmModelInfo[]> {
-    return Promise.resolve().then(() => {
-      const snapshot = this.current()
-      this.profileOf(snapshot, provider)
-      return snapshot.models.getModels(provider).map(model => ({
-        provider,
-        id: model.id,
-        name: model.name,
-        inputModalities: [...model.input],
-      }))
-    })
+  override async listModels(provider: string): Promise<readonly LlmModelInfo[]> {
+    const snapshot = this.current()
+    this.profileOf(snapshot, provider)
+    const allowed = provider === 'openai-codex'
+      ? await this.config.codexModelIds?.(snapshot.models) : undefined
+    return snapshot.models.getModels(provider).filter(model => allowed === undefined || allowed.has(model.id)).map(model => ({
+      provider,
+      id: model.id,
+      name: model.name,
+      inputModalities: [...model.input],
+    }))
   }
 
   override resolveModel(

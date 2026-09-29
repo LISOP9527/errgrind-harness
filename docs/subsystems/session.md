@@ -814,6 +814,13 @@ inspect( sessionId: SessionId, signal?: AbortSignal, ): Promise<SessionInspectio
 @Remote('create') create(request: SessionCreateRequest): Promise<SessionCreateValue>
 
 /**
+ * Materialize one incorrect Drill attempt as an idempotent, separately recoverable Error Session.
+ * @param request - Source Session and the exact judged Drill preparation to promote.
+ * @returns The stable target Session identity; repeated calls return the same Error.
+ */
+@Remote('openDerivedError') async openDerivedError(request: DerivedErrorOpenRequest): Promise<DerivedErrorOpenValue>
+
+/**
  * Select one Session-local model after explicitly resuming the Session.
  * @param request - Session identity and requested model selection.
  * @returns the normalized selection installed for the Session.

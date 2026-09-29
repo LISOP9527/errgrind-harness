@@ -94,6 +94,47 @@ function installSearchQuery(
 }
 
 describe('session.search', () => {
+  it('withholds private user-role context from search snippets', async () => {
+    const ctx = await baseContext()
+    const visible = header('private-user-search')
+    const session = ctx.sessions.create(visible.id, { meta: visible })
+    const privateInput = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'private answer sentinel' }],
+      source: { kind: 'errgrind-drill-context', preparationId: 'practice-1' },
+    }), { surfaceOp: 'append' })
+    installSearchQuery(ctx, () => Promise.resolve({ items: [{
+      ...hit('private-user-search'), bestMatch: { ...hit('private-user-search').bestMatch,
+        seq: privateInput.seq, snippet: 'private answer sentinel' },
+    }] }))
+    const list = new ApiSessionList(ctx, {
+      redactToolArguments: true, privateMessageSourceKinds: ['errgrind-drill-context'],
+    })
+    await expect(list.search('sentinel', new AbortController().signal)).resolves.toEqual({ items: [], hasMore: false })
+    await ctx.fiber.dispose()
+  })
+  it('keeps indexed assistant tool arguments out of browser search results in a public view', async () => {
+    const ctx = await baseContext()
+    const visible = header('public-search')
+    ctx.sessions.create(visible.id, { meta: visible })
+    const searchSessions = vi.fn((_request: SessionSearchRequest) => Promise.resolve({
+      items: [{
+        ...hit('public-search'),
+        bestMatch: { ...hit('public-search').bestMatch, type: 'assistant/message', snippet: 'hidden answer key' },
+      }],
+    }))
+    installSearchQuery(ctx, searchSessions)
+    const list = new ApiSessionList(ctx, { redactToolArguments: true })
+
+    await expect(list.search('answer key', new AbortController().signal)).resolves.toEqual({ items: [], hasMore: false })
+    expect(searchSessions).toHaveBeenCalledWith(expect.objectContaining({
+      eventFilters: [
+        { kind: 'type', values: ['user/message'] },
+        { kind: 'surface', values: ['current'] },
+      ],
+    }), expect.anything())
+    await ctx.fiber.dispose()
+  })
+
   it('rejects search when the query service is absent', async () => {
     const ctx = await baseContext()
     const list = new ApiSessionList(ctx)

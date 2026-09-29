@@ -724,7 +724,14 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       // Reproduce that link so a private bundle can import its own plugin.
       const installedLink = join(profileDir, 'node_modules', manifest.name)
       await mkdir(dirname(installedLink), { recursive: true })
-      await symlink(packageDir, installedLink, 'junction')
+      try {
+        await symlink(packageDir, installedLink, 'junction')
+      } catch (error) {
+        // A caller may deliberately reuse an isolated home for a second live
+        // run. Accept only the same installed package; never replace a link.
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST'
+          || await realpath(installedLink) !== await realpath(packageDir)) throw error
+      }
       return {
         packageName: manifest.name,
         packageDir,

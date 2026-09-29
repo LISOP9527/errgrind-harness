@@ -1,10 +1,113 @@
-# First ErrGrind Web composition. Run only with an isolated DSH_HOME while the
-# Error episode store and UI are being implemented.
+# ErrGrind Web composition. The product launcher selects an isolated
+# ERRGRIND_HOME; this patch keeps upstream services only where the current
+# Error conversation and session recovery use them.
+
+- id: llm-pi-ai
+  config:
+    filterCodexModelsByAccount: true
+    providers:
+      openai-codex: {}
+
+- id: llm-deepseek
+  config:
+    hideModelsWithoutCredential: true
+
+- id: agent-default-model
+  config:
+    provider: openai-codex
+    model: gpt-5.6-sol
+    reasoningEffort: medium
+
+- id: ui-settings-models
+  config:
+    credentialOnboarding: false
+    welcomeNotice: false
+
+- id: deepseek-account
+  disabled: true
+
+- id: account-controller
+  disabled: true
+
+- id: ui-settings-account
+  disabled: true
 
 - id: system-prompt
   config:
     personaPrefix: You help users investigate authentic errors in mathematics.
     personaSuffix: ''
+
+- id: session-controller
+  config:
+    browserView:
+      privateEventTypes:
+        - errgrind/error-open
+      privateMessageSourceKinds:
+        - errgrind-derived-error
+        - errgrind-drill-context
+      allowedEventTypes:
+        - turn/start
+        - turn/end
+        - step/start
+        - step/end
+        - user/message
+        - errgrind/error-draft
+        - errgrind/derived-error-open
+        - errgrind/error-confirm
+        - errgrind/error-clarify
+        - errgrind/grill-probe
+        - errgrind/grill-conclude
+        - errgrind/teach-step
+        - errgrind/drill-prepared
+        - errgrind/drill-answer-draft
+        - errgrind/drill-draft-finished
+        - errgrind/drill-judged
+      publicEventFields:
+        turn/start: [turn]
+        turn/end: [turn, reason]
+        step/start: [turn, step]
+        step/end: [turn, step]
+        user/message: [id, role, content, source.kind, source.rpcId]
+        errgrind/error-draft: [revision, text]
+        errgrind/derived-error-open: [question, userResponse]
+        errgrind/error-confirm: [revision]
+        errgrind/error-clarify: [text, turn]
+        errgrind/grill-probe: [anchorRevision, turn, probe.id, probe.type, probe.question]
+        errgrind/grill-conclude: [anchorRevision, turn, diagnosisStatus, summary, remainingUncertainty]
+        errgrind/teach-step: [kind, text, anchorRevision, diagnosisRound, turn]
+        errgrind/drill-prepared: [id, question]
+        errgrind/drill-answer-draft: [revision, preparationId, text]
+        errgrind/drill-draft-finished: [preparationId, status]
+        errgrind/drill-judged: [preparationId, isCorrect, feedback]
+      allowedProjectionKeys:
+        - modelSelection
+        - errgrindEpisode
+      redactDataKeys:
+        - errgrindOriginal
+      redactToolArguments: true
+      redactAssistantReasoning: true
+      hideAssistantStream: true
+
+# Error conversations need image upload and Session access, but do not edit a
+# workspace. Keep fresh ErrGrind Sessions read-only by default.
+- id: sandbox-policy
+  config:
+    mode: read-only
+    workspaceRoot: !!js process.cwd()
+
+- id: permission
+  config:
+    presets:
+      read-only:
+        sandbox: read-only
+        approval: ask
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+      danger-full-access:
+        sandbox: danger-full-access
+        approval: never
+    defaultPreset: read-only
 
 - id: preset-standard
   config:
@@ -14,15 +117,7 @@
       - id: persona
         name: '@deepseek-ai/dsh-persona'
         config:
-          prefix: >-
-            You are ErrGrind, a mathematics error investigation assistant.
-            Investigate one authentic Error per conversation. After understanding
-            the user's material, call error_draft to save one complete, readable
-            description; keep unknown facts unknown and distinguish the user's
-            account from your own interpretation. Ask the user to review or
-            revise that draft and use /error-confirm when it is accurate.
-            Never confirm it on the user's behalf. Do not treat a draft or one
-            conversation as a verified long-term pattern.
+          prefix: !!js "process.getBuiltinModule('node:fs').readFileSync(process.env.ERRGRIND_PROMPT_PATH ?? (process.env.PWD + '/errgrind-fork/prompts/system.md'), 'utf8')"
           complete: true
           includeRuntimeContext: false
       - id: compaction
@@ -57,6 +152,9 @@
 - id: workspace-changes
   disabled: true
 
+- id: session-reference
+  disabled: true
+
 - id: ui-sidebar-terminal
   disabled: true
 
@@ -64,6 +162,15 @@
   disabled: true
 
 - id: ui-sidebar-documentpreview
+  disabled: true
+
+- id: ui-reference
+  disabled: true
+
+- id: ui-settings-shell
+  disabled: true
+
+- id: ptc-runtime
   disabled: true
 
 - id: ui-deliverables
@@ -84,6 +191,88 @@
 - id: ui-agent-preset
   disabled: true
 
+# The standard ErrGrind preset has no coding, goal, plan, skill, subagent, job,
+# or generic feedback tools. Keep their optional browser leaves out of this
+# product composition. Session navigation, attachments, model settings, and
+# the conversation shell remain mounted.
+- id: subagent-model-selection-settings
+  disabled: true
+
+- id: message-feedback
+  disabled: true
+
+- id: job-controller
+  disabled: true
+
+- id: plugin-inventory
+  disabled: true
+
+- id: cordis-inspect-providers
+  disabled: true
+
+- id: office-to-pdf
+  disabled: true
+
+- id: ui-settings-plugin-inventory
+  disabled: true
+
+- id: ui-settings-plugins
+  disabled: true
+
+- id: ui-settings-agent-loop
+  disabled: true
+
+- id: ui-settings-subagent
+  disabled: true
+
+- id: ui-settings-web-search
+  disabled: true
+
+- id: ui-brand-official
+  disabled: true
+
+- id: ui-approval
+  disabled: true
+
+- id: ui-cordis
+  disabled: true
+
+- id: ui-workflow-run
+  disabled: true
+
+- id: ui-skill
+  disabled: true
+
+- id: ui-subagent
+  disabled: true
+
+- id: ui-jobs
+  disabled: true
+
+- id: ui-goal
+  disabled: true
+
+- id: ui-message-feedback
+  disabled: true
+
+- id: ui-permission
+  disabled: true
+
+- id: ui-plan
+  disabled: true
+
+- id: ui-user-questions
+  disabled: true
+
+- id: ui-trajectory
+  disabled: true
+
 - insert:
     - id: errgrind-episode
       name: '@errgrind/episode'
+      config:
+        statusCommand: false
+
+- insert:
+    - id: ui-errgrind-episode
+      name: '@errgrind/ui-errgrind-episode'

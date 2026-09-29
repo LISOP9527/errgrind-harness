@@ -1,5 +1,5 @@
 ---
-description: "Host Remote owner for settings and credential configuration surfaces, including redacted reads, writes, credential references, and native document opening."
+description: "Host Remote owner for settings and credential configuration surfaces, including the fixed ErrGrind Codex device-code sign-in."
 kind: "package-reference"
 ---
 # Settings Controller
@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@deepseek-ai/dsh-api-settings-controller` exposes generated `ctx.remote.settings` and `ctx.remote.credentials` namespaces for browser configuration surfaces. It returns redacted settings and credential metadata, supports settings and credential writes without returning secret values, and opens provider-owned settings or Agent preset locations on the Host desktop. When a provider is absent, the namespace remains registered and returns an actionable configuration error.
+`@deepseek-ai/dsh-api-settings-controller` exposes generated `ctx.remote.settings`, `ctx.remote.credentials`, and the fixed `ctx.remote.errgrindCodexAuth` namespace. The latter is an ErrGrind fork integration for ChatGPT Codex device-code sign-in; it is not a general authorization browser. It returns only lifecycle state and a validated verification URI/user code, and never returns the stored grant or provider errors. The other namespaces serve browser configuration surfaces: they return redacted settings and credential metadata, support settings and credential writes without returning secret values, and open provider-owned settings or Agent preset locations on the Host desktop. When a provider is absent, the namespace remains registered and returns an actionable configuration error.
 
 ## Table of Contents
 
@@ -30,6 +30,8 @@ Mount this package as a Loader entry in a profile that serves browser configurat
 `settings.describe()` returns deployment facts and every namespace under `redactSecrets: true`. `settings.update`, `settings.replace`, and `settings.mutate` expose the settings service's three write operations and return the namespace's new redacted view; stale writes use `settings-conflict` and other provider refusals use `settings-rejected`.
 
 `settings.openSettingsDocument()` prepares the provider-owned document and opens it with the native text editor; it accepts no browser-supplied filesystem target.
+
+`errgrindCodexAuth.status()` reads safe availability and sign-in state. `beginDeviceCode()` starts only the OAuth flow for `llm-pi-ai/openai-codex` and returns immediately; `noticesAfter(cursor)` returns bounded, validated device-code instructions, and `cancel()` withdraws an attempt this controller started. The browser cannot choose a credential key or method, supply arbitrary prompt answers, or receive grant fields. This fixed namespace belongs to the ErrGrind product fork and should move to an ErrGrind-owned package if the Host Remote surface is generalized.
 
 -----
 

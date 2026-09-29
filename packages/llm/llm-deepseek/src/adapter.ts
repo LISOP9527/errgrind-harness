@@ -31,9 +31,20 @@ export class DeepSeekAdapter extends LlmAdapter {
 
   override providerInfo(provider: string) { return { id: provider, name: 'DeepSeek' } }
   override providerRetryPolicy(_provider: string) { return this.dependencies.options().retryPolicy }
-  override listModels(provider: string) {
+  override async listModels(provider: string) {
     const connection = this.dependencies.options()
-    return Promise.resolve(connection.models.map(model => catalogModelInfo(provider, model)))
+    if (this.dependencies.hideModelsWithoutCredential?.() === true) {
+      const accountToken = await this.dependencies.resolveAccountToken?.(connection)
+      if (accountToken === undefined) {
+        try {
+          await this.dependencies.resolveApiKey(connection)
+        } catch (error) {
+          if (error instanceof LlmError && error.code === 'MISSING_CREDENTIAL') return []
+          throw error
+        }
+      }
+    }
+    return connection.models.map(model => catalogModelInfo(provider, model))
   }
   override resolveModel(provider: string, model: string, _signal?: AbortSignal) {
     return Promise.resolve(modelInfo(this.dependencies.options(), provider, model))

@@ -1,15 +1,17 @@
 /** Session Remote owner: cold reads, explicit Agent commands, and live control state. */
 
 import { hostname } from 'node:os'
+import { createHash } from 'node:crypto'
 import { resolve } from 'node:path'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-fs'
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { errorChain } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, errorChain } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-client-file-upload'
 import { canOpenNativePath, nativeFileManager, nativeFileApplications, openNativeFileApplication, openNativeAssociatedPath, revealNativePath } from '@deepseek-ai/dsh-native-command'
-import type { SessionId } from '@deepseek-ai/dsh-session'
+import { SessionId } from '@deepseek-ai/dsh-session'
+import type {} from '@errgrind/episode'
 import type { SessionInspection } from '@deepseek-ai/dsh-session-persistence'
 import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-session-query'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
@@ -21,6 +23,7 @@ import {
 import { SessionCommandController } from './commands.ts'
 import { SessionControlController } from './control.ts'
 import { SessionHistoryController } from './history.ts'
+import { browserProjectionValues, type BrowserViewPolicy } from './browser-view.ts'
 import { SessionFileReferences } from './file-references.ts'
 import { ApiSessionList } from './list.ts'
 import { buildModelCatalog } from './catalog.ts'
@@ -38,6 +41,8 @@ import type {
   SessionControlFrame,
   SessionCreateRequest,
   SessionCreateValue,
+  DerivedErrorOpenRequest,
+  DerivedErrorOpenValue,
   SessionFollowFrame,
   SessionFollowRequest,
   SessionForkRequest,
@@ -79,6 +84,8 @@ declare module '@deepseek-ai/cordis' {
 export interface Config {
   /** Override platform desktop-opener detection. */
   readonly nativeOpen?: boolean
+  /** Optional public journal policy; the durable Session log remains unchanged. */
+  readonly browserView?: BrowserViewPolicy
 }
 
 /** Host integrations replaceable by direct unit tests. */
@@ -113,6 +120,17 @@ export class SessionController extends TypertRemoteService {
 
   static Config: z<Config> = z.object({
     nativeOpen: z.boolean(),
+    browserView: z.object({
+      privateEventTypes: z.array(z.string()),
+      privateMessageSourceKinds: z.array(z.string()).default([]),
+      allowedEventTypes: z.array(z.string()),
+      publicEventFields: z.dict(z.array(z.string())),
+      allowedProjectionKeys: z.array(z.string()),
+      redactDataKeys: z.array(z.string()),
+      redactToolArguments: z.boolean(),
+      redactAssistantReasoning: z.boolean(),
+      hideAssistantStream: z.boolean(),
+    }),
   })
 
   private readonly agents: ApiSessionAgentController
@@ -120,6 +138,7 @@ export class SessionController extends TypertRemoteService {
   private readonly controlState: SessionControlController
   private readonly history: SessionHistoryController
   private readonly listState: ApiSessionList
+  private readonly browserView: BrowserViewPolicy | undefined
   private readonly openPath: (path: string, signal: AbortSignal) => Promise<void>
   private readonly fileApplications: typeof nativeFileApplications
   private readonly openFileApplication: typeof openNativeFileApplication
@@ -134,22 +153,23 @@ export class SessionController extends TypertRemoteService {
    */
   constructor(ctx: Context, config: Config, internals: SessionControllerInternals = {}) {
     super(ctx, 'sessionController', { namespace: 'session' })
+    this.browserView = config.browserView
     installModelSelectionProjection(ctx)
     this.agents = new ApiSessionAgentController(ctx)
-    this.commands = new SessionCommandController(ctx, this.agents, process.cwd())
+    this.commands = new SessionCommandController(ctx, this.agents, process.cwd(), config.browserView)
     ctx.effect(() => ctx.fileUploads.registerAgentResolver(async (sessionId) => {
       const result = await this.agents.resolveAgent(sessionId)
       if ('error' in result) throw result.error
       return result.agent
     }), 'session-controller: file-upload Agent resolver')
-    this.controlState = new SessionControlController(ctx)
+    this.controlState = new SessionControlController(ctx, config.browserView)
     // Registered before history so reverse-order teardown closes every
     // follower before waiting for already-admitted promotions.
     ctx.effect(() => async () => {
       await Promise.allSettled([...this.promotions])
     }, 'session-controller.promotions')
-    this.history = new SessionHistoryController(ctx, (observation) => { this.promote(observation) })
-    this.listState = new ApiSessionList(ctx)
+    this.history = new SessionHistoryController(ctx, (observation) => { this.promote(observation) }, config.browserView)
+    this.listState = new ApiSessionList(ctx, config.browserView)
     this.fileApplications = internals.fileApplications ?? nativeFileApplications
     this.openFileApplication = internals.openFileApplication ?? openNativeFileApplication
     this.openPath = internals.openPath ?? openNativeAssociatedPath
@@ -272,6 +292,63 @@ export class SessionController extends TypertRemoteService {
   @Remote('create')
   create(request: SessionCreateRequest): Promise<SessionCreateValue> {
     return this.commands.create(request)
+  }
+
+  /**
+   * Materialize one incorrect Drill attempt as an idempotent, separately recoverable Error Session.
+   * @param request - Source Session and the exact judged Drill preparation to promote.
+   * @returns The stable target Session identity; repeated calls return the same Error.
+   */
+  @Remote('openDerivedError')
+  async openDerivedError(request: DerivedErrorOpenRequest): Promise<DerivedErrorOpenValue> {
+    const source = await this.resolveAgent(request.sourceSessionId)
+    if ('error' in source) throw source.error
+    const drill = this.ctx.sessionProjections.stateOf(source.agent.session, 'errgrindDrill')
+    const attempt = drill?.attempts.find(item => item.preparationId === request.preparationId)
+    const derived = attempt?.derivedError
+    if (attempt === undefined || derived === undefined || derived === null) {
+      throw new RemoteError('gateway/bad-request', 'No incorrect Drill attempt matches this request', {})
+    }
+    const identity = createHash('sha256')
+      .update(`${request.sourceSessionId}\0${request.preparationId}`).digest('hex').slice(0, 32)
+    const sessionId = SessionId(`errgrind-derived-${identity}`)
+    // Keep the derived Error in the source Error's Workspace. A Session
+    // created by cwd alone is absent from Workspace navigation after opening.
+    const sourceWorkspace = this.ctx.workspaceRegistry.list()
+      .find(workspace => workspace.sessionIds.includes(request.sourceSessionId))
+    await this.commands.create(sourceWorkspace === undefined
+      ? { sessionId, cwd: source.agent.session.header.cwd ?? process.cwd() }
+      : { sessionId, workspaceId: sourceWorkspace.id })
+    const target = await this.resolveAgent(sessionId)
+    if ('error' in target) throw target.error
+    const session = target.agent.session
+    const existing = this.ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
+    if (existing !== null && (existing?.provenance.kind !== 'derived_drill'
+      || existing.provenance.sourceSessionId !== request.sourceSessionId
+      || existing.provenance.sourcePreparationId !== request.preparationId)) {
+      throw new RemoteError('gateway/internal', 'Derived Error Session identity conflicts with another Error', {})
+    }
+    const text = `Practice question: ${derived.question}\nLearner answer: ${derived.userResponse}`
+    if (existing === null) {
+      session.append('errgrind/derived-error-open', {
+        text, sourceSessionId: request.sourceSessionId,
+        sourcePreparationId: request.preparationId,
+        sourceAnswerRef: attempt.answerSourceRef,
+        question: derived.question, userResponse: derived.userResponse,
+        referenceAnswer: derived.referenceAnswer,
+      })
+    }
+    const sourceKind = 'errgrind-derived-error'
+    const alreadyQueued = [...target.agent.inbox.nextTurn, ...target.agent.inbox.nextStep]
+      .some(message => message.source.kind === sourceKind)
+    const alreadyConsumed = existing?.derivedContextConsumed ?? false
+    if (!alreadyQueued && !alreadyConsumed) {
+      target.agent.inject(createUserMessage({
+        content: [{ type: 'text', text: `${text}\nChecked reference answer: ${derived.referenceAnswer}. This is a derived Drill Error; distinguish the learner's earlier answer from this Host context.` }],
+        source: { kind: sourceKind, sourceSessionId: request.sourceSessionId, preparationId: request.preparationId },
+      }))
+    }
+    return { sessionId }
   }
 
   /**
@@ -481,7 +558,10 @@ export class SessionController extends TypertRemoteService {
       if (projections === undefined) {
         throw new RemoteError('session/projections-unavailable', 'Session projections are unavailable', {})
       }
-      return { asOfSeq: projections.asOfSeq, values: projections.values as SessionProjectionValues }
+      return {
+        asOfSeq: projections.asOfSeq,
+        values: browserProjectionValues(projections.values, this.browserView) as SessionProjectionValues,
+      }
     } catch (error: unknown) {
       if (error instanceof SessionQueryError && error.code === 'SESSION_QUERY_SESSION_NOT_FOUND') return null
       if (signal.aborted

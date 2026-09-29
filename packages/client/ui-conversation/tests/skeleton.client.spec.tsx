@@ -583,6 +583,11 @@ describe('ConversationRoot resident composer', () => {
     expect(b.view.queryByText('探索未至之境')).toBeNull()
   })
 
+  it('keeps an untouched session in the hero when an empty view target subscribes', () => {
+    const subscribedEmptyView = { ...EMPTY_CONVERSATION_SNAPSHOT, activeTargets: new Set(['chat']) }
+    expect(conversationPhase(sessionSnapshotOf({ blank: true }), subscribedEmptyView)).toBe('blank')
+  })
+
   it('settling phase: a summary that does not prove the session blank hides the composer while it opens', () => {
     const b = mount(sessionSnapshotOf({ blank: true, openState: 'loading' }))
     const root = b.view.container.querySelector('[data-phase]')
