@@ -8,7 +8,7 @@ import { LlmAttemptId, ToolCallId, createMessage, createToolResultMessage, creat
 import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { SessionHistoryController } from '@deepseek-ai/dsh-api-session-controller/src/history.ts'
-import { assertSessionWireEvent } from '@deepseek-ai/dsh-api-session-controller/src/client/session-wire-event.ts'
+import { assertSessionWireEvent } from '@deepseek-ai/dsh-api-session-controller/src/session-wire-event.ts'
 import type { SessionFollowFrame, SessionPage, SessionWireEvent } from '@deepseek-ai/dsh-api-session-controller/types'
 import { createSessionTestRemote, installSessionReadTestServices } from './test-remote.ts'
 

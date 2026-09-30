@@ -3,7 +3,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CodexAuthSettings } from '../src/client/CodexAuthSettings.tsx'
 import type { CodexAuthRemote } from '../src/client/CodexAuthSettings.tsx'
-import { en, type ErrGrindKey } from '../src/client/locales.ts'
+import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
+import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
+import { en } from '../src/client/locales.ts'
 
 const notice = {
   id: 1,
@@ -24,7 +26,7 @@ function auth(overrides: Partial<CodexAuthRemote> = {}): CodexAuthRemote {
 }
 
 function mount(remote: CodexAuthRemote) {
-  return render(<CodexAuthSettings auth={remote} t={(key: ErrGrindKey) => en[key]} />)
+  return render(<CodexAuthSettings auth={remote} t={makeTranslate(en, commonEn)} />)
 }
 
 afterEach(() => {

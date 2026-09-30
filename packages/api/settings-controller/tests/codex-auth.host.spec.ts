@@ -93,10 +93,10 @@ describe('fixed Codex OAuth Remote', () => {
       runs++
       if (runs === 1) {
         await oldWork
-        session.notify({ url: 'https://auth.openai.com/codex/device', code: 'OLD-CODE' })
+        session.notify({ message: 'ignored provider text', url: 'https://auth.openai.com/codex/device', code: 'OLD-CODE' })
         return
       }
-      session.notify({ url: 'https://auth.openai.com/codex/device', code: 'NEW-CODE' })
+      session.notify({ message: 'ignored provider text', url: 'https://auth.openai.com/codex/device', code: 'NEW-CODE' })
       const answer = await session.prompt({
         kind: 'select', message: 'choose device-code flow', options: [{ id: 'device_code', label: 'Device code' }],
       })

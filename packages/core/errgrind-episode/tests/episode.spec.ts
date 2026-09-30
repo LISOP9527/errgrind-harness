@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { applyEpisodeEvent, publicErrorListEntry } from '../src/index.ts'
@@ -859,7 +860,13 @@ describe('Error episode event rules', () => {
 
     // User replies with image only
     const imageMsg = session.append('user/message', createUserMessage({
-      content: [{ type: 'image', mimeType: 'image/png', data: 'AQID' }], source: { kind: 'user' },
+      content: [{
+        type: 'image',
+        attachment: {
+          attachmentId: AttachmentId('sha256:039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81'),
+          mediaType: 'image/png', bytes: 3, width: 1, height: 1,
+        },
+      }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })
     state = applyEpisodeEvent(state, imageMsg)
     expect(state?.evidenceSources).toContainEqual({
@@ -903,7 +910,13 @@ describe('Error episode event rules', () => {
     const textAndImageMsg = session.append('user/message', createUserMessage({
       content: [
         { type: 'text', text: 'I wrote 180 - 120 = 60 on the margin.' },
-        { type: 'image', mimeType: 'image/png', data: 'AQIDBA==' },
+        {
+          type: 'image',
+          attachment: {
+            attachmentId: AttachmentId('sha256:9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a'),
+            mediaType: 'image/png', bytes: 4, width: 1, height: 1,
+          },
+        },
       ],
       source: { kind: 'user' },
     }), { surfaceOp: 'append' })
@@ -961,7 +974,13 @@ describe('Error episode event rules', () => {
     const clarReply = session.append('user/message', createUserMessage({
       content: [
         { type: 'text', text: 'I was using Python with range(0, n).' },
-        { type: 'image', mimeType: 'image/png', data: 'AQID' },
+        {
+          type: 'image',
+          attachment: {
+            attachmentId: AttachmentId('sha256:039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81'),
+            mediaType: 'image/png', bytes: 3, width: 1, height: 1,
+          },
+        },
       ],
       source: { kind: 'user' },
     }), { surfaceOp: 'append' })

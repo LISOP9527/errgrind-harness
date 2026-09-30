@@ -122,7 +122,7 @@ describe('ErrGrind episode real Loader composition', () => {
     }, () => Promise.resolve({ kind: 'enter' as const, messages: [message] }))
     expect(decision.kind).toBe('enter')
 
-    const publicListValue = ctx.sessionProjections.cachedSnapshot(session).values.errgrindEpisode
+    const publicListValue = ctx.sessionProjections.cachedSnapshot(session)?.values.errgrindEpisode
     expect(publicListValue).toEqual({ description: null, status: 'grill', drillEligible: false })
     expect(JSON.stringify(publicListValue)).not.toContain('errgrindOriginal')
     expect(JSON.stringify(publicListValue)).not.toContain('sha256')
@@ -365,7 +365,7 @@ describe('ErrGrind episode real Loader composition', () => {
     expect(episode?.attachments[1]?.sha256).toBe(createHash('sha256').update(new Uint8Array([1, 2, 3])).digest('hex'))
     expect(episode?.attachments[2]?.sha256).toBe(createHash('sha256').update(new Uint8Array([4, 5, 6])).digest('hex'))
 
-    if (episode === null) throw new Error('expected the Error episode projection')
+    if (episode === null || episode === undefined) throw new Error('expected the Error episode projection')
     const legacyEpisode = {
       firstInput: episode.firstInput,
       firstInputHasImage: episode.firstInputHasImage,
@@ -990,7 +990,7 @@ describe('ErrGrind episode real Loader composition', () => {
     episodePlugin.apply(ctx)
 
     const session = ctx.sessions.create(SessionId('observation-reg-session'))
-    const agent = { id: session.id, ctx, session, status: 'idle', options: {}, reserveTurnAdmission: () => () => undefined } as Agent
+    const agent = { id: session.id, ctx, session, status: 'idle', options: {}, reserveTurnAdmission: () => () => undefined } as unknown as Agent
 
     // Open error via pre-step
     const firstMsg = createUserMessage({
@@ -1138,7 +1138,7 @@ describe('ErrGrind episode real Loader composition', () => {
     episodePlugin.apply(ctx)
 
     const session = ctx.sessions.create(SessionId('aliases-reg-session'))
-    const agent = { id: session.id, ctx, session, status: 'idle', options: {}, reserveTurnAdmission: () => () => undefined } as Agent
+    const agent = { id: session.id, ctx, session, status: 'idle', options: {}, reserveTurnAdmission: () => () => undefined } as unknown as Agent
 
     const firstMsg = createUserMessage({
       content: [{ type: 'text', text: 'Equation problem.' }], source: { kind: 'user' },
@@ -1164,7 +1164,13 @@ describe('ErrGrind episode real Loader composition', () => {
     const clarMsg = session.append('user/message', createUserMessage({
       content: [
         { type: 'text', text: 'I used quadratic formula.' },
-        { type: 'image', mimeType: 'image/png', data: 'AQID' },
+        {
+          type: 'image',
+          attachment: {
+            attachmentId: AttachmentId('sha256:039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81'),
+            mediaType: 'image/png', bytes: 3, width: 1, height: 1,
+          },
+        },
       ],
       source: { kind: 'user' },
     }), { surfaceOp: 'append' })
@@ -1201,7 +1207,13 @@ describe('ErrGrind episode real Loader composition', () => {
     // User replies to P1 with image only
     session.append('turn/start', { turn: 2 })
     const p1ImgReply = session.append('user/message', createUserMessage({
-      content: [{ type: 'image', mimeType: 'image/png', data: 'AQIDBA==' }],
+      content: [{
+        type: 'image',
+        attachment: {
+          attachmentId: AttachmentId('sha256:9f64a747e1b97f131fabb6b447296c9b6f0201e79fb3c5356e6c77e89b6a806a'),
+          mediaType: 'image/png', bytes: 4, width: 1, height: 1,
+        },
+      }],
       source: { kind: 'user' },
     }), { surfaceOp: 'append' })
 

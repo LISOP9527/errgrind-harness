@@ -27,7 +27,7 @@ import {
 } from './sessions/history-records.ts'
 import type { SessionEventLikeEntry, SessionLiveEventEntry } from './contract/events.ts'
 import type { SessionRemotes } from './sessions/remotes.ts'
-import { assertSessionWireEvent } from './session-wire-event.ts'
+import { assertSessionWireEvent } from '../session-wire-event.ts'
 
 export {
   SESSION_SEARCH_RESULT_LIMIT,

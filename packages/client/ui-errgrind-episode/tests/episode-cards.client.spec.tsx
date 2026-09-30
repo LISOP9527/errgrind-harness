@@ -13,7 +13,19 @@ import {
   type ConversationViewNode,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SessionEventLikeEntry } from '@deepseek-ai/dsh-api-session-controller/client'
+import { SessionId, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
+import {
+  bindSnapshotSelector,
+  chatSnapshot,
+  conversationSnapshot,
+  workspaceSnapshot,
+  makeTranslate,
+  sessionSnapshot,
+} from '@deepseek-ai/dsh-client-test-runtime'
+import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
+import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+import type {} from '@errgrind/episode'
 import type { ChatConversationViewNode, ChatNodeDataMap } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { apply, inject } from '../src/client/index.ts'
@@ -21,6 +33,7 @@ import {
   DerivedErrorCard,
   DrillAnswerDraftCard,
   DrillDraftCard,
+  type DrillDraftCardProps,
   DrillJudgmentCard,
   DrillQuestionCard,
   ErrorEpisodeCard,
@@ -32,23 +45,54 @@ import {
   ErrGrindBrandName,
   ErrGrindHeroBrandMark,
 } from '../src/client/Brand.tsx'
-import { en, NS, zh, type ErrGrindKey } from '../src/client/locales.ts'
+import { en, NS, zh } from '../src/client/locales.ts'
 
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
 })
 
-function formatLocale(template: string, params?: Record<string, unknown>): string {
-  if (!params) return template
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => {
-    const value = params[key]
-    return value === undefined ? '' : typeof value === 'string' || typeof value === 'number' ? String(value) : JSON.stringify(value)
-  })
-}
+const tEn = makeTranslate(en, commonEn)
+const tZh = makeTranslate(zh, commonZh)
 
-const tEn = (key: ErrGrindKey, params?: Record<string, unknown>) => formatLocale(en[key], params)
-const tZh = (key: ErrGrindKey, params?: Record<string, unknown>) => formatLocale(zh[key], params)
+type ChatNodeSeatProps = Omit<DrillDraftCardProps, 'node' | 't'>
+
+/** Framework seats the cards never read; an accidental read fails loud. */
+const unboundSeat = () => { throw new Error('unstubbed framework seat') }
+const observable = <T,>(snapshot: T) => ({ getSnapshot: () => snapshot, subscribe: () => () => {} })
+const TEST_SESSION_ID = SessionId('errgrind-test')
+
+const chatNodeOwner: ChatNodeSeatProps = {
+  openSkill: vi.fn(), openFile: vi.fn(), inspectCall: undefined, forkAt: vi.fn(),
+  loadImage: async () => '', renderMessageImages: () => null, fileMentions: () => undefined,
+  useTurnData: () => undefined,
+  useDisclosure: () => ({ expanded: false, setExpanded: vi.fn(), toggle: vi.fn() }),
+  sessionId: TEST_SESSION_ID,
+  useSession: bindSnapshotSelector(observable(sessionSnapshot(TEST_SESSION_ID))),
+  useProjection: unboundSeat,
+  useSessions: bindSnapshotSelector(observable({
+    ids: [], byId: {}, phase: 'ready' as const, projectionsBySession: {},
+  })),
+  useSessionStatus: bindSnapshotSelector(observable(new Map())),
+  useSessionRetainInfo: unboundSeat,
+  usePanelInfo: bindSnapshotSelector(observable({ activePanelId: null })),
+  useResource: unboundSeat,
+  useWorkspaces: bindSnapshotSelector(observable(workspaceSnapshot())),
+  useConversation: bindSnapshotSelector(observable(conversationSnapshot())),
+  useChat: bindSnapshotSelector(observable(chatSnapshot())),
+  useInput: bindSnapshotSelector(observable({
+    draft: '', attachmentIds: [], draftRev: 0, phase: 'plain' as const, occurrences: [], queue: [],
+  })),
+  inputActions: {
+    captureInsertion: unboundSeat, insertText: unboundSeat, setDraft: unboundSeat,
+    addAttachments: unboundSeat, removeAttachment: unboundSeat, pruneAttachments: unboundSeat,
+    submit: unboundSeat,
+  },
+  useTrajectory: bindSnapshotSelector(observable({
+    eventNodes: [], eventLocations: new Map(), requests: [], callSchemas: new Map(),
+    partial: null, runningCalls: [],
+  })),
+}
 
 function createChatNode<Kind extends keyof ChatNodeDataMap>(
   kind: Kind,
@@ -66,7 +110,7 @@ function createChatNode<Kind extends keyof ChatNodeDataMap>(
   }
 }
 
-function makeEventEntry(seq: number, event: SessionEvent): SessionEventLikeEntry {
+function makeEventEntry(event: SessionEvent): SessionEventLikeEntry {
   return {
     type: 'event',
     event,
@@ -145,7 +189,7 @@ describe('Drill draft event assembly and visibility', () => {
     expect(def).toBeDefined()
 
     const failedEvent: SessionEvent = {
-      seq: 10,
+      seq: SessionSeq(10),
       time: 1_700_000_000_010,
       type: 'errgrind/drill-draft-finished',
       data: { preparationId: 'prep-failed-1', status: 'failed' },
@@ -168,10 +212,10 @@ describe('Drill draft event assembly and visibility', () => {
       state: undefined,
       current: new Map(),
     }
-    const state = def?.start(context, startMatch, { getPrevious: () => undefined })
+    const state = def?.start(context, startMatch, { previous: () => undefined })
     expect(state).toEqual({ preparationId: 'prep-failed-1', status: 'failed' })
 
-    const viewNode = def?.buildViewNode?.({ ...context, state })
+    const viewNode = def?.buildViewNode?.({ ...context, state }) as ChatConversationViewNode | null | undefined
     expect(viewNode).not.toBeNull()
     expect(viewNode?.kind).toBe('errgrind-drill-draft-card')
     expect(viewNode?.visibility).toBe('visible')
@@ -186,7 +230,7 @@ describe('Drill draft event assembly and visibility', () => {
     expect(def).toBeDefined()
 
     const abortedEvent: SessionEvent = {
-      seq: 11,
+      seq: SessionSeq(11),
       time: 1_700_000_000_011,
       type: 'errgrind/drill-draft-finished',
       data: { preparationId: 'prep-aborted-1', status: 'aborted' },
@@ -206,10 +250,10 @@ describe('Drill draft event assembly and visibility', () => {
       state: undefined,
       current: new Map(),
     }
-    const state = def?.start(context, startMatch, { getPrevious: () => undefined })
+    const state = def?.start(context, startMatch, { previous: () => undefined })
     expect(state).toEqual({ preparationId: 'prep-aborted-1', status: 'aborted' })
 
-    const viewNode = def?.buildViewNode?.({ ...context, state })
+    const viewNode = def?.buildViewNode?.({ ...context, state }) as ChatConversationViewNode | null | undefined
     expect(viewNode).not.toBeNull()
     expect(viewNode?.kind).toBe('errgrind-drill-draft-card')
     expect(viewNode?.visibility).toBe('visible')
@@ -224,7 +268,7 @@ describe('Drill draft event assembly and visibility', () => {
     expect(def).toBeDefined()
 
     const successEvent: SessionEvent = {
-      seq: 12,
+      seq: SessionSeq(12),
       time: 1_700_000_000_012,
       type: 'errgrind/drill-draft-finished',
       data: { preparationId: 'prep-success-1', status: 'success' },
@@ -244,10 +288,10 @@ describe('Drill draft event assembly and visibility', () => {
       state: undefined,
       current: new Map(),
     }
-    const state = def?.start(context, startMatch, { getPrevious: () => undefined })
+    const state = def?.start(context, startMatch, { previous: () => undefined })
     expect(state).toEqual({ preparationId: 'prep-success-1', status: 'success' })
 
-    const viewNode = def?.buildViewNode?.({ ...context, state })
+    const viewNode = def?.buildViewNode?.({ ...context, state }) as ChatConversationViewNode | null | undefined
     expect(viewNode).toBeNull()
   })
 
@@ -257,7 +301,7 @@ describe('Drill draft event assembly and visibility', () => {
 
     const def = harness.events.entries().find(d => d.kind === 'errgrind-drill-draft-card')
     const unrelated: SessionEvent = {
-      seq: 1,
+      seq: SessionSeq(1),
       time: 1_700_000_000_001,
       type: 'errgrind/drill-prepared',
       data: {
@@ -303,14 +347,14 @@ describe('Drill draft event assembly and visibility', () => {
     assembler.activateTarget('chat')
 
     const entries: SessionEventLikeEntry[] = [
-      makeEventEntry(1, {
-        seq: 1,
+      makeEventEntry({
+        seq: SessionSeq(1),
         time: 1_700_000_000_001,
         type: 'errgrind/drill-draft-finished',
         data: { preparationId: 'prep-fail', status: 'failed' },
       }),
-      makeEventEntry(2, {
-        seq: 2,
+      makeEventEntry({
+        seq: SessionSeq(2),
         time: 1_700_000_000_002,
         type: 'errgrind/drill-draft-finished',
         data: { preparationId: 'prep-ok', status: 'success' },
@@ -333,7 +377,7 @@ describe('DrillDraftCard presentation', () => {
       status: 'failed',
     })
 
-    render(<DrillDraftCard node={node} t={tEn} />)
+    render(<DrillDraftCard node={node} t={tEn} {...chatNodeOwner} />)
 
     expect(screen.getByRole('heading', { level: 3 }).textContent).toBe(en['drill.draftFailed.title'])
     expect(screen.getByText(en['drill.draftFailed.statusFailed'])).toBeTruthy()
@@ -351,7 +395,7 @@ describe('DrillDraftCard presentation', () => {
       status: 'aborted',
     })
 
-    render(<DrillDraftCard node={node} t={tZh} />)
+    render(<DrillDraftCard node={node} t={tZh} {...chatNodeOwner} />)
 
     expect(screen.getByRole('heading', { level: 3 }).textContent).toBe(zh['drill.draftFailed.title'])
     expect(screen.getByText(zh['drill.draftFailed.statusAborted'])).toBeTruthy()
@@ -374,7 +418,7 @@ describe('Existing conversation cards assembly and presentation', () => {
       remainingUncertainty: null,
     })
     const { unmount: unmountError } = render(
-      <ErrorEpisodeCard node={errorNode} t={tEn} confirmRevision={vi.fn()} />,
+      <ErrorEpisodeCard node={errorNode} t={tEn} confirmRevision={vi.fn()} {...chatNodeOwner} />,
     )
     expect(screen.getByText('Misapplied distributive property')).toBeTruthy()
     unmountError()
@@ -383,7 +427,7 @@ describe('Existing conversation cards assembly and presentation', () => {
       question: 'Did you multiply both terms inside the parentheses?',
     })
     const { unmount: unmountQuestion } = render(
-      <GrillQuestionCard node={questionNode} t={tEn} />,
+      <GrillQuestionCard node={questionNode} t={tEn} {...chatNodeOwner} />,
     )
     expect(screen.getByText('Did you multiply both terms inside the parentheses?')).toBeTruthy()
     unmountQuestion()
@@ -393,7 +437,7 @@ describe('Existing conversation cards assembly and presentation', () => {
       text: 'Remember to multiply every term.',
     })
     const { unmount: unmountTeach } = render(
-      <TeachStepCard node={teachNode} t={tEn} />,
+      <TeachStepCard node={teachNode} t={tEn} {...chatNodeOwner} />,
     )
     expect(screen.getByText('Remember to multiply every term.')).toBeTruthy()
     unmountTeach()
@@ -403,7 +447,7 @@ describe('Existing conversation cards assembly and presentation', () => {
     const questionNode = createChatNode('errgrind-drill-question', {
       question: 'Simplify 3(2x + 4)',
     })
-    const { unmount: unmountQ } = render(<DrillQuestionCard node={questionNode} t={tEn} />)
+    const { unmount: unmountQ } = render(<DrillQuestionCard node={questionNode} t={tEn} {...chatNodeOwner} />)
     expect(screen.getByText('Simplify 3(2x + 4)')).toBeTruthy()
     unmountQ()
 
@@ -412,7 +456,7 @@ describe('Existing conversation cards assembly and presentation', () => {
       preparationId: 'prep-1',
       text: '6x + 12',
     })
-    const { unmount: unmountDraft } = render(<DrillAnswerDraftCard node={draftNode} t={tEn} />)
+    const { unmount: unmountDraft } = render(<DrillAnswerDraftCard node={draftNode} t={tEn} {...chatNodeOwner} />)
     expect(screen.getByText('6x + 12')).toBeTruthy()
     unmountDraft()
 
@@ -422,7 +466,7 @@ describe('Existing conversation cards assembly and presentation', () => {
       feedback: 'Good work on distribution.',
     })
     const { unmount: unmountJudge } = render(
-      <DrillJudgmentCard node={judgmentNode} t={tEn} openDerivedError={vi.fn().mockResolvedValue(true)} />,
+      <DrillJudgmentCard node={judgmentNode} t={tEn} openDerivedError={vi.fn().mockResolvedValue(true)} {...chatNodeOwner} />,
     )
     expect(screen.getByText('Good work on distribution.')).toBeTruthy()
     unmountJudge()
@@ -431,7 +475,7 @@ describe('Existing conversation cards assembly and presentation', () => {
       question: 'Simplify 3(2x + 4)',
       userResponse: '6x + 4',
     })
-    const { unmount: unmountDerived } = render(<DerivedErrorCard node={derivedNode} t={tEn} />)
+    const { unmount: unmountDerived } = render(<DerivedErrorCard node={derivedNode} t={tEn} {...chatNodeOwner} />)
     expect(screen.getByText(/6x \+ 4/)).toBeTruthy()
     unmountDerived()
   })

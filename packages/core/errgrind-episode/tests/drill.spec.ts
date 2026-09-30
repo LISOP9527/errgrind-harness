@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import { applyDrillEvent, type DrillPreparation, type DrillState } from '../src/drill.ts'
@@ -84,7 +85,13 @@ describe('Drill attempt boundary', () => {
     const session = Session.create(SessionId('drill-image'))
     let state = applyDrillEvent(initial(), session.append('errgrind/drill-prepared', preparation))
     const image = session.append('user/message', createUserMessage({
-      content: [{ type: 'image', mimeType: 'image/png', data: 'AQID' }], source: { kind: 'user' },
+      content: [{
+        type: 'image',
+        attachment: {
+          attachmentId: AttachmentId('sha256:039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81'),
+          mediaType: 'image/png', bytes: 3, width: 1, height: 1,
+        },
+      }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })
     state = applyDrillEvent(state, image)
     expect(state.answerSources).toHaveLength(0)
@@ -119,7 +126,13 @@ describe('Drill attempt boundary', () => {
     const session = Session.create(SessionId('drill-image-correction'))
     let state = applyDrillEvent(initial(), session.append('errgrind/drill-prepared', preparation))
     const image = session.append('user/message', createUserMessage({
-      content: [{ type: 'image', mimeType: 'image/png', data: 'AQID' }], source: { kind: 'user' },
+      content: [{
+        type: 'image',
+        attachment: {
+          attachmentId: AttachmentId('sha256:039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81'),
+          mediaType: 'image/png', bytes: 3, width: 1, height: 1,
+        },
+      }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })
     state = applyDrillEvent(state, image)
     state = applyDrillEvent(state, session.append('errgrind/drill-answer-draft', {

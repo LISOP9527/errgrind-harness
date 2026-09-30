@@ -214,7 +214,7 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
         pageErrors,
         body: (await page.locator('body').innerText()).slice(0, 3000),
         host: [...scaffold.ctx.loader.entries()].filter(entry => /settings-controller|codex-auth/.test(entry.id))
-          .map(entry => ({ id: entry.id, state: entry.fiber?.state, error: String(entry.fiber?.error ?? '') })),
+          .map(entry => ({ id: entry.id, state: entry.fiber?.state })),
         url: page.url(),
       }))
     }

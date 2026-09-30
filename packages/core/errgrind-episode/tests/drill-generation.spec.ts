@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context, Service } from '@deepseek-ai/cordis'
+import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
@@ -742,7 +743,13 @@ describe('Isolated Drill Generation', () => {
 
     // User submits image answer
     const imgMsg = session.append('user/message', createUserMessage({
-      content: [{ type: 'image', mimeType: 'image/png', data: 'AQID' }], source: { kind: 'user' },
+      content: [{
+        type: 'image',
+        attachment: {
+          attachmentId: AttachmentId('sha256:039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81'),
+          mediaType: 'image/png', bytes: 3, width: 1, height: 1,
+        },
+      }], source: { kind: 'user' },
     }), { surfaceOp: 'append' })
 
     // Judge before transcription review must fail

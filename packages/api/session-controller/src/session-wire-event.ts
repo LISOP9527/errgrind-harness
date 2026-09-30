@@ -2,7 +2,7 @@
 
 import { validateSessionEventData, validateSurfaceMetadata } from '@deepseek-ai/dsh-session/surface'
 import type { SessionEvent } from '@deepseek-ai/dsh-session/types'
-import type { SessionWireEvent } from '../types.ts'
+import type { SessionWireEvent } from './types.ts'
 
 /**
  * Reject non-current event envelopes without stripping or normalizing wire fields.
