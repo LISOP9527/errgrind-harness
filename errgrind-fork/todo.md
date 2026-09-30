@@ -22,7 +22,7 @@
 - [ ] 产品组合稳定后，再考虑从构建和发行物中排除不用的包、测试和通用 DSH 配置。测量启动时间、内存、构建耗时和发布体积，证明确有收益；不要为了减少仓库文件数删除上游测试或破坏共享包契约。保留必要的第三方许可和来源说明。
 - [x] 在 3.8 GiB VPS 上验证 `errgrind:build` 的原生、Host、Client、Web 产物及客户端构建记录；按项目引用构建并限制 Node 堆后已完成，记录包含 267 个客户端文件。`errgrind:build:web` 仍只供本地静态资源更新，不产生完整记录。
 - [ ] 在全新 checkout 上验证 3.8 GiB VPS 的 ErrGrind 产品构建内存与耗时；已通过的本机验证使用了 TypeScript 增量产物。
-- [ ] 修复 Web TypeScript 项目的 TS2878，并在资源足够的环境运行根级 Host/Client TypeScript 汇总检查；ErrGrind 本机构建会检查包级引用，但暂不执行这些根级项目。
+- [x] 修复 Web TypeScript 项目的 TS2878，并在资源足够的环境运行根级 Host/Client TypeScript 汇总检查；ErrGrind 本机构建会检查包级引用，但暂不执行这些根级项目。已在 32GB VM 完成（`9cae9eb`）：两个新 e2e 注册进 host include/apps/web exclude，`ui-errgrind-episode` 进 client program，`pnpm run typecheck`（host tsc + tsdown + client contracts）全绿，pre-push 钩子通过并已推 origin。
 
 ## 真人测试与发布前顺序
 
