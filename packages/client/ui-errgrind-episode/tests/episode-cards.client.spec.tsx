@@ -161,9 +161,7 @@ describe('ui-errgrind-episode browser plugin', () => {
 
     expect(harness.locale.register).toHaveBeenCalledWith(NS, { zh, en })
     expect(harness.locale.registerOverride).toHaveBeenCalledWith('conversation', expect.objectContaining({
-      // oxlint-disable-next-line typescript/no-unsafe-assignment
       zh: expect.objectContaining({ 'input.commands': '添加题目图片或文件' }),
-      // oxlint-disable-next-line typescript/no-unsafe-assignment
       en: expect.objectContaining({ 'input.commands': 'Add a problem image or file' }),
     }))
 
