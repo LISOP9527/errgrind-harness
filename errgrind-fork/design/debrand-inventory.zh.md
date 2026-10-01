@@ -28,18 +28,18 @@
 | 11 | 每个 turn 下方 | "Worked"/"Took 39s"/"Failed" 徽章 | `ui-chat/src/client/locale.ts` `message.turnProcess.*` + `TurnProcessNodeView.tsx` | [配置] 文案可换；[改 UI] ErrGrind 可整枚隐藏 |
 | 12 | 设置→General | ~~"Send behavior while busy — while the agent is running"~~ **已做（批 2）** | `ui-settings-general` | [配置/改 UI]：经 `hiddenSettingsItems`（id `composer-enter`）隐藏 |
 | 13 | 设置→General | ~~Developer tools、Open configuration file、Performance & usage、底部 "Current version: 0.1.7-alpha.2"~~ **已做（批 2）**——"turns and steps" 文案保留（描述的是 ErrGrind 的 turn 展开行为） | `ui-settings-general` + `ui-settings/src/client/developer-tools.ts` | [禁插件/改 UI]：经 `hiddenSettingsItems`（ids `developer-tools`、`current-version`、`performance-usage`、`open-document`）隐藏 |
-| 14 | 右上 "Open right sidebar" | ~~通用 dock 工作台："Start" tab、Split、Fullscreen~~ **已做（批 2）**——插件保留（ui-chat 依赖其服务），仅新增 `expandButton` 配置关掉 header-corner 按钮 | `packages/client/ui-sidebar-right` | [禁插件]：残留口子——`linkOpening: 'sidebar'` 偏好仍能打开 dock；记为已知债 |
+| 14 | 右上 "Open right sidebar" | ~~通用 dock 工作台："Start" tab、Split、Fullscreen~~ **已做（批 2 + 收尾）**——插件保留（ui-chat 依赖其服务）；`expandButton` 配置关掉 header-corner 按钮，并把 `link-opening` 设置行隐藏，新装用户不会再持久化 `linkOpening:'sidebar'` | `packages/client/ui-sidebar-right` | [禁插件]：口子已堵——行经 `hiddenSettingsItems` 隐藏；仅已持久化的旧 'sidebar' 偏好仍能打开 dock（新装不存在） |
 | 15 | composer 模型 pill→Effort | ~~8 档梯子 Default/Off/…/Max~~ **已做（批 2）** | route `reasoningEfforts`（astra 全档） | [配置]：`web.patch.yml` 中 astra 收窄为 low/medium/high；opus 保持 xhigh/max（模型强制） |
 
 ## 轻级 / 措辞统一
 
 | # | 位置 | 原文 | 代码位置 |
 |---|------|------|----------|
-| 16 | 会话右竖条 | `aria-label="Jump to turn N"` | `ui-chat` locale `chat.turnNavigation.jump` |
-| 17 | "+" 菜单 | "for this conversation" / "this session" | `ui-model-selection` 与 `ln` 命令描述 |
-| 18 | Error 卡 footer | "…in the conversation" | `ui-errgrind-episode` locales（自家） |
-| 19 | DOM 隐藏元素 | `data-hero-workspace-picker`、workspaces section、`crumbSubagent` 样式仍在 DOM | `ui-workspace`；已 CSS 压制，长期摘插件 |
-| 20 | view-source | bundle URL `plugins/@deepseek-ai/dsh-*`、`__DSH_BOOT_READY__`、`--dsh-*` CSS 变量 | 构建产物命名 | [架构级] 长期项 |
+| 16 | 会话右竖条 | ~~`aria-label="Jump to turn N"`~~ **已做（收尾）**——'Turn navigation'/'Jump to turn N' → 'Message navigation'/'Jump to message N'；zh 轮次 → 条消息 | `ui-chat` locale `chat.turnNavigation.*` |
+| 17 | "+" 菜单 | ~~"for this conversation" / "this session"~~ **已做（收尾）**——模型命令 → 'this Error'/本条 Error；feedback → 'this Error'/本条 Error；附带：`error.sessionInUse` 的 DSH 字样换成 ErrGrind | `ui-model-selection` 与 `ui-commands` locale 描述 |
+| 18 | Error 卡 footer | ~~"…in the conversation"~~ **已做（收尾）**——'in the conversation' → 'in this Error'（en ×4）、在对话中 → 在本条 Error 中（zh ×3） | `ui-errgrind-episode` locales（自家） |
+| 19 | DOM 隐藏元素 | `data-hero-workspace-picker`、workspaces section、`crumbSubagent` 样式仍在 DOM | `ui-workspace`——**已裁定：插件保留且有用**（G8 保留：`openSession`/`openWorkspace` 驱动血缘面包屑与工作区选择）；隐藏 DOM 按设计继续 CSS 压制 |
+| 20 | view-source | bundle URL `plugins/@deepseek-ai/dsh-*`、`__DSH_BOOT_READY__`、`--dsh-*` CSS 变量 | 构建产物命名——**缓期：架构级**；改 bundle 路径/CSS 变量/启动标志要动构建链与缓存调试约定，无用户可见收益 |
 
 ## 核对过干净的面
 
@@ -56,5 +56,5 @@
 2. ~~命令面：摘 Compact/Permission/Export（另评 Feedback/Model）；点选不落裸 `/cmd` 模板~~ **已做（批 1）** — `/compact` 随 `command-compact` 移除，`/export` 随 `session-log-download` 禁用消失，`/permission` 由新增的 `CommandRuntime.hiddenCommands` 隐藏（插件保留以持有沙箱预设）；Feedback/Model 保留——通用项非 DSH
 3. ~~turn 失败卡：友好文案映射，隐藏 provider/model/compat/HTTP body~~ **已做（批 2）**——`message.failure.*` locale 键（中英）+ `MessageItem.tsx` `failureMessage()` 映射；实机 AUTH 失败验证显示 "This turn failed — API key is invalid"
 4. ~~"Default workspace"：会话标题回退 + 未分类段措辞~~ **已做（批 2）**——`defaultWorkspace.title` → 'ErrGrind'；`history.unclassified` → 'Sessions not yet linked to an Error:'；已存在的旧会话标题仍为原文案
-5. ~~`ui-sidebar-right` 禁用 + 设置页 agent 系分项隐藏~~ **已做（批 2）**——`expandButton: false` 关掉 header-corner 按钮；新增 `hiddenSettingsItems` 配置 + `RenderOpts.except` 隐藏 `developer-tools`、`current-version`、`composer-enter`、`performance-usage`、`open-document`；同批收窄 effort 档位（第 15 项）
+5. ~~`ui-sidebar-right` 禁用 + 设置页 agent 系分项隐藏~~ **已做（批 2）**——`expandButton: false` 关掉 header-corner 按钮；新增 `hiddenSettingsItems` 配置 + `RenderOpts.except` 隐藏 `developer-tools`、`current-version`、`composer-enter`、`performance-usage`、`open-document`；收尾补 `link-opening`；同批收窄 effort 档位（第 15 项）
 6. ~~401 文案去 "dsh web"~~ **已做（批 1）** — `connection.productLabel` 配置；页面显示 "ErrGrind authentication required"

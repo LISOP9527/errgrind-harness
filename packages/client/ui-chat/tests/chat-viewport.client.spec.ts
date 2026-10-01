@@ -309,7 +309,7 @@ it('skips hidden group members when navigating to a fallback Turn row', () => {
   expect(landing?.position?.anchorKey).toBe(visible.dataset.chatAnchorKey)
 })
 
-it('retains the original capture and Turn navigation path for ungrouped Nodes', () => {
+it('retains the original capture and Message navigation path for ungrouped Nodes', () => {
   const h = fixture()
   h.row(h.column, 'whole', 90)
   h.viewport.updateTurns([{ turn: 1, anchorKey: 'whole', prompt: '', response: '' }])

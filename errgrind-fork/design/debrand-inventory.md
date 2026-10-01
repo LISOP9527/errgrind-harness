@@ -28,18 +28,18 @@ Already done, not repeated: title/manifest = ErrGrind (`errgrind-manifest.webman
 | 11 | Under each turn | "Worked" / "Took 39s" / "Failed" chips | `ui-chat/src/client/locale.ts` `message.turnProcess.*` + `TurnProcessNodeView.tsx` | [config] copy; [UI change] hide chips entirely |
 | 12 | Settings → General | ~~"Send behavior while busy — while the agent is running"~~ **DONE (batch 2)** | `ui-settings-general` | [config/UI change]: hidden via `hiddenSettingsItems` (id `composer-enter`) |
 | 13 | Settings → General | ~~Developer tools, Open configuration file, Performance & usage, footer "Current version: 0.1.7-alpha.2"~~ **DONE (batch 2)** — "turns and steps" copy stays (it describes ErrGrind's turn expansion) | `ui-settings-general` + `ui-settings/src/client/developer-tools.ts` | [disable-plugin/UI change]: hidden via `hiddenSettingsItems` (ids `developer-tools`, `current-version`, `performance-usage`, `open-document`) |
-| 14 | Top-right "Open right sidebar" | ~~Generic dock workbench: "Start" tab, Split, Fullscreen~~ **DONE (batch 2)** — plugin stays (ui-chat requires its services); only the header-corner expand button gated off via new `expandButton` config | `packages/client/ui-sidebar-right` | [disable-plugin]: residual leak — `linkOpening: 'sidebar'` pref can still open the dock; accepted debt |
+| 14 | Top-right "Open right sidebar" | ~~Generic dock workbench: "Start" tab, Split, Fullscreen~~ **DONE (batch 2 + remainder)** — plugin stays (ui-chat requires its services); header-corner expand button gated off via `expandButton` config, and the `link-opening` Settings row is hidden so no fresh install can persist `linkOpening:'sidebar'` | `packages/client/ui-sidebar-right` | [disable-plugin]: leak closed — row hidden via `hiddenSettingsItems`; only a pre-existing persisted 'sidebar' pref could still open the dock (none exist on fresh installs) |
 | 15 | Composer model pill → Effort | ~~8-rung ladder Default/Off/…/Max~~ **DONE (batch 2)** | route `reasoningEfforts` (astra offers all) | [config]: astra narrowed to low/medium/high in `web.patch.yml`; opus stays xhigh/max (model-forced) |
 
 ## Light / wording unification
 
 | # | Surface | Verbatim | Code location |
 |---|---------|----------|---------------|
-| 16 | Session right rail | `aria-label="Jump to turn N"` | `ui-chat` locale `chat.turnNavigation.jump` |
-| 17 | "+" menu | "for this conversation" / "this session" | `ui-model-selection` and `ln` command descriptions |
-| 18 | Error card footer | "…in the conversation" | `ui-errgrind-episode` locales (ours) |
-| 19 | Hidden DOM | `data-hero-workspace-picker`, workspaces section, `crumbSubagent` styles still emitted | `ui-workspace`; CSS-suppressed today — long-term remove the plugin |
-| 20 | view-source | bundle URLs `plugins/@deepseek-ai/dsh-*`, `__DSH_BOOT_READY__`, `--dsh-*` CSS vars | build artifact naming | [architectural] long-term |
+| 16 | Session right rail | ~~`aria-label="Jump to turn N"`~~ **DONE (remainder)** — 'Turn navigation'/'Jump to turn N' → 'Message navigation'/'Jump to message N'; zh 轮次 → 条消息 | `ui-chat` locale `chat.turnNavigation.*` |
+| 17 | "+" menu | ~~"for this conversation" / "this session"~~ **DONE (remainder)** — model command → 'this Error'/本条 Error; feedback → 'this Error'/本条 Error; bonus: `error.sessionInUse` DSH mention replaced with ErrGrind | `ui-model-selection` and `ui-commands` locale descriptions |
+| 18 | Error card footer | ~~"…in the conversation"~~ **DONE (remainder)** — 'in the conversation' → 'in this Error' (en ×4), 在对话中 → 在本条 Error 中 (zh ×3) | `ui-errgrind-episode` locales (ours) |
+| 19 | Hidden DOM | `data-hero-workspace-picker`, workspaces section, `crumbSubagent` styles still emitted | `ui-workspace` — **RESOLVED: plugin stays functional** (G8 kept it: `openSession`/`openWorkspace` power the lineage crumb and workspace picker); hidden DOM remains CSS-suppressed by design |
+| 20 | view-source | bundle URLs `plugins/@deepseek-ai/dsh-*`, `__DSH_BOOT_READY__`, `--dsh-*` CSS vars | build artifact naming — **DEFERRED: architectural**; renaming bundle paths/CSS vars/boot flag touches build tooling and cache/debug conventions for no user-visible gain |
 
 ## Verified clean surfaces
 
@@ -56,5 +56,5 @@ Already done, not repeated: title/manifest = ErrGrind (`errgrind-manifest.webman
 2. ~~Command surface: drop Compact/Permission/Export (reassess Feedback/Model); no bare `/cmd` template insertion~~ **DONE (batch 1)** — `/compact` removed with `command-compact`, `/export` gone with `session-log-download` disabled, `/permission` hidden via new `CommandRuntime.hiddenCommands` (plugin stays for sandbox presets); Feedback/Model kept — generic, not DSH
 3. ~~Failed turn card: friendly copy mapping — hide provider/model/compat/HTTP body~~ **DONE (batch 2)** — `message.failure.*` locale keys (zh+en) + `failureMessage()` switch in `MessageItem.tsx`; live AUTH failure verified shows "This turn failed — API key is invalid"
 4. ~~"Default workspace": session-title fallback + unclassified-section wording~~ **DONE (batch 2)** — `defaultWorkspace.title` → 'ErrGrind'; `history.unclassified` → 'Sessions not yet linked to an Error:'; pre-existing persisted session titles keep the old text
-5. ~~Disable `ui-sidebar-right` + hide agent-specific Settings rows~~ **DONE (batch 2)** — `expandButton: false` gates the header-corner button; new `hiddenSettingsItems` config + `RenderOpts.except` hide `developer-tools`, `current-version`, `composer-enter`, `performance-usage`, `open-document`; effort ladder narrowed (item 15) in the same batch
+5. ~~Disable `ui-sidebar-right` + hide agent-specific Settings rows~~ **DONE (batch 2)** — `expandButton: false` gates the header-corner button; new `hiddenSettingsItems` config + `RenderOpts.except` hide `developer-tools`, `current-version`, `composer-enter`, `performance-usage`, `open-document`; remainder adds `link-opening`; effort ladder narrowed (item 15) in the same batch
 6. ~~401 copy without "dsh web"~~ **DONE (batch 1)** — `connection.productLabel` config; page reads "ErrGrind authentication required"

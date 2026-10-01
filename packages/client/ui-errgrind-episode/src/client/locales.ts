@@ -13,7 +13,7 @@ export const zh = {
   'card.confirm': '确认这版描述',
   'card.confirming': '正在确认…',
   'card.confirmedNotice': '已确认当前描述。',
-  'card.reviseHint': '如有遗漏，请在对话中补充题目或图片、当时的思路，以及后来核对的答案。',
+  'card.reviseHint': '如有遗漏，请在本条 Error 中补充题目或图片、当时的思路，以及后来核对的答案。',
   'card.pendingProposalHint': '这是 Grill 的暂定结论。你可以继续补充或修订描述，也可以继续 Grill；确认前不会结束诊断。',
   'card.stale': '描述已有更新，请先查看最新版本，再确认。',
   'card.confirmFailed': '暂时无法确认，请稍后重试。',
@@ -50,8 +50,8 @@ export const zh = {
   'drill.draftFailed.title': '练习生成未完成',
   'drill.draftFailed.statusFailed': '生成失败',
   'drill.draftFailed.statusAborted': '已取消',
-  'drill.draftFailed.failed': '本次练习题目生成未能完成。题目要求已妥善保存，在对话中发送消息即可重新生成练习。',
-  'drill.draftFailed.aborted': '本次练习题目生成已取消。题目要求已妥善保存，在对话中发送消息即可重新生成练习。',
+  'drill.draftFailed.failed': '本次练习题目生成未能完成。题目要求已妥善保存，在本条 Error 中发送消息即可重新生成练习。',
+  'drill.draftFailed.aborted': '本次练习题目生成已取消。题目要求已妥善保存，在本条 Error 中发送消息即可重新生成练习。',
   'history.title': 'Error 历史',
   'history.count': '共 {count} 条 Error',
   'history.searchLabel': '搜索 Error',
@@ -65,7 +65,7 @@ export const zh = {
   'history.practice': '针对这条 Error 练习',
   'history.practiceSending': '正在打开并提交练习请求…',
   'history.practiceQueued': '已打开这条 Error，并提交了 Drill 请求。',
-  'history.practiceFailed': 'Error 已打开，但 Drill 请求未能提交。请在对话中请求 Drill。',
+  'history.practiceFailed': 'Error 已打开，但 Drill 请求未能提交。请在本条 Error 中请求 Drill。',
 } satisfies Record<string, string>
 
 /** Complete English dictionary with the same keys as the Chinese source. */
@@ -78,7 +78,7 @@ export const en = {
   'card.confirm': 'Confirm this description',
   'card.confirming': 'Confirming…',
   'card.confirmedNotice': 'The current description is confirmed.',
-  'card.reviseHint': 'If anything is missing, add the problem or image, your thinking at the time, and the answer you checked later in the conversation.',
+  'card.reviseHint': 'If anything is missing, add the problem or image, your thinking at the time, and the answer you checked later in this Error.',
   'card.pendingProposalHint': 'This is a provisional Grill conclusion. You can revise the description or continue Grill; diagnosis stays open until you confirm the final Error description.',
   'card.stale': 'The description has changed. Review the latest version before confirming.',
   'card.confirmFailed': 'Could not confirm yet. Please try again.',
@@ -115,8 +115,8 @@ export const en = {
   'drill.draftFailed.title': 'Practice generation incomplete',
   'drill.draftFailed.statusFailed': 'Generation failed',
   'drill.draftFailed.statusAborted': 'Cancelled',
-  'drill.draftFailed.failed': 'Practice question generation could not be completed. The saved specification remains intact; send a message in the conversation to retry.',
-  'drill.draftFailed.aborted': 'Practice question generation was cancelled. The saved specification remains intact; send a message in the conversation to retry.',
+  'drill.draftFailed.failed': 'Practice question generation could not be completed. The saved specification remains intact; send a message in this Error to retry.',
+  'drill.draftFailed.aborted': 'Practice question generation was cancelled. The saved specification remains intact; send a message in this Error to retry.',
   'history.title': 'Error history',
   'history.count': '{count} Errors',
   'history.searchLabel': 'Search Errors',
@@ -130,7 +130,7 @@ export const en = {
   'history.practice': 'Practice from this Error',
   'history.practiceSending': 'Opening and sending Drill request…',
   'history.practiceQueued': 'Opened this Error and queued a Drill request.',
-  'history.practiceFailed': 'The Error opened, but the Drill request could not be sent. Request Drill in the conversation.',
+  'history.practiceFailed': 'The Error opened, but the Drill request could not be sent. Request Drill in this Error.',
 } satisfies Record<keyof typeof zh, string>
 
 /** Typed locale key union. */

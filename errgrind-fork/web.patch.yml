@@ -81,7 +81,8 @@
 
 # ErrGrind's fixed read-only setup leaves no agent-facing preferences: hide
 # the developer-tools toggle, the busy-send behavior, the performance/usage
-# row, the version row, and the open-configuration action.
+# row, the version row, the open-configuration action, and the link-opening
+# chooser (its "sidebar" choice would reopen the dock ErrGrind suppresses).
 - id: ui-settings-general
   config:
     hiddenSettingsItems:
@@ -90,6 +91,7 @@
       - composer-enter
       - performance-usage
       - open-document
+      - link-opening
 
 # The right dock's services stay mounted for ui-chat, but ErrGrind renders no
 # dock affordance in the conversation header.

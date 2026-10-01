@@ -11,7 +11,7 @@
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {
   'command.label': '模型',
-  'command.description': '选择本会话使用的模型',
+  'command.description': '选择本条 Error 使用的模型',
   'option.loadError': '目录加载失败：{message}',
   'option.deepseekV4Flash.description': '快速、高效且经济；适合目标明确、常规或并行任务。',
   'option.deepseekV4Pro.description': '更强的自主编码、知识与复杂推理能力；适合复杂或质量优先的任务，但成本更高。',
@@ -26,7 +26,7 @@ export const zh = {
   'effort.providerDefault': 'Default',
   'status.loading': '正在刷新模型列表…',
   'error.action': '模型操作失败：{message}',
-  'error.sessionInUse': '当前会话已被占用，可能是其他正在运行的 DSH 导致的（如其他 dsh web、桌面端），请退出其他正在运行的 DSH 后重试。',
+  'error.sessionInUse': '本条 Error 已被占用，可能是另一个正在运行的 ErrGrind 实例导致的，请退出后重试。',
   'action.reload': '重新加载',
   'warning.groupLoad': '{name} 加载失败：{message}',
   'empty.models': '没有可用的模型。',
@@ -40,7 +40,7 @@ export type ModelKey = keyof typeof zh
 /** English dictionary, checked complete against the zh key set. */
 export const en = {
   'command.label': 'Model',
-  'command.description': 'Select the model for this conversation',
+  'command.description': 'Select the model for this Error',
   'option.loadError': 'Catalog failed to load: {message}',
   'option.deepseekV4Flash.description': 'Fast, efficient, and economical; suited to focused, routine, or parallel tasks.',
   'option.deepseekV4Pro.description': 'Stronger agentic coding, knowledge, and difficult reasoning; suited to complex or quality-critical tasks at higher cost.',
@@ -55,7 +55,7 @@ export const en = {
   'effort.providerDefault': 'Default',
   'status.loading': 'Refreshing model list…',
   'error.action': 'Model operation failed: {message}',
-  'error.sessionInUse': 'This session is already in use, possibly by another running DSH instance (such as dsh web or the desktop app). Quit other running DSH instances and try again.',
+  'error.sessionInUse': 'This Error is already in use, possibly by another running ErrGrind instance. Quit the other instance and try again.',
   'action.reload': 'Reload',
   'warning.groupLoad': '{name} failed to load: {message}',
   'empty.models': 'No models available.',
