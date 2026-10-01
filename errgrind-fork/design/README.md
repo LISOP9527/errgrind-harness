@@ -8,6 +8,7 @@ This is the design entry point for the primary Harness workspace. Current produc
 - [Engineering principles](engineering-principles.md): reusable project and agent working rules; Harness infrastructure instructions remain applicable.
 - [Product TODO](../todo.md) and [human acceptance](human-acceptance.md): current work and unverified product quality.
 - [Migration disposition](migration.md) and [source inventory](../history/python-product-2026-09-27/inventory.md): local ownership and complete source preservation without the older checkout.
+- [DSH branding inventory](debrand-inventory.md): user-visible DeepSeek/DSH leftovers with per-item removal paths.
 
 ## Research and roadmap
 
