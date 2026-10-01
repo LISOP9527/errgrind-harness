@@ -308,9 +308,9 @@ function bench(options: BenchOptions = {}) {
 
 describe('UiWorkspaceService', () => {
   it.each([
-    ['zh', '默认工作区', '默认工作区'],
-    ['en', 'Default workspace', 'Default workspace'],
-    ['fr', 'default-workspace', 'Default workspace'],
+    ['zh', 'ErrGrind', 'ErrGrind'],
+    ['en', 'ErrGrind', 'ErrGrind'],
+    ['fr', 'default-workspace', 'ErrGrind'],
   ])('prepares and selects the default Workspace after both startup baselines (%s)', async (language, directoryName, title) => {
     const b = bench({ language, configureWorkspaces: (workspaces) => {
       workspaces.initializeDefault.mockImplementation(async () => {

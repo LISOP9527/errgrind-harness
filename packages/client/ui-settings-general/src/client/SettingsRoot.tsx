@@ -41,6 +41,7 @@ type PanelProps = {
   rows: readonly SettingsSectionRow[]
   renderSlot: SettingsRootComponentProps['renderSlot']
   activeId: string | undefined
+  hiddenItems: readonly string[]
   onSelect: (id: string) => void
   onClose: () => void
 }
@@ -50,7 +51,7 @@ type PanelProps = {
  * header button, a mask click, and document-level Escape (mounted only while
  * open, so the listener lifetime is the panel's).
  */
-function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
+function SettingsPanel({ rows, renderSlot, activeId, hiddenItems, onSelect, onClose }: PanelProps) {
   // Entries can unmount underneath the requested id, so the render-time
   // projection falls back to the first row when the id is gone.
   const active = rows.find(r => r.id === activeId)?.id ?? rows[0]?.id
@@ -91,7 +92,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
         </nav>
         <div className={css.content}>
           <div className={css.header}>
-            <div className={css.actions}>{renderSlot('settings.action', {})}</div>
+            <div className={css.actions}>{renderSlot('settings.action', {}, { except: hiddenItems })}</div>
             <button ref={closeButton} type="button" className={css.close} onClick={onClose}>
               <IconCloseOutlineRegular size={14} />
               <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
@@ -114,7 +115,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
 export function SettingsRoot(props: SettingsRootComponentProps) {
   const {
     wide, reconnect, useConnectionState, useSections, useOnboardingSteps, useSessions, renderSlot, t,
-    useDesktopUpdate, openDesktopUpdate,
+    useDesktopUpdate, openDesktopUpdate, hiddenItems,
   } = props
   const [open, setOpen] = useState(false)
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
@@ -249,6 +250,7 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
           rows={rows}
           renderSlot={renderSlot}
           activeId={activeId}
+          hiddenItems={hiddenItems}
           onSelect={setActiveId}
           onClose={close}
         />

@@ -261,6 +261,8 @@ export type PropsRuntime<
 export interface RenderOpts<EntryKey extends string = string> {
   entryKey?: EntryKey
   only?: string
+  /** Exclude these list-entry ids from rendering; registrants stay on the ledger. */
+  except?: readonly string[]
   fallback?: ReactNode
   /** Type-erased runtime seat; PropsRenderSlots narrows or removes it per slot declaration. */
   hookContext?: unknown

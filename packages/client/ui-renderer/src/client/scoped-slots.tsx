@@ -1232,6 +1232,8 @@ function renderOutletContent(
   }
   let list = [...rows].sort((a, b) => a.order - b.order)
   if (opts?.only !== undefined) list = list.filter(item => item.id === opts.only)
+  const except = opts?.except
+  if (except !== undefined) list = list.filter(item => item.id === undefined || !except.includes(item.id))
   if (list.length === 0) return <>{opts?.fallback ?? null}</>
   // Winner rows key by entry identity (see entryKeyOf); dry-cell rows key by
   // id — the disjoint prefixes keep the two namespaces from colliding.

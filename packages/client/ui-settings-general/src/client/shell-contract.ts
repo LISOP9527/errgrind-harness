@@ -36,6 +36,8 @@ export interface SettingsOnboardingStep {
  * sources, while the reconnect command remains a plain callback.
  */
 export type SettingsRootInjected = {
+  /** Settings contribution ids the deployment never renders (general items and header actions). */
+  hiddenItems: readonly string[]
   /** Request the current shell-owned update action. */
   openDesktopUpdate: () => void
   /** Request a fresh logical generation and physical WebSocket immediately. */

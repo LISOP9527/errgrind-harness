@@ -117,14 +117,14 @@ describe('GeneralSection', () => {
     const renderSlot = vi.fn(
       ((key: string) => <div data-testid={`slot-${key}`} />) as GeneralSectionComponentProps['renderSlot'],
     )
-    const props: GeneralSectionComponentProps = { ...kit, renderSlot, close: vi.fn() }
+    const props: GeneralSectionComponentProps = { ...kit, renderSlot, hiddenItems: [], close: vi.fn() }
     const view = render(<GeneralSection {...props} />)
     return { view, renderSlot }
   }
 
   it('renders the item slot as the section body', () => {
     const { renderSlot } = mount()
-    expect(renderSlot).toHaveBeenCalledWith('settings.general.item', {})
+    expect(renderSlot).toHaveBeenCalledWith('settings.general.item', {}, { except: [] })
     expect(screen.getByTestId('slot-settings.general.item')).toBeTruthy()
   })
 })

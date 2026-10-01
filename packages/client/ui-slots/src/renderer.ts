@@ -118,6 +118,8 @@ export interface RootStandardSourceContribution {
 export interface RenderOpts {
   entryKey?: string
   only?: string
+  /** Exclude these list-entry ids from rendering; registrants stay on the ledger. */
+  except?: readonly string[]
   fallback?: ReactNode
   /** Opaque occurrence context consumed only by function-valued injected Hooks. */
   hookContext?: unknown

@@ -98,6 +98,7 @@ function mount({
     useWorkspaces: unusedHook,
     wide,
     reconnect,
+    hiddenItems: [],
     openDesktopUpdate: () => {},
     useDesktopUpdate: select => select(desktopUpdate),
     t: makeTranslate(dictionary),
@@ -278,7 +279,7 @@ describe('SettingsPanel chrome seats', () => {
     const { renderSlot } = mount()
     openPanel()
     expect(screen.getByText('Open configuration file')).toBeTruthy()
-    expect(renderSlot).toHaveBeenCalledWith('settings.action', {})
+    expect(renderSlot).toHaveBeenCalledWith('settings.action', {}, { except: [] })
   })
 })
 

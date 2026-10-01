@@ -20,14 +20,12 @@
             contextWindow: 272000
             maxTokens: 128000
             input: [text, image]
+            # ErrGrind users choose one of three effort rungs; the relay's
+            # wider ladder stays unexposed.
             reasoningEfforts:
-              "off":
-              minimal: low
               low: low
               medium: medium
               high: high
-              xhigh: xhigh
-              max: max
       hongyun-opus:
         displayName: Opus 5.5 (Hongyun Relay)
         apiKeyEnv: ERRGRIND_RELAY_ANTHROPIC_API_KEY
@@ -80,6 +78,24 @@
     welcomeNotice: false
     # Providers ship in this file; the page must not offer add-provider flows.
     providerAddition: false
+
+# ErrGrind's fixed read-only setup leaves no agent-facing preferences: hide
+# the developer-tools toggle, the busy-send behavior, the performance/usage
+# row, the version row, and the open-configuration action.
+- id: ui-settings-general
+  config:
+    hiddenSettingsItems:
+      - developer-tools
+      - current-version
+      - composer-enter
+      - performance-usage
+      - open-document
+
+# The right dock's services stay mounted for ui-chat, but ErrGrind renders no
+# dock affordance in the conversation header.
+- id: ui-sidebar-right
+  config:
+    expandButton: false
 
 - id: deepseek-account
   disabled: true

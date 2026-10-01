@@ -47,12 +47,30 @@ interface RetryCountdown {
   seconds: number
 }
 
+/**
+ * Localized user-facing copy for a durable failure. Raw failure messages can
+ * carry provider/model ids, compatibility vocabulary, and HTTP response
+ * bodies; the Session log keeps them, but Chat shows only taxonomy-level
+ * copy keyed on the Harness-owned failure code.
+ */
 function failureMessage(
-  message: string,
   code: unknown,
   t: ChatViewSlotProps['t'],
 ): string {
-  return code === 'AUTH' ? t('message.failure.auth') : message
+  switch (code) {
+    case 'AUTH':
+    case 'INVALID_CREDENTIAL': return t('message.failure.auth')
+    case 'QUOTA': return t('message.failure.quota')
+    case 'RATE_LIMIT': return t('message.failure.rateLimit')
+    case 'INVALID_REQUEST': return t('message.failure.invalidRequest')
+    case 'SERVER': return t('message.failure.server')
+    case 'TIMEOUT': return t('message.failure.timeout')
+    case 'TRANSPORT': return t('message.failure.transport')
+    case 'CONTEXT_WINDOW_EXCEEDED': return t('message.failure.contextWindow')
+    case 'EMPTY_RESPONSE': return t('message.failure.emptyResponse')
+    case 'ABORTED': return t('message.failure.aborted')
+    default: return t('message.failure.generic')
+  }
 }
 
 function ModelRetryItem({ node, active, t }: {
@@ -114,7 +132,7 @@ function ModelRetryItem({ node, active, t }: {
         </div>
         <div>
           <span className={css.retryDetailLabel}>{t('message.retry.failure')}</span>
-          {failureMessage(node.failure.message, node.failure.code, t)}
+          {failureMessage(node.failure.code, t)}
         </div>
       </div>
     </details>
@@ -131,9 +149,8 @@ function TurnErrorItem({ node, t }: {
       <StateDot state="error" className={css.turnErrorDot} />
       <div className={css.turnErrorCopy}>
         <span className={css.turnErrorTitle}>{t('message.turnError')}</span>
-        <span className={css.turnErrorMessage}>{failureMessage(node.message, node.code, t)}</span>
+        <span className={css.turnErrorMessage}>{failureMessage(node.code, t)}</span>
       </div>
-      {node.code !== undefined && <code className={css.turnErrorCode}>{node.code}</code>}
     </div>
   )
 }

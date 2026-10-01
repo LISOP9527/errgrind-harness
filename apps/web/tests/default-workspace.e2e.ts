@@ -47,8 +47,8 @@ describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
         await input.press('Enter')
         const sessionId = await settled
         const workspace = scaffold.ctx.workspaceRegistry.list()[0]!
-        expect(workspace.title).toBe('Default workspace')
-        expect(workspace.path).toBe(join(scaffold.workspaceCwd, 'Documents', 'deepseek-harness', 'Default workspace'))
+        expect(workspace.title).toBe('ErrGrind')
+        expect(workspace.path).toBe(join(scaffold.workspaceCwd, 'Documents', 'deepseek-harness', 'ErrGrind'))
         expect((await stat(workspace.path)).isDirectory()).toBe(true)
         expect(workspace.sessionIds).toContain(sessionId)
         expect(scaffold.ctx.sessions.get(sessionId)?.header.cwd).toBe(workspace.path)
@@ -71,7 +71,7 @@ describe.skipIf(MODE === 'record')('web e2e: default Workspace', () => {
     onTestFinished(() => scaffold.close())
     const parent = join(scaffold.workspaceCwd, 'Documents', 'deepseek-harness')
     await mkdir(parent, { recursive: true })
-    await writeFile(join(parent, '默认工作区'), 'occupied')
+    await writeFile(join(parent, 'ErrGrind'), 'occupied')
     const chosen = join(scaffold.workspaceCwd, 'chosen')
     await mkdir(chosen)
     const browser = await chromium.launch()

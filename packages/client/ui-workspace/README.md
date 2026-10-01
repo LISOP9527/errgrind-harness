@@ -73,7 +73,7 @@ New Session tries to acquire the first eligible blank in catalog order; startup 
 
 Once both Workspace and Session startup baselines are ready, an empty installation calls `workspaces.initializeDefault` and creates or reuses its blank Session. The composer becomes editable when that Session is selected; no message is submitted automatically. Later navigation or owner disposal prevents startup from selecting its result. Ineligible first use leaves the folder picker available without an error. Default Workspace creation failure shows a transient notice directing the user to Choose workspace, and is not retried until the next startup. Session creation failures use the ordinary restoration error handling. The registered Workspace remains available if Session creation or later submission fails.
 
-The Client chooses the initial directory name and title from its language at startup: Chinese uses `默认工作区`, English uses `Default workspace`, and other languages use directory `default-workspace` with title `Default workspace`. The request retains those names during initialization. A successfully initialized Workspace keeps its directory and title across language changes.
+The Client chooses the initial directory name and title from its language at startup: Chinese and English use `ErrGrind`, and other languages use directory `default-workspace` with title `ErrGrind`. The request retains those names during initialization. A successfully initialized Workspace keeps its directory and title across language changes.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation

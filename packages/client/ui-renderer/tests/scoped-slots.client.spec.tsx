@@ -358,11 +358,13 @@ describe('child outlets and the renderSlot binding', () => {
     const { view } = mountRoot(h, children, renderSlot => <>
       <main>{renderSlot('k.list', {})}</main>
       <aside>{renderSlot('k.list', {}, { only: 'b' })}</aside>
+      <section>{renderSlot('k.list', {}, { except: ['b'] })}</section>
       <nav>{renderSlot('k.keyed', {}, { entryKey: 'goal' })}</nav>
       <footer>{renderSlot('k.keyed', {}, { entryKey: 'nope', fallback: <i>fb</i> })}</footer>
     </>)
     expect(view.container.querySelector('main')!.textContent).toBe('ab')
     expect(view.container.querySelector('aside')!.textContent).toBe('b')
+    expect(view.container.querySelector('section')!.textContent).toBe('a')
     expect(view.container.querySelector('nav')!.textContent).toBe('goal')
     expect(view.container.querySelector('footer')!.textContent).toBe('fb')
   })

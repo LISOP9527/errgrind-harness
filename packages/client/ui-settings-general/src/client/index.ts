@@ -28,19 +28,20 @@ import { DesktopUpdateBadge } from './DesktopUpdateIndicator.tsx'
 import type { DesktopUpdateBridge } from '../types.ts'
 import { DesktopUpdateSource } from './desktop-update-source.ts'
 import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
-import { GeneralSection } from './GeneralSection.tsx'
+import { GeneralSection, type GeneralSectionInjected } from './GeneralSection.tsx'
 import { CurrentVersionRow } from './CurrentVersionRow.tsx'
 import { DeveloperToolsRow, type DeveloperToolsRowInjected } from './DeveloperToolsRow.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
+import { HIDDEN_SETTINGS_ITEMS_GLOBAL, HiddenItemsPayload } from '../hidden-items.ts'
 import { en, zh, type SettingsKey } from './locales.ts'
 
 export type {
   CloseLabelProps, HeaderContentProps, TriggerContentProps,
 } from './chrome.tsx'
 export type {
-  GeneralSectionComponentProps,
+  GeneralSectionComponentProps, GeneralSectionInjected,
 } from './GeneralSection.tsx'
 export type { SettingsDocumentActionInjected, SettingsDocumentActionProps } from './SettingsDocumentAction.tsx'
 export type { SettingsDocumentState } from './settings-document-store.ts'
@@ -70,6 +71,8 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'remote.settin
  * @param ctx - client root context.
  */
 export function apply(ctx: ClientContext): void {
+  const page = globalThis as Partial<Record<typeof HIDDEN_SETTINGS_ITEMS_GLOBAL, unknown>>
+  const { hiddenSettingsItems } = HiddenItemsPayload(page[HIDDEN_SETTINGS_ITEMS_GLOBAL] ?? {})
   ctx.slots.inject('settings.general.item', () => ctx.slots.register({
     name: 'settings.general.item', id: 'developer-tools', order: 15, locale: NS,
     inject: (): DeveloperToolsRowInjected => ({
@@ -117,6 +120,7 @@ export function apply(ctx: ClientContext): void {
   let onboardingVersion = -1
   let onboardingSteps: readonly SettingsOnboardingStep[] = []
   const shellInjected = (): SettingsRootInjected => ({
+    hiddenItems: hiddenSettingsItems,
     openDesktopUpdate: () => { desktopUpdate.open() },
     reconnect: () => { connection.reconnect() },
     hooks: {
@@ -205,5 +209,6 @@ export function apply(ctx: ClientContext): void {
     label: () => t('general.nav'),
     locale: NS,
     children: { 'settings.general.item': { kind: 'list', scope: 'root' } },
+    inject: (): GeneralSectionInjected => ({ hiddenItems: hiddenSettingsItems }),
   }, GeneralSection))
 }

@@ -2102,13 +2102,13 @@ describe('ChatView', () => {
     expect(within(cancelledDisclosure).getByRole('status').textContent).toContain('重试已取消')
   })
 
-  it('renders terminal turn failures inline with their durable message and optional code', () => {
+  it('renders terminal turn failures inline with localized copy, without the raw provider payload', () => {
     const h = makeHarness({ nodes: [user(1, 'try'), turnError(2, 'AUTH'), turnError(3)] })
     const view = render(<h.ChatView {...h.props} />)
     const statuses = view.getAllByRole('status')
     expect(statuses.map(status => status.textContent)).toEqual([
-      '本轮运行失败API 密钥无效AUTH',
-      '本轮运行失败plugin exploded',
+      '本轮运行失败API 密钥无效',
+      '本轮运行失败模型请求失败',
     ])
   })
 

@@ -77,6 +77,8 @@ Web 与桌面端的通用设置底部显示当前发布版本，使用构建注�
 
 宿主端在 `ui-settings-general` 条目的 Config 中把 `welcomeNoticeVersion` 声明为 volatile 字段。`ui-settings-models` 提供的欢迎步骤通过既有公开 settings 边界读写其中的 `welcomeNoticeVersion`；外壳本身仍不持有产品策略。
 
+同一 Config 还携带 `hiddenSettingsItems`：一组部署上永远不渲染的 `settings.general.item` 与 `settings.action` 注册 id。宿主端在浏览器插件激活前把该列表投放到页面；外壳在渲染时过滤两个席位，因此被隐藏的行与操作仍留在台账上但永不挂载。
+
 </details>
 
 -----

@@ -43,6 +43,7 @@ import { GUIDE_ID, guideDefinition } from './tabs/guide/definition.ts'
 import { guideTabInfoFactory, tabInfoFactory } from './tab-info.ts'
 import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
 import { defaultSeed } from './contract/seed.ts'
+import { Config, DOCK_CONFIG_GLOBAL } from '../dock-config.ts'
 
 export type { RightbarSeatProps, SidebarRightInjected, SidebarRightPresentation } from './shell/SidebarRight.tsx'
 export type { GuideBodyProps, GuideInjected } from './tabs/guide/GuideBody.tsx'
@@ -94,6 +95,8 @@ declare module '@deepseek-ai/cordis' {
  * @param ctx - client root context carrying the slot registry, the frame's face, and copy.
  */
 export function apply(ctx: ClientContext): void {
+  const page = globalThis as Partial<Record<typeof DOCK_CONFIG_GLOBAL, unknown>>
+  const configured = Config(page[DOCK_CONFIG_GLOBAL] ?? {})
   // The registry and the face it backs are built here, at apply's top level,
   // and never inside an effect. A registry other packages register into cannot
   // have an effect-internal scope as its host: `register()` adds an effect to
@@ -194,11 +197,13 @@ export function apply(ctx: ClientContext): void {
     // the panel is expanded, and to ask for it to be. The header's corner seat
     // is its own place, past the utilities, so showing and hiding it moves
     // nothing else in the row.
-    const disposeExpand = ctx.slots.inject('conversation.session.header.corner', () => ctx.slots.register({
-      name: 'conversation.session.header.corner',
-      locale: NS,
-      store,
-    }, ExpandButton))
+    const disposeExpand = configured.expandButton
+      ? ctx.slots.inject('conversation.session.header.corner', () => ctx.slots.register({
+        name: 'conversation.session.header.corner',
+        locale: NS,
+        store,
+      }, ExpandButton))
+      : () => {}
     // Stage two for the guide: it declares the chain child it hosts and reads
     // the registry's entry boxes, which an ordinary type has no reason to do.
     const guideInjected: GuideInjected = {

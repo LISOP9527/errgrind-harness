@@ -303,11 +303,6 @@
   color: var(--dsw-alias-label-secondary);
 }
 
-.turnErrorCode {
-  color: var(--dsw-alias-label-tertiary);
-  font: var(--dsw-font-markdown-code-block-small);
-}
-
 .maxTokensTitle {
   margin-right: 6px;
   color: var(--dsw-alias-state-warn-primary);

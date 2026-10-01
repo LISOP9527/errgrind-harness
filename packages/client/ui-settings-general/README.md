@@ -77,6 +77,8 @@ On a loopback page, the Client loads the provider's `hasDocument` capability thr
 
 The Host half declares `welcomeNoticeVersion` as a volatile field of the `ui-settings-general` entry Config. The welcome step contributed by ui-settings-models reads and writes its `welcomeNoticeVersion` through the existing public settings boundary; the shell itself remains policy-free.
 
+The same Config carries `hiddenSettingsItems`, a list of `settings.general.item` and `settings.action` registration ids the deployment never renders. The Host projects the list onto the page before browser plugins activate; the shell filters both seats at render time, so hidden rows and actions from every owning plugin stay on the ledger but never mount.
+
 </details>
 
 -----

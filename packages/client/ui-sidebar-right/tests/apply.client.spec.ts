@@ -8,14 +8,16 @@
  * service binding — and that every registration is gone after dispose, which
  * is what makes a reload safe. The seats' components have their own specs.
  */
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, afterEach } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
 import { apply, inject } from '../src/client/index.ts'
 import type { GuideInjected, SidebarRightInjected } from '../src/client/index.ts'
-import { apply as hostApply } from '../src/index.ts'
+import { apply as hostApply, Config as HostConfig } from '../src/index.ts'
+import { DOCK_CONFIG_GLOBAL } from '../src/dock-config.ts'
 import { SidebarRightController } from '../src/client/service.ts'
 import { SidebarRightTabRegistry } from '../src/client/tab-registry.ts'
 import type { createSidebarRightStore } from '../src/client/stores.ts'
@@ -83,8 +85,35 @@ async function boot() {
 }
 
 describe('ui-sidebar-right apply', () => {
-  it('keeps the host Loader entry inert', () => {
-    expect(hostApply).not.toThrow()
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('projects the expand-button choice onto the page from the host entry', async () => {
+    expect(HostConfig({})).toEqual({ expandButton: true })
+    const ctx = new Context()
+    try {
+      const fiber = ctx.plugin({ apply: hostApply }, { expandButton: false })
+      await fiber.await()
+      const rows: IndexInjection[] = []
+      ctx.emit('webserver/index-inject', rows)
+      expect(rows).toEqual([{ kind: 'global', name: DOCK_CONFIG_GLOBAL, value: { expandButton: false } }])
+      await fiber.dispose()
+      const after: IndexInjection[] = []
+      ctx.emit('webserver/index-inject', after)
+      expect(after).toEqual([])
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
+  it('mounts the dock services but registers no corner seat when the deployment hides the button', async () => {
+    vi.stubGlobal(DOCK_CONFIG_GLOBAL, { expandButton: false })
+    const { ctx, registered } = await boot()
+    expect(ctx.sidebarRight).toBeInstanceOf(SidebarRightController)
+    expect(registered.map(entry => entry.name)).toEqual([
+      'rightbar', 'rightbar.session', 'sidebar.right.pane.tab', 'sidebar.right.pane.tab.title',
+    ])
   })
 
   it('provides both faces, and registers the guide through the same two-stage path as any other type', async () => {
