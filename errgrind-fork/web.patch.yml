@@ -118,6 +118,21 @@
 - id: plugin-package-inventory-deepseek
   disabled: true
 
+# Delegation backends and their job registry: every tool-subagent*/ui-subagent
+# row is already disabled and no mounted plugin consumes `subagents` or `jobs`.
+# Removal group G2 in design/plugin-audit.md.
+- id: subagent
+  disabled: true
+
+- id: subagent-spawn-in-process
+  disabled: true
+
+- id: subagent-fork-in-process
+  disabled: true
+
+- id: jobs
+  disabled: true
+
 - id: system-prompt
   config:
     personaPrefix: You help users investigate authentic errors in mathematics.
