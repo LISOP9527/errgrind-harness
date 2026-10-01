@@ -135,7 +135,7 @@
 | ui-tool | 工具调用卡（errgrind 工具在此渲染） | turn | 否 | 否 | 无 | 工具卡 |
 | ui-input-trigger / ui-commands | `/` 与 `+` 输入管线 | composer | 否 | 否 | 无 | 菜单 |
 | ui-model-selection | 模型 pill + picker | composer | 否 | 模型选择 | 无 | 模型 pill |
-| ui-workspace | 工作区树/picker + hero 座——**输出全部 CSS 隐藏（inventory #19）；`uiWorkspace` 无启用态消费者** | 无启用态 | 否 | 否 | 无 | 隐藏 DOM |
+| ui-workspace | 工作区树/picker + hero 座——**输出全部 CSS 隐藏（inventory #19）；`uiWorkspace` 仅被 `ui-conversation` 经 `ctx.get` 读取（工作区切换 + 打开会话回调）** | ui-conversation（可选读取、未加防护） | 否 | 否 | 无 | 隐藏 DOM |
 
 ## 层 K — ErrGrind 产品（保留）
 
@@ -155,7 +155,7 @@
 - **G5 — OTel 后端**（`session-telemetry-otel`）：无 telemetry 协调器挂载；默认导出器指向 harness-telemetry.deepseeksvc.com。**已落地**（`5e450a6`，与 G4 同提交）：启动 + 真实 turn 通过。
 - **G6 — 休眠服务**（`session-query-sqlite`、`directory-picker`）：落地时拆分——`session-controller` 在**必需 inject 列表**中声明 `sessionQuery`（`listSessions`/`observeSession`），禁用 `session-query-sqlite` 会让整个会话面挂起（实机验证：启动日志报 "session-controller … waiting for service: sessionQuery"，工作区进入与最近会话恢复均失效）。因此 `session-query-sqlite` **保留挂载**；要移除需先把该 inject 改为可选，属共享包手术，留待后续。`directory-picker` **已落地**：启动 + 工作区标题回退 + 侧栏搜索 + 真实 turn 通过。
 - **G7 — 缺席工具的守卫策略**（`repeat-tool-reminder`、`timeout-policy`、`fs-observation-policy`）：挂在零可执行工具上。保留成本最低；仅当 loop 面进一步收缩时再评。
-- **G8 — ui-workspace**（`ui-workspace`）：隐藏 DOM、零消费者；确认会话头面包屑不受影响（它是 ui-conversation 的 nav，不是本包）。回归：头部 crumb、hero、390px。
+- **G8 — ui-workspace**（`ui-workspace`）：隐藏 DOM，但**暂缓——发现硬依赖**。`ui-conversation/src/client/apply.ts` 经 `ctx.get('uiWorkspace')` 读取并无防护地调用 `workspaceNavigation.openSession` / `openWorkspace`（会话头面包屑点击 + 带草稿迁移的 `selectWorkspace`）。不做补丁直接移除会让这些回调在点击时对 `undefined` 抛错。按 todo 规则须先调整依赖：给 ui-conversation 打补丁容忍 `uiWorkspace` 缺席（面包屑降级为不可点击标签）并补真实组合测试，再落地移除。
 
 尽管零可执行工具仍刻意保留：整条 **层 E 沙箱链**（tools 无条件 inject
 approval+sandboxPolicy——删它是对 tools 契约动手术，不是摘插件）以及

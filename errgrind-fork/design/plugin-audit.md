@@ -144,7 +144,7 @@ ErrGrind requests route through `llm-pi-ai` → Hongyun relay; none of this exec
 | ui-tool | tool-call cards (errgrind tools render here) | turns | no | no | none | tool cards |
 | ui-input-trigger / ui-commands | `/` and `+` input pipeline | composer | no | no | none | menus |
 | ui-model-selection | model pill + picker | composer | no | model choice | none | model pill |
-| ui-workspace | workspace tree/picker + hero seats — **all outputs CSS-hidden (inventory #19); zero enabled consumers of `uiWorkspace`** | none enabled | no | no | none | hidden DOM |
+| ui-workspace | workspace tree/picker + hero seats — **all outputs CSS-hidden (inventory #19); `uiWorkspace` read only by `ui-conversation` via `ctx.get` (workspace-switch + session-open callbacks)** | ui-conversation (optional read, unguarded) | no | no | none | hidden DOM |
 
 ## Layer K — ErrGrind product (keep)
 
@@ -164,7 +164,7 @@ Ordered for "one group per landing, targeted regression after each" per the todo
 - **G5 — OTel backend** (`session-telemetry-otel`): no telemetry coordinator mounted; its default exporter pointed at harness-telemetry.deepseeksvc.com. **LANDED** (`5e450a6`, same commit as G4): launch + real turn passed.
 - **G6 — Dormant services** (`session-query-sqlite`, `directory-picker`): split at landing — `session-controller` declares `sessionQuery` in its **required inject list** (`listSessions`/`observeSession`), so disabling `session-query-sqlite` leaves the whole session plane PENDING (verified live: launch warned "session-controller … waiting for service: sessionQuery"; workspace entry and last-session restore both dead). `session-query-sqlite` therefore **stays mounted**; removing it means first making that inject optional — shared-package surgery deferred to a later pass. `directory-picker` **LANDED**: launch + workspace-title fallback + sidebar search + real turn passed.
 - **G7 — Guard policies for absent tools** (`repeat-tool-reminder`, `timeout-policy`, `fs-observation-policy`): registered against zero executable tools. Cheapest to keep; revisit only if the loop surface shrinks further.
-- **G8 — ui-workspace** (`ui-workspace`): hidden DOM and zero consumers; confirm the session-header crumb stays intact (it is ui-conversation's nav, not this package). Regression: header crumb, hero, 390px.
+- **G8 — ui-workspace** (`ui-workspace`): hidden DOM, but **DEFERRED — hard dependency found**. `ui-conversation/src/client/apply.ts` reads `ctx.get('uiWorkspace')` and calls `workspaceNavigation.openSession` / `openWorkspace` unguarded (session-header crumb click + `selectWorkspace` with draft migration). Removing the plugin without a patch leaves those callbacks throwing `undefined` at click time. Per the todo rule the dependency must be adjusted first: patch ui-conversation to tolerate an absent `uiWorkspace` (crumb degrades to non-navigating label) with a real-composition spec, then land the removal.
 
 Deliberately kept despite zero executable tools: the whole **Layer E sandbox chain**
 (tools injects approval+sandboxPolicy unconditionally — removal is surgery on the tools
