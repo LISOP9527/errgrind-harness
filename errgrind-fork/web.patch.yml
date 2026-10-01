@@ -106,6 +106,18 @@
 - id: ui-settings-account
   disabled: true
 
+# DeepSeek-only request plumbing: ErrGrind requests go through llm-pi-ai to the
+# relay, so the extension registry and both of its registrants never execute.
+# Removal group G1 in design/plugin-audit.md.
+- id: deepseek-llm-api-extensions
+  disabled: true
+
+- id: session-log-deepseek
+  disabled: true
+
+- id: plugin-package-inventory-deepseek
+  disabled: true
+
 - id: system-prompt
   config:
     personaPrefix: You help users investigate authentic errors in mathematics.
