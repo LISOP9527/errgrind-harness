@@ -170,3 +170,33 @@ Deliberately kept despite zero executable tools: the whole **Layer E sandbox cha
 (tools injects approval+sandboxPolicy unconditionally — removal is surgery on the tools
 contract, not a plugin delete) and **spill**/**image-offload** (loop recovery plumbing
 that fires only on real conditions).
+
+## Physical-exclusion measurement baseline (todo 22, 2026-10-01)
+
+Composition-level exclusion already removed the runtime cost: the host loads
+only mounted plugins and Vite tree-shakes the client to reachable imports.
+Measured numbers behind any later physical-removal decision:
+
+- **Mounted set**: 182 unique workspace packages mounted in `web.patch.yml`;
+  140 workspace packages unmounted.
+- **Source footprint**: mounted 33.6 MB vs unmounted 26.9 MB (src only,
+  excluding lib/ and node_modules). Largest unmounted: `dsh-web-frontend`
+  3.5 MB, `dsh-desktop` 3.2 MB, `client-ui-primitives` 1.3 MB,
+  `experimental-webworker-runtime` 1.2 MB.
+- **Client bundle** (`apps/web/dist`): 1.3 MB JS in two chunks (724 KB vendor
+  + 596 KB index) — already tree-shaken, so physical exclusion buys ~nothing
+  here; 14 MB is sourcemaps, ~3 MB fonts/static.
+- **Running host RSS**: ~231 MB for the source-launched web profile after
+  ~1 h uptime with session activity.
+- **Fresh-checkout build on 3.8 GiB VPS** (`d03accca96`): clone 4 m 36 s;
+  `pnpm install` 63 s / 743 MiB peak; `pnpm run errgrind:build` 212 s /
+  2323 MiB peak — passes with ~400 MiB headroom.
+- **Workspace weight**: 206 MB packages/ source, 1.7 GB node_modules
+  (dev install, incl. test and build tooling).
+
+Verdict: deleting the 140 unmounted packages would mainly cut build time
+(their tsc/tsdown projects still build in the repo gates) and checkout size;
+it buys nothing at runtime. The todo's guard stands — do not delete upstream
+tests or break shared-package contracts to do it. Composition-level
+`disabled: true` remains the cheap, reversible mechanism; physical exclusion
+is a release-artifact concern, not a dev-tree one.

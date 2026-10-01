@@ -160,3 +160,28 @@
 尽管零可执行工具仍刻意保留：整条 **层 E 沙箱链**（tools 无条件 inject
 approval+sandboxPolicy——删它是对 tools 契约动手术，不是摘插件）以及
 **spill**/**image-offload**（仅在真实条件触发的 loop 恢复管道）。
+
+## 物理排除测量基线（todo 22，2026-10-01）
+
+组合层排除已经拿掉了运行时成本：host 只加载已挂载插件，Vite 也把客户端
+tree-shake 到可达 import。以下为后续是否做物理删除决策的实测数字：
+
+- **挂载集**：`web.patch.yml` 挂载 182 个唯一 workspace 包；140 个未挂载。
+- **源码体积**：已挂载 33.6 MB 对未挂载 26.9 MB（仅 src，不含 lib/ 与
+  node_modules）。最大的未挂载：`dsh-web-frontend` 3.5 MB、`dsh-desktop`
+  3.2 MB、`client-ui-primitives` 1.3 MB、`experimental-webworker-runtime`
+  1.2 MB。
+- **客户端产物**（`apps/web/dist`）：两个 chunk 共 1.3 MB JS（724 KB
+  vendor + 596 KB index）——已经过 tree-shake，物理排除在这里几乎无收益；
+  另有 14 MB sourcemap 与约 3 MB 字体/静态资源。
+- **运行中 host RSS**：源码启动的 web profile 在约 1 小时运行后约 231 MB。
+- **3.8 GiB VPS 全新 checkout 构建**（`d03accca96`）：clone 4 分 36 秒；
+  `pnpm install` 63 秒 / 峰值 743 MiB；`pnpm run errgrind:build` 212 秒 /
+  峰值 2323 MiB——以约 400 MiB 余量通过。
+- **工作区总量**：packages/ 源码 206 MB，node_modules 1.7 GB（含测试与
+  构建工具链的开发安装）。
+
+结论：删除 140 个未挂载包主要省的是构建时间（它们的 tsc/tsdown 项目仍
+在仓库门禁中构建）与 checkout 体积，运行时收益为零。todo 的约束依然
+成立——不得为此删除上游测试或破坏共享包契约。组合层 `disabled: true`
+仍是廉价且可逆的机制；物理排除属于发行物层面的问题，不是开发树的。
