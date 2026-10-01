@@ -45,9 +45,9 @@
             input: [text, image]
             # Mirrors the installed claude-opus-5 entry: this model refuses a
             # non-adaptive thinking field, so dispatch must use adaptive
-            # thinking even when no effort is requested.
+            # thinking even when no effort is requested. supportsMidConvoEffort
+            # is catalog-withheld and cannot be set on a declared route.
             compat:
-              supportsMidConvoEffort: true
               forceAdaptiveThinking: true
               supportsTemperature: false
               supportsStrictTools: true
