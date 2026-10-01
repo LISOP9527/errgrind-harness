@@ -146,6 +146,26 @@
 - id: user-questions
   disabled: true
 
+# Model web backends: tool-web is already disabled, `ctx.web` is only named in
+# sandbox guidance text, and web-search-deepseek wants a DEEPSEEK_API_KEY the
+# product no longer carries. Removal group G4 in design/plugin-audit.md.
+- id: web
+  disabled: true
+
+- id: web-search-deepseek
+  disabled: true
+
+- id: web-fetch-http
+  disabled: true
+
+- id: mcp-resources
+  disabled: true
+
+# No session-telemetry coordinator is mounted, so this OTLP backend never emits.
+# Removal group G5 in design/plugin-audit.md.
+- id: session-telemetry-otel
+  disabled: true
+
 - id: system-prompt
   config:
     personaPrefix: You help users investigate authentic errors in mathematics.
