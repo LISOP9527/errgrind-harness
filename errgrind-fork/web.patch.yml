@@ -133,6 +133,19 @@
 - id: jobs
   disabled: true
 
+# Goal tracking and model ask-user questions: their only consumers
+# (command-goal, tool-goal, tool-ask-user, plan-mode, ui-goal) are all
+# disabled, and no mounted plugin reads `goals` or `userQuestions`.
+# Removal group G3 in design/plugin-audit.md.
+- id: goal
+  disabled: true
+
+- id: goal-round-driver
+  disabled: true
+
+- id: user-questions
+  disabled: true
+
 - id: system-prompt
   config:
     personaPrefix: You help users investigate authentic errors in mathematics.
