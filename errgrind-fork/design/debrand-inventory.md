@@ -52,9 +52,9 @@ Already done, not repeated: title/manifest = ErrGrind (`errgrind-manifest.webman
 
 ## Suggested minimal fix set (for scheduling)
 
-1. Settings → Models tab: drop openai-codex/DeepSeek provider rows, the Codex sign-in block, and "+ Add model provider" — one change removes the most blatant leftovers
-2. Command surface: drop Compact/Permission/Export (reassess Feedback/Model); no bare `/cmd` template insertion
+1. ~~Settings → Models tab: drop openai-codex/DeepSeek provider rows, the Codex sign-in block, and "+ Add model provider"~~ **DONE (batch 1)** — codex route + `llm-deepseek` disabled in `web.patch.yml`; `CodexAuthSettings` removed; new `providerAddition` bootstrap flag hides the add card
+2. ~~Command surface: drop Compact/Permission/Export (reassess Feedback/Model); no bare `/cmd` template insertion~~ **DONE (batch 1)** — `/compact` removed with `command-compact`, `/export` gone with `session-log-download` disabled, `/permission` hidden via new `CommandRuntime.hiddenCommands` (plugin stays for sandbox presets); Feedback/Model kept — generic, not DSH
 3. Failed turn card: friendly copy mapping — hide provider/model/compat/HTTP body
 4. "Default workspace": session-title fallback + unclassified-section wording
 5. Disable `ui-sidebar-right` + hide agent-specific Settings rows (Developer tools, Send behavior while busy, Performance & usage, Open configuration file)
-6. 401 copy without "dsh web"
+6. ~~401 copy without "dsh web"~~ **DONE (batch 1)** — `connection.productLabel` config; page reads "ErrGrind authentication required"

@@ -52,9 +52,9 @@
 
 ## 建议的最小处理集（供排期）
 
-1. 设置页 Models tab：摘 openai-codex/DeepSeek provider 行、Codex sign-in 区块、"+ Add model provider"（一处改动去掉最露骨残留）
-2. 命令面：摘 Compact/Permission/Export（另评 Feedback/Model）；点选不落裸 `/cmd` 模板
+1. ~~设置页 Models tab：摘 openai-codex/DeepSeek provider 行、Codex sign-in 区块、"+ Add model provider"~~ **已做（批 1）** — `web.patch.yml` 停 codex 路由与 `llm-deepseek`；删 `CodexAuthSettings`；新增 `providerAddition` 引导开关藏加号卡
+2. ~~命令面：摘 Compact/Permission/Export（另评 Feedback/Model）；点选不落裸 `/cmd` 模板~~ **已做（批 1）** — `/compact` 随 `command-compact` 移除，`/export` 随 `session-log-download` 禁用消失，`/permission` 由新增的 `CommandRuntime.hiddenCommands` 隐藏（插件保留以持有沙箱预设）；Feedback/Model 保留——通用项非 DSH
 3. turn 失败卡：友好文案映射，隐藏 provider/model/compat/HTTP body
 4. "Default workspace"：会话标题回退 + 未分类段措辞
 5. `ui-sidebar-right` 禁用 + 设置页 agent 系分项隐藏（Developer tools/Send behavior/Performance & usage/Open configuration file）
-6. 401 文案去 "dsh web"
+6. ~~401 文案去 "dsh web"~~ **已做（批 1）** — `connection.productLabel` 配置；页面显示 "ErrGrind authentication required"

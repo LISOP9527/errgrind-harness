@@ -78,6 +78,8 @@
   config:
     credentialOnboarding: false
     welcomeNotice: false
+    # Providers ship in this file; the page must not offer add-provider flows.
+    providerAddition: false
 
 - id: deepseek-account
   disabled: true

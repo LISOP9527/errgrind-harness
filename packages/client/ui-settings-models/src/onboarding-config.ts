@@ -8,12 +8,15 @@ export interface Config {
   credentialOnboarding: boolean
   /** Show the versioned product welcome notice. */
   welcomeNotice: boolean
+  /** Offer the add-provider card; deployments that ship fixed routes set false. */
+  providerAddition: boolean
 }
 
 /** Validate Host configuration and its public page-bootstrap payload. */
 export const Config: z<Partial<Config>, Config> = z.object({
   credentialOnboarding: z.boolean().default(true),
   welcomeNotice: z.boolean().default(true),
+  providerAddition: z.boolean().default(true),
 })
 
 /** Page-global key carrying only the public onboarding options. */

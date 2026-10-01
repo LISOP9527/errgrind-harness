@@ -50,6 +50,8 @@ export interface ModelsSectionInjected {
   schema: SettingsSchemaOperations
   /** Section copy. */
   t: (key: keyof typeof en) => string
+  /** Whether the deployment lets users add providers; fixed-route products set false. */
+  providerAddition: boolean
 }
 
 /**
@@ -220,16 +222,20 @@ export function providerCopy(template: string, target: ProviderIdentity): string
  * @returns the section, or null while the shell has not injected yet.
  */
 export function ModelsSection(props: ModelsSectionProps): ReactNode {
-  const { controller, useSnapshot, operations, schema, t, renderSlot } = props
+  const { controller, useSnapshot, operations, schema, t, providerAddition, renderSlot } = props
   if (
     controller === undefined || useSnapshot === undefined || operations === undefined
     || schema === undefined || t === undefined
   ) return null
-  return <Loaded injected={{ controller, useSnapshot, operations, schema, t }} renderSlot={renderSlot} />
+  const injected = {
+    controller, useSnapshot, operations, schema, t,
+    providerAddition: providerAddition ?? true,
+  }
+  return <Loaded injected={injected} renderSlot={renderSlot} />
 }
 
 function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderSlot: ModelsRenderSlot }): ReactNode {
-  const { controller, operations, schema, t } = injected
+  const { controller, operations, schema, t, providerAddition } = injected
   const state = injected.useSnapshot(snapshot => snapshot)
   const [editing, setEditing] = useState<EditorTarget | undefined>(undefined)
   const [addOpen, setAddOpen] = useState(false)
@@ -635,31 +641,33 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                 : null}
             </div>
           )
-          : catalogOffered || customOffered
-            ? (
+          : !providerAddition
+            ? null
+            : catalogOffered || customOffered
+              ? (
               // One entry for both ways to gain a provider; the card behind it
               // splits them. Full width, so it lines up with the rows above.
-              <div className={styles['addActions']}>
-                <button
-                  type="button"
-                  className={styles['addButton']}
-                  disabled={!state.writable || (!catalogEnabled && !customEnabled)}
-                  onClick={() => {
-                    const first = addable[0]
-                    const initial: AddMode = catalogEnabled ? 'catalog' : 'custom'
-                    setSavedTarget(undefined)
-                    setEditing(first === undefined ? undefined : targetOf(first.row))
-                    setAddMode(initial)
-                    setVisited(new Set([initial]))
-                    setAddOpen(true)
-                  }}
-                >
-                  <IconPlusOutlineRegular size={14} />
-                  {t('add')}
-                </button>
-              </div>
-            )
-            : null}
+                <div className={styles['addActions']}>
+                  <button
+                    type="button"
+                    className={styles['addButton']}
+                    disabled={!state.writable || (!catalogEnabled && !customEnabled)}
+                    onClick={() => {
+                      const first = addable[0]
+                      const initial: AddMode = catalogEnabled ? 'catalog' : 'custom'
+                      setSavedTarget(undefined)
+                      setEditing(first === undefined ? undefined : targetOf(first.row))
+                      setAddMode(initial)
+                      setVisited(new Set([initial]))
+                      setAddOpen(true)
+                    }}
+                  >
+                    <IconPlusOutlineRegular size={14} />
+                    {t('add')}
+                  </button>
+                </div>
+              )
+              : null}
       </div>
       {renderSlot('settings.models.footer', {})}
       <Modal

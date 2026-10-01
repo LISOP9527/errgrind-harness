@@ -76,7 +76,7 @@ describe('ui-settings-models apply', () => {
       await host.await()
       const rows: IndexInjection[] = []
       ctx.emit('webserver/index-inject', rows)
-      expect(rows).toEqual([{ kind: 'global', name: ONBOARDING_CONFIG_GLOBAL, value: { credentialOnboarding: false, welcomeNotice: true } }])
+      expect(rows).toEqual([{ kind: 'global', name: ONBOARDING_CONFIG_GLOBAL, value: { credentialOnboarding: false, welcomeNotice: true, providerAddition: true } }])
       for (const row of rows) if (row.kind === 'global') vi.stubGlobal(row.name, row.value)
       const plugin = ctx.plugin({ inject: [...inject], apply })
       await plugin.await()
@@ -96,9 +96,10 @@ describe('ui-settings-models apply', () => {
   })
 
   it('defaults to browser onboarding and rejects malformed bootstrap options', async () => {
-    expect(hostPlugin.Config({})).toEqual({ credentialOnboarding: true, welcomeNotice: true })
+    expect(hostPlugin.Config({})).toEqual({ credentialOnboarding: true, welcomeNotice: true, providerAddition: true })
     expect(hostPlugin.Config['~standard'].validate({ credentialOnboarding: 'false' })).toHaveProperty('issues')
     expect(hostPlugin.Config['~standard'].validate({ welcomeNotice: 'false' })).toHaveProperty('issues')
+    expect(hostPlugin.Config['~standard'].validate({ providerAddition: 'false' })).toHaveProperty('issues')
     const { ctx } = await bench()
     try {
       vi.stubGlobal(ONBOARDING_CONFIG_GLOBAL, { credentialOnboarding: 'false' })
@@ -112,7 +113,7 @@ describe('ui-settings-models apply', () => {
     const { ctx, slots } = await bench()
     declare(slots)
     try {
-      const host = ctx.plugin(hostPlugin, { credentialOnboarding: false, welcomeNotice: false })
+      const host = ctx.plugin(hostPlugin, { credentialOnboarding: false, welcomeNotice: false, providerAddition: false })
       await host.await()
       const rows: IndexInjection[] = []
       ctx.emit('webserver/index-inject', rows)
@@ -120,6 +121,8 @@ describe('ui-settings-models apply', () => {
       const plugin = ctx.plugin({ inject: [...inject], apply })
       await plugin.await()
       expect(slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['models'])
+      const sectionInjected = (slots.entries('settings.section')[0]!.inject as unknown as () => import('../src/client/ModelsSection.tsx').ModelsSectionInjected)()
+      expect(sectionInjected.providerAddition).toBe(false)
       expect(slots.entries('settings.onboarding').map(entry => entry.options.id)).toEqual(['deepseek-official'])
       const onboarding = slots.entries('settings.onboarding')[0]!
       expect((onboarding.inject as () => { automatic: boolean })().automatic).toBe(false)
