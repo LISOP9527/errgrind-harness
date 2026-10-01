@@ -34,7 +34,8 @@
         displayName: Opus 5.5 (Hongyun Relay)
         apiKeyEnv: ERRGRIND_RELAY_ANTHROPIC_API_KEY
         api: anthropic-messages
-        baseURL: https://ai.hongyun.chat/v1
+        # Host-only: the Anthropic SDK appends /v1/messages itself.
+        baseURL: https://ai.hongyun.chat
         defaultInput: [text, image]
         models:
           - id: claude-opus-5-5
