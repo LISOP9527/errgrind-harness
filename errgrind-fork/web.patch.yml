@@ -168,13 +168,13 @@
 - id: session-telemetry-otel
   disabled: true
 
-# Dormant service: ErrGrind renders no workspace-creation surface, so the only
-# pick/list caller is unreachable. Removal group G6 in design/plugin-audit.md.
-# (session-query-sqlite from the same group stays mounted — session-controller
-# declares sessionQuery as a required inject, so it cannot be disabled without
-# first making that dependency optional.)
-- id: directory-picker
-  disabled: true
+# directory-picker STAYS mounted: the workspace picker is unreachable in normal
+# use but is the recovery surface when default-Workspace init fails (the
+# defaultWorkspaceFailed toast tells the user to 'Choose workspace'), and
+# remote.directoryPicker picks it by name. Removal group G6 in
+# design/plugin-audit.md was reverted for this entry.
+# (session-query-sqlite from the same group also stays mounted —
+# session-controller declares sessionQuery as a required inject.)
 
 - id: system-prompt
   config:

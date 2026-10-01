@@ -10,6 +10,7 @@
 - [迁移归属](migration.md)与[来源清单](../history/python-product-2026-09-27/inventory.md)：不依赖旧工作区的本地权威和完整原文保存。
 - [DSH 痕迹盘点](debrand-inventory.md)：用户可见的 DeepSeek/DSH 残留及逐项处理路径。
 - [已挂载插件必要性审计](plugin-audit.md)：105 个挂载条目的六字段审计与 G1–G8 删除分组。
+- [评估与验收结论](eval-findings.md)：Spec/Draft 指引评估、Judge 判定拆分分析、旧 Drill UX 保留清单、Settings 验收与用量核算核对（todo 36–40）。
 
 ## 研究与路线图
 

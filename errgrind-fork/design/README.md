@@ -10,6 +10,7 @@ This is the design entry point for the primary Harness workspace. Current produc
 - [Migration disposition](migration.md) and [source inventory](../history/python-product-2026-09-27/inventory.md): local ownership and complete source preservation without the older checkout.
 - [DSH branding inventory](debrand-inventory.md): user-visible DeepSeek/DSH leftovers with per-item removal paths.
 - [Mounted-plugin necessity audit](plugin-audit.md): six-field audit of the 105 mounted ErrGrind composition entries and the G1–G8 removal groups.
+- [Evaluation findings](eval-findings.md): Spec/Draft guidance evaluation, Judge verdict split analysis, old-Drill UX keep-list, Settings acceptance, and usage-accounting verification (todo 36–40).
 
 ## Research and roadmap
 
