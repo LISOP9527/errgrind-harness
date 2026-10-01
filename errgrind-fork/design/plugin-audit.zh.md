@@ -3,13 +3,13 @@
 2026-10-01 对 ErrGrind Web 组合的审计，用
 `dsh --profile web --patch errgrind-fork/web.patch.yml --dump-config` 解析（覆盖所有嵌套
 层级的条目、祖先 `disabled` 逐层传递、`!!js` 条件按 Linux + profile `web` 求值）。
-结果：**105 个挂载条目，148 个禁用**。
+结果：审计时 **105 个挂载条目，148 个禁用**；同日 G1–G6 删除组落地后挂载集为 **89**（G6 中 `session-query-sqlite` 保留，见分组表）。
 
 列含义按 todo 要求：**flow** = 哪个用户流程需要它；**dep** = 启用态消费者
 （服务读取经 grep 验证，或文档化的结构性依赖方）；**model** = 是否进入模型请求；
 **data** = 是否写持久状态；**sec** = 安全/权限面；**UI** = 拥有的浏览器入口。
 结构性消费者（cordis Loader、gateway remote、boot 接线）单独注明——单纯 grep
-`ctx.<service>` 会低估面向传输层的 provider。
+`ctx.<service>` 会低估面向传输层的 provider，且会漏掉**必需 inject 列表**：`session-controller` 在 `static inject` 中按名字引入 `sessionQuery`，调用点 grep 不可见。G6 落地时实机抓到了这类依赖；"无消费者"的结论须对照 inject 声明复核。
 
 ## 层 A — 内核基底（全部保留）
 
@@ -93,7 +93,7 @@
 | commands | `/`/`+` 菜单背后的命令注册表 | ui-commands | 否 | 否 | 无 | 命令菜单 |
 | command-feedback | `/feedback` + 会话反馈 remote | 命令菜单 | 否 | 反馈记录 | 无 | `/feedback` |
 
-## 层 H — DeepSeek 专属管线（删除组）
+## 层 H — DeepSeek 专属管线（已于 G1 移除）
 
 | id | flow | dep | model | data | sec | UI |
 |----|------|-----|-------|------|-----|----|
@@ -102,7 +102,7 @@
 | plugin-package-inventory-deepseek | 面向官方 DeepSeek 请求的活动包清单 | 注册到 deepseek-llm-api-extensions | 是 | 否 | 无 | 无 |
 
 封闭簇：所有消费者都在簇内或已禁用（`llm-deepseek`）。ErrGrind 请求经
-`llm-pi-ai` → Hongyun 中转；这套东西永不执行。
+`llm-pi-ai` → Hongyun 中转；这套东西永不执行。**2026-10-01 已移除（`f3d4a92`）。
 
 ## 层 I — host/web 传输（除标记外保留）
 
@@ -120,7 +120,7 @@
 | connection | 传输 + productLabel + 鉴权页 | 客户端 shell | 否 | 否 | 鉴权 | 登录页 |
 | file-upload | 浏览器上传传输 | composer | 否 | 上传 | 用户内容 | 附件 |
 | agent-preset-registry / preset-standard | 会话级 realm（persona + 压缩） | session-controller | 是 | 否 | 无 | 无 |
-| session-query-sqlite | 全文索引——`openAt: never`，配置即休眠 | 无启用态 | 否 | `:memory:` 索引 | 无 | 无 |
+| session-query-sqlite | 全文索引——`openAt: never`，配置即休眠 | **session-controller 必需 inject**（list/observe/search） | 否 | `:memory:` 索引 | 无 | 无 |
 | directory-picker | 解析 native|browse 后端供工作区选择；ErrGrind 无创建工作区 UI | 无启用态 | 否 | 否 | 无 | 无 |
 
 ## 层 J — 客户端 shell（除标记外保留）
@@ -148,12 +148,12 @@
 
 按 todo 要求"每次只移除一组，落地后跑定向回归"排序。
 
-- **G1 — DeepSeek 请求管线**（`deepseek-llm-api-extensions`、`session-log-deepseek`、`plugin-package-inventory-deepseek`）：封闭簇，ErrGrind 路径零使用。回归：启动 + 一轮真实 turn。
-- **G2 — 委派与 jobs**（`subagent`、`subagent-spawn-in-process`、`subagent-fork-in-process`、`jobs`）：无启用态消费者；所有委派工具与 UI 行已禁用。回归：启动、会话冷读、恢复、一轮 turn。
-- **G3 — goal 与 user questions**（`goal`、`goal-round-driver`、`user-questions`）：无启用态消费者。回归：启动 + 一轮 turn。
-- **G4 — 模型 web 后端**（`web`、`web-search-deepseek`、`web-fetch-http`、`mcp-resources`）：tool-web 已关；runner 仅把 ctx.web 当沙箱提示文本。回归：启动 + 一轮 turn。
-- **G5 — OTel 后端**（`session-telemetry-otel`）：无 telemetry 协调器挂载。回归：启动。
-- **G6 — 休眠服务**（`session-query-sqlite`、`directory-picker`）：索引永不打开；无工作区 UI 时 picker 不可达。回归：启动、工作区标题回退、侧栏搜索。
+- **G1 — DeepSeek 请求管线**（`deepseek-llm-api-extensions`、`session-log-deepseek`、`plugin-package-inventory-deepseek`）：封闭簇，ErrGrind 路径零使用。**已落地**（`f3d4a92`）：启动 + 真实 Astra turn 通过。
+- **G2 — 委派与 jobs**（`subagent`、`subagent-spawn-in-process`、`subagent-fork-in-process`、`jobs`）：无启用态消费者；所有委派工具与 UI 行已禁用。**已落地**（`ff36891`）：启动、冷读、恢复、一轮推进账本的 35 秒 Opus turn 均通过。
+- **G3 — goal 与 user questions**（`goal`、`goal-round-driver`、`user-questions`）：无启用态消费者。**已落地**（`1dd82bb`）：启动 + 真实 turn 通过。
+- **G4 — 模型 web 后端**（`web`、`web-search-deepseek`、`web-fetch-http`、`mcp-resources`）：tool-web 已关；runner 仅把 ctx.web 当沙箱提示文本。**已落地**（`5e450a6`）：启动 + 真实 turn 通过。
+- **G5 — OTel 后端**（`session-telemetry-otel`）：无 telemetry 协调器挂载；默认导出器指向 harness-telemetry.deepseeksvc.com。**已落地**（`5e450a6`，与 G4 同提交）：启动 + 真实 turn 通过。
+- **G6 — 休眠服务**（`session-query-sqlite`、`directory-picker`）：落地时拆分——`session-controller` 在**必需 inject 列表**中声明 `sessionQuery`（`listSessions`/`observeSession`），禁用 `session-query-sqlite` 会让整个会话面挂起（实机验证：启动日志报 "session-controller … waiting for service: sessionQuery"，工作区进入与最近会话恢复均失效）。因此 `session-query-sqlite` **保留挂载**；要移除需先把该 inject 改为可选，属共享包手术，留待后续。`directory-picker` **已落地**：启动 + 工作区标题回退 + 侧栏搜索 + 真实 turn 通过。
 - **G7 — 缺席工具的守卫策略**（`repeat-tool-reminder`、`timeout-policy`、`fs-observation-policy`）：挂在零可执行工具上。保留成本最低；仅当 loop 面进一步收缩时再评。
 - **G8 — ui-workspace**（`ui-workspace`）：隐藏 DOM、零消费者；确认会话头面包屑不受影响（它是 ui-conversation 的 nav，不是本包）。回归：头部 crumb、hero、390px。
 

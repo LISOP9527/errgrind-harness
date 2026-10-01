@@ -3,14 +3,20 @@
 2026-10-01 audit of the ErrGrind Web composition, resolved with
 `dsh --profile web --patch errgrind-fork/web.patch.yml --dump-config` (entries at every
 nesting level, ancestors' `disabled` propagated, `!!js` conditions evaluated for Linux +
-profile `web`). Result: **105 mounted entries, 148 disabled**.
+profile `web`). Result: **105 mounted entries, 148 disabled** at audit time; after
+removal groups G1–G6 landed the same day, the mounted set is **89**
+(`session-query-sqlite` from G6 stayed — see the group list).
 
 Columns per the todo item: **flow** = which user flow needs it; **dep** = enabled
 consumers (service reads verified by grep, or a documented structural owner);
 **model** = reaches a model request; **data** = writes persistent state; **sec** =
 security/permission surface; **UI** = browser entry it owns. Structural consumers
 (cordis Loader, gateway remotes, boot wiring) are named as such — a plain grep of
-`ctx.<service>` undercounts transport-facing providers.
+`ctx.<service>` undercounts transport-facing providers, and it also misses
+**required inject lists**: `session-controller` pulls `sessionQuery` by name in
+`static inject`, invisible to a call-site grep. G6's landing caught that class of
+dependency live; "no consumer" claims must be re-checked against inject
+declarations.
 
 ## Layer A — kernel substrate (keep all)
 
@@ -95,7 +101,7 @@ security/permission surface; **UI** = browser entry it owns. Structural consumer
 | commands | command registry behind `/`/`+` menus | ui-commands | no | no | none | command menu |
 | command-feedback | `/feedback` + session feedback remote | command menu | no | feedback notes | none | `/feedback` |
 
-## Layer H — DeepSeek-only plumbing (removal group)
+## Layer H — DeepSeek-only plumbing (removed in G1)
 
 | id | flow | dep | model | data | sec | UI |
 |----|------|-----|-------|------|-----|----|
@@ -105,6 +111,7 @@ security/permission surface; **UI** = browser entry it owns. Structural consumer
 
 Closed cluster: every consumer is inside the cluster or already-disabled (`llm-deepseek`).
 ErrGrind requests route through `llm-pi-ai` → Hongyun relay; none of this executes.
+**Removed 2026-10-01 (`f3d4a92`).**
 
 ## Layer I — host/web transport (keep except flagged)
 
@@ -122,7 +129,7 @@ ErrGrind requests route through `llm-pi-ai` → Hongyun relay; none of this exec
 | connection | transport + productLabel + auth page | client shell | no | no | auth | login page |
 | file-upload | browser upload transport | composer | no | uploads | user content | attach |
 | agent-preset-registry / preset-standard | per-session realm (persona + compaction) | session-controller | yes | no | none | none |
-| session-query-sqlite | full-text index — `openAt: never`, dormant by config | none enabled | no | `:memory:` index | none | none |
+| session-query-sqlite | full-text index — `openAt: never`, dormant by config | **session-controller required inject** (list/observe/search) | no | `:memory:` index | none | none |
 | directory-picker | resolves native|browse backend for workspace picking; ErrGrind renders no workspace-create UI | none enabled | no | no | none | none |
 
 ## Layer J — client shell (keep except flagged)
@@ -150,12 +157,12 @@ ErrGrind requests route through `llm-pi-ai` → Hongyun relay; none of this exec
 
 Ordered for "one group per landing, targeted regression after each" per the todo.
 
-- **G1 — DeepSeek request plumbing** (`deepseek-llm-api-extensions`, `session-log-deepseek`, `plugin-package-inventory-deepseek`): closed cluster, zero ErrGrind-path usage. Regression: launch + one real turn.
-- **G2 — Delegation and jobs** (`subagent`, `subagent-spawn-in-process`, `subagent-fork-in-process`, `jobs`): no enabled consumer; every delegation tool and UI row already disabled. Regression: launch, cold-read a session, resume, one turn.
-- **G3 — Goals and user questions** (`goal`, `goal-round-driver`, `user-questions`): no enabled consumer. Regression: launch + one turn.
-- **G4 — Model web backends** (`web`, `web-search-deepseek`, `web-fetch-http`, `mcp-resources`): tool-web already off; runner reads ctx.web only as optional sandbox guidance. Regression: launch + one turn.
-- **G5 — OTel backend** (`session-telemetry-otel`): no telemetry coordinator mounted. Regression: launch.
-- **G6 — Dormant services** (`session-query-sqlite`, `directory-picker`): index never opens; picker unreachable without workspace UI. Regression: launch, workspace title fallback, sidebar search.
+- **G1 — DeepSeek request plumbing** (`deepseek-llm-api-extensions`, `session-log-deepseek`, `plugin-package-inventory-deepseek`): closed cluster, zero ErrGrind-path usage. **LANDED** (`f3d4a92`): launch + real Astra turn passed.
+- **G2 — Delegation and jobs** (`subagent`, `subagent-spawn-in-process`, `subagent-fork-in-process`, `jobs`): no enabled consumer; every delegation tool and UI row already disabled. **LANDED** (`ff36891`): launch, cold-read, resume, and a 35s Opus turn that advanced the episode ledger passed.
+- **G3 — Goals and user questions** (`goal`, `goal-round-driver`, `user-questions`): no enabled consumer. **LANDED** (`1dd82bb`): launch + real turn passed.
+- **G4 — Model web backends** (`web`, `web-search-deepseek`, `web-fetch-http`, `mcp-resources`): tool-web already off; runner reads ctx.web only as optional sandbox guidance. **LANDED** (`5e450a6`): launch + real turn passed.
+- **G5 — OTel backend** (`session-telemetry-otel`): no telemetry coordinator mounted; its default exporter pointed at harness-telemetry.deepseeksvc.com. **LANDED** (`5e450a6`, same commit as G4): launch + real turn passed.
+- **G6 — Dormant services** (`session-query-sqlite`, `directory-picker`): split at landing — `session-controller` declares `sessionQuery` in its **required inject list** (`listSessions`/`observeSession`), so disabling `session-query-sqlite` leaves the whole session plane PENDING (verified live: launch warned "session-controller … waiting for service: sessionQuery"; workspace entry and last-session restore both dead). `session-query-sqlite` therefore **stays mounted**; removing it means first making that inject optional — shared-package surgery deferred to a later pass. `directory-picker` **LANDED**: launch + workspace-title fallback + sidebar search + real turn passed.
 - **G7 — Guard policies for absent tools** (`repeat-tool-reminder`, `timeout-policy`, `fs-observation-policy`): registered against zero executable tools. Cheapest to keep; revisit only if the loop surface shrinks further.
 - **G8 — ui-workspace** (`ui-workspace`): hidden DOM and zero consumers; confirm the session-header crumb stays intact (it is ui-conversation's nav, not this package). Regression: header crumb, hero, 390px.
 
