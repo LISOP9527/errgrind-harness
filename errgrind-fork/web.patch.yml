@@ -37,6 +37,10 @@
         # Host-only: the Anthropic SDK appends /v1/messages itself.
         baseURL: https://ai.hongyun.chat
         defaultInput: [text, image]
+        # Adaptive thinking requires output_config.effort on this model; no
+        # effort at all (or 'off') 400s upstream, so no-effort requests
+        # dispatch xhigh and 'off' is not offered.
+        reasoning: xhigh
         models:
           - id: claude-opus-5-5
             name: Claude Opus 5.5
@@ -51,9 +55,9 @@
               forceAdaptiveThinking: true
               supportsTemperature: false
               supportsStrictTools: true
-            # pi-ai's claude-opus-5 catalog entry only offers xhigh/max.
+            # pi-ai's claude-opus-5 catalog entry only offers xhigh/max;
+            # 'off' would omit effort and 400 against this model.
             reasoningEfforts:
-              "off":
               xhigh: xhigh
               max: max
 
