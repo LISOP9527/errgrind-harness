@@ -9,6 +9,7 @@
 - [产品待办](../todo.md)与[真人验收](human-acceptance.md)：当前工作和未验证的产品质量。
 - [迁移归属](migration.md)与[来源清单](../history/python-product-2026-09-27/inventory.md)：不依赖旧工作区的本地权威和完整原文保存。
 - [DSH 痕迹盘点](debrand-inventory.md)：用户可见的 DeepSeek/DSH 残留及逐项处理路径。
+- [已挂载插件必要性审计](plugin-audit.md)：105 个挂载条目的六字段审计与 G1–G8 删除分组。
 
 ## 研究与路线图
 

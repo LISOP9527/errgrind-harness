@@ -9,6 +9,7 @@ This is the design entry point for the primary Harness workspace. Current produc
 - [Product TODO](../todo.md) and [human acceptance](human-acceptance.md): current work and unverified product quality.
 - [Migration disposition](migration.md) and [source inventory](../history/python-product-2026-09-27/inventory.md): local ownership and complete source preservation without the older checkout.
 - [DSH branding inventory](debrand-inventory.md): user-visible DeepSeek/DSH leftovers with per-item removal paths.
+- [Mounted-plugin necessity audit](plugin-audit.md): six-field audit of the 105 mounted ErrGrind composition entries and the G1–G8 removal groups.
 
 ## Research and roadmap
 
