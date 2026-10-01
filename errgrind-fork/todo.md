@@ -4,7 +4,7 @@
 
 ## 先完成可用的产品闭环
 
-- [ ] 用一条真实数学错题完成图片输入、Error 描述多轮修正、Grill 有区分度的追问、不确认后继续、共同确认、Teach、独立 Drill、判分和衍生 Error；同时检查中断恢复、私有数据不进入浏览器，以及实际模型的 `sourceRef` 和缓存用量。按[真人验收计划](design/human-acceptance.zh.md)记录结果。
+- [ ] 用一条真实数学错题完成图片输入、Error 描述多轮修正、Grill 有区分度的追问、不确认后继续、共同确认、Teach、独立 Drill、判分和衍生 Error；同时检查中断恢复、私有数据不进入浏览器，以及实际模型的 `sourceRef` 和缓存用量。按[真人验收计划](design/human-acceptance.zh.md)记录结果。已用真实 Error #8 材料在 Hongyun 中转上跑通真实模型验收（`59318c8`）：hongyun-astra（openai-responses，gpt-6-astra，默认）完成全链路（图片+文本录入→草稿修订→区分度探针→结论→卡片按钮确认→Teach→原题隔离 Drill→判分→衍生 Error），隐私清扫无泄漏；hongyun-opus（anthropic-messages，claude-opus-5-5）修通四个配置问题（host-only baseURL、forceAdaptiveThinking、supportsMidConvoEffort 属 catalog-withheld、无 effort 即 400 故 route 默认 xhigh 且不提供 off）后 Xhigh 与默认档均可完成真实 turn。余下未验：中断恢复、缓存用量记录、undetermined 结论路径、手机端、第二条 Error 的真人验收。
 - [x] 新版 Error 历史入口：侧栏按公开描述显示 fork 自身的 Error Session，能打开未完成和已完成的调查；无缓存分类的旧会话仍可打开重建。已判分 Drill 和衍生 Error 关系保存在各自会话时间线中。后续真人验收再决定是否需要更丰富的筛选、搜索和删除；旧 SQLite 数据尚未导入。
 - [x] 从历史入口明确指定一条已完成的 Error 出 Drill：打开该 Error 的原会话并排入练习请求，由原会话的 Core 再次校验诊断锚点并记录练习。旧版普通综合出题是让模型代为选择目标 Error，不代表跨 Error 合成一道练习；当前不做跨 Error 综合或长期 Pattern。
 
