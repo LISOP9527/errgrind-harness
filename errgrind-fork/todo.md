@@ -32,7 +32,7 @@
 
 资料归属和原文清单见[迁移说明](design/migration.md)；研究方向见[版本规划](design/research/version-plan.md)。以下不重复已有闭环、手机端、数据导入和 MCP 待办，也不把旧测试通过当作新版验收。
 
-- [ ] 检查 Probe 的 predictions 是否恰好覆盖目标 hypothesis；已恢复 Prompt 要求，Core 的确定性覆盖检查仍须单独实现和验证。
+- [x] 检查 Probe 的 predictions 是否恰好覆盖目标 hypothesis；Prompt 要求（恰好覆盖、一对一、无多余无重复）保持，Core 的确定性覆盖检查已实现并验证：`validateProbe` 现拒绝缺目标预测、非目标预测、重复预测及重复目标，39/39 测试通过。
 - [ ] 用代表性数学案例评估补齐后的 Spec/Draft 指导：目标行为是否自然重要、success signal 可观察、题答一致、条件充分、表面结构有变化，以及推理难度与计算负担分离。无密钥回放只能验证传递与隔离。
 - [ ] 评估 Judge 分别记录数学正确性与机制证据的设计；当前 boolean 不能表达全部维度，证据不足不得单独触发错误衍生 Error。此项不自动批准 schema 变更。
 - [ ] 对照本地历史 ADR 核对旧 Drill 历史目标查询、即时仅显示对错与当前卡片/反馈的差异，明确需要保留的用户体验；不直接恢复旧 CLI。

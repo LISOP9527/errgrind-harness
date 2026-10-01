@@ -347,6 +347,40 @@ describe('Error episode event rules', () => {
       probe: { ...validProbe, id: 'P2', predictions: [{ hypothesisId: 'H1', expectedObservation: '   ' }] }, turn: 2,
     }))).toThrow('expectedObservation')
 
+    // Predictions must exactly cover the target hypotheses
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/grill-probe', {
+      probe: {
+        ...validProbe, id: 'P2',
+        predictions: [{ hypothesisId: 'H1', expectedObservation: 'obs' }],
+      }, turn: 2,
+    }))).toThrow('H2')
+
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/grill-probe', {
+      probe: {
+        ...validProbe, id: 'P2', targetHypothesisIds: ['H1'],
+        predictions: [
+          { hypothesisId: 'H1', expectedObservation: 'obs' },
+          { hypothesisId: 'H2', expectedObservation: 'extra' },
+        ],
+      }, turn: 2,
+    }))).toThrow('not among the target')
+
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/grill-probe', {
+      probe: {
+        ...validProbe, id: 'P2', targetHypothesisIds: ['H1', 'H1'],
+      }, turn: 2,
+    }))).toThrow('duplicates')
+
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/grill-probe', {
+      probe: {
+        ...validProbe, id: 'P2', targetHypothesisIds: ['H1'],
+        predictions: [
+          { hypothesisId: 'H1', expectedObservation: 'obs' },
+          { hypothesisId: 'H1', expectedObservation: 'twice' },
+        ],
+      }, turn: 2,
+    }))).toThrow('duplicates')
+
     // Evidence validation failures
     expect(() => applyEpisodeEvent(state, session.append('errgrind/grill-probe', {
       probe: { ...validProbe, id: 'P2' },

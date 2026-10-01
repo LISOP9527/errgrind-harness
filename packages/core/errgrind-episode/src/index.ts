@@ -459,18 +459,35 @@ function validateProbe(probe: DiagnosticProbe, probes: readonly DiagnosticProbe[
   if (probe.targetHypothesisIds.length === 0) {
     throw new Error('Probe targetHypothesisIds cannot be empty')
   }
+  const targetIds = new Set(probe.targetHypothesisIds)
+  if (targetIds.size !== probe.targetHypothesisIds.length) {
+    throw new Error('Probe targetHypothesisIds contains duplicates')
+  }
   for (const hId of probe.targetHypothesisIds) {
     if (!hypIds.has(hId)) throw new Error(`Probe target hypothesis ${hId} does not exist`)
   }
   if (probe.predictions.length === 0) {
     throw new Error('Probe predictions cannot be empty')
   }
+  const predictedIds = new Set<string>()
   for (const pred of probe.predictions) {
     if (!hypIds.has(pred.hypothesisId)) {
       throw new Error(`Probe prediction references unknown hypothesis ${pred.hypothesisId}`)
     }
+    if (!targetIds.has(pred.hypothesisId)) {
+      throw new Error(`Probe prediction ${pred.hypothesisId} is not among the target hypotheses`)
+    }
+    if (predictedIds.has(pred.hypothesisId)) {
+      throw new Error(`Probe prediction duplicates hypothesis ${pred.hypothesisId}`)
+    }
+    predictedIds.add(pred.hypothesisId)
     if (pred.expectedObservation.trim().length === 0) {
       throw new Error('Probe prediction expectedObservation cannot be empty')
+    }
+  }
+  for (const hId of probe.targetHypothesisIds) {
+    if (!predictedIds.has(hId)) {
+      throw new Error(`Probe is missing a prediction for target hypothesis ${hId}`)
     }
   }
 }
