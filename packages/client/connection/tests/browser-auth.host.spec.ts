@@ -190,6 +190,13 @@ describe('BrowserAuth', () => {
     }
   })
 
+  it('labels the unauthenticated response with the configured product label', async () => {
+    const auth = await BrowserAuth.create({}, credentials(new RecordCredentials()), 30, 'ErrGrind')
+    const denied = response()
+    expect(auth.authorizeIndex(request('/'), denied.value)).toBe(false)
+    expect(denied.state.body).toBe('ErrGrind authentication required; reopen the URL printed by ErrGrind.\n')
+  })
+
   it('rejects tampering, expiry, future issuance, and a longer lifetime than configured', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-08-24T00:00:00.000Z'))

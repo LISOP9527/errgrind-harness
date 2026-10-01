@@ -190,6 +190,7 @@ export class BrowserAuth {
     processOwner: object,
     private readonly secret: Buffer,
     maxAgeDays: number,
+    private readonly productLabel: string,
   ) {
     this.launchToken = processLaunchToken(processOwner)
     this.maxAgeMilliseconds = maxAgeDays * DAY_MILLISECONDS
@@ -205,14 +206,16 @@ export class BrowserAuth {
    * @param processOwner - root application context retaining one token across Connection reloads.
    * @param credentials - persistent credential provider for the Web profile.
    * @param maxAgeDays - positive absolute browser-cookie lifetime in days.
+   * @param productLabel - product-facing name used in the unauthenticated response.
    * @returns initialized authentication owner with the process owner's launch token.
    */
   static async create(
     processOwner: object,
     credentials: CredentialProvider,
     maxAgeDays: number,
+    productLabel = 'dsh web',
   ): Promise<BrowserAuth> {
-    return new BrowserAuth(processOwner, await initializeSecret(credentials), maxAgeDays)
+    return new BrowserAuth(processOwner, await initializeSecret(credentials), maxAgeDays, productLabel)
   }
 
   /**
@@ -306,6 +309,6 @@ export class BrowserAuth {
     })
     res.end(req.method === 'HEAD'
       ? undefined
-      : 'dsh web authentication required; reopen the URL printed by dsh web.\n')
+      : `${this.productLabel} authentication required; reopen the URL printed by ${this.productLabel}.\n`)
   }
 }

@@ -105,6 +105,8 @@ export interface ConnectionConfig {
   cookieMaxAgeDays?: number
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
+  /** Product-facing name in the unauthenticated response. Default: 'dsh web'. */
+  productLabel?: string
 }
 
 export const Config: z<ConnectionConfig> = z.object({
@@ -112,6 +114,7 @@ export const Config: z<ConnectionConfig> = z.object({
   trustedHosts: z.array(String).default([]),
   cookieMaxAgeDays: z.natural().min(1).default(30),
   maxRequestBodyBytes: z.natural().min(1).default(DEFAULT_MAX_REQUEST_BODY_BYTES),
+  productLabel: z.string().min(1).default('dsh web'),
 })
 
 /**
@@ -127,6 +130,7 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
   const trustedHosts = config?.trustedHosts ?? []
   const cookieMaxAgeDays = config?.cookieMaxAgeDays ?? 30
   const maxRequestBodyBytes = config?.maxRequestBodyBytes ?? DEFAULT_MAX_REQUEST_BODY_BYTES
+  const productLabel = config?.productLabel ?? 'dsh web'
   // Config boundary: a malformed entry fails the load loudly here rather than
   // silently authorizing its hostname prefix at request time.
   for (const entry of trustedHosts) assertTrustedAuthority(entry)
@@ -134,7 +138,7 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
   const connection = new HostConnectionService(
     ctx,
     trustedHosts,
-    await BrowserAuth.create(ctx.root, ctx.credentials, cookieMaxAgeDays),
+    await BrowserAuth.create(ctx.root, ctx.credentials, cookieMaxAgeDays, productLabel),
   )
   ctx.inject(['webServer'], (webCtx) => {
     assertImageBodyCapacity(webCtx, maxRequestBodyBytes)

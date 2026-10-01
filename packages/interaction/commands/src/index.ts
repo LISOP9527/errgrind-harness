@@ -4,6 +4,7 @@
  */
 
 import { Context } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
@@ -255,12 +256,26 @@ function normalizeResult(command: string, value: unknown): CommandResult {
   throw new TypeError(`command "${command}" returned unknown result kind "${String(result.kind)}"`)
 }
 
+/** The {@link CommandRuntime} config. */
+export interface Config {
+  /**
+   * Command names omitted from {@link CommandRuntime.list} discovery.
+   * Resolution and execution of hidden names are unaffected. Default: none.
+   */
+  hiddenCommands?: string[]
+}
+
 /**
  * Human-command registry. Plain-context definitions are global; definitions
  * registered through a command-injected child of an agent context shadow
  * globals for that agent.
  */
 export class CommandRuntime extends TypertRemoteService {
+  // Inline schema call: the config catalog walks `static Config` statically.
+  static Config = z.object({
+    hiddenCommands: z.array(String).default([]),
+  })
+
   private readonly layers = new ScopedLayers(
     scope => new CommandLayer(scope),
     () => { this.notifyChange() },
@@ -272,9 +287,12 @@ export class CommandRuntime extends TypertRemoteService {
   private readonly instanceToken = randomUUID().slice(0, 8)
   /** Optional provider installed by the Session upload owner. */
   private readonly fileReceipts: { resolver: CommandFileReceiptResolver | undefined } = { resolver: undefined }
+  /** Command names omitted from {@link list} discovery; resolution and execution are unaffected. */
+  private readonly hidden: ReadonlySet<string>
 
-  constructor(ctx: Context) {
+  constructor(ctx: Context, config?: Config) {
     super(ctx, 'commands')
+    this.hidden = new Set(config?.hiddenCommands ?? [])
   }
 
   /**
@@ -315,6 +333,7 @@ export class CommandRuntime extends TypertRemoteService {
   list(agent: Agent): readonly CommandDescriptor[] {
     return Object.freeze([...this.view(agent).values()]
       .map(command => command.descriptor)
+      .filter(descriptor => !this.hidden.has(descriptor.name))
       // Names are unique in the effective view, so equality is impossible.
       .sort((left, right) => left.name < right.name ? -1 : 1))
   }

@@ -15,9 +15,7 @@ import type {} from '@errgrind/episode'
 import { DerivedErrorCard, DrillAnswerDraftCard, DrillDraftCard, DrillJudgmentCard, DrillQuestionCard, ErrorEpisodeCard, GrillQuestionCard, IntakeClarificationCard, TeachStepCard } from './EpisodeCards.tsx'
 import { ErrGrindBrandMark, ErrGrindBrandName, ErrGrindHeroBrandMark } from './Brand.tsx'
 import { en, NS, zh } from './locales.ts'
-import { CodexAuthSettings } from './CodexAuthSettings.tsx'
 import { ModelOnboarding } from './ModelOnboarding.tsx'
-import type { CodexAuthRemote } from './CodexAuthSettings.tsx'
 import type { ErrorCardProps, EpisodeCardInjected, TeachStepProps, DrillDraftCardProps } from './EpisodeCards.tsx'
 import { ErrorHistory } from './ErrorHistory.tsx'
 
@@ -374,7 +372,7 @@ const drillDraftDefinition: ConversationNodeDefinition<DrillDraftState> = {
 }
 
 /** Required services: browser locale, shared Conversation/Chat registries, and the Session command Remote. */
-export const inject = ['slots', 'locale', 'sessions', 'uiConversation', 'uiWorkspace', 'remote', 'remote.commands', 'remote.session', 'remote.errgrindCodexAuth']
+export const inject = ['slots', 'locale', 'sessions', 'uiConversation', 'uiWorkspace', 'remote', 'remote.commands', 'remote.session']
 
 /** Mount ErrGrind event Definitions and keyed Chat views. */
 export function apply(ctx: ClientContext): void {
@@ -521,17 +519,9 @@ export function apply(ctx: ClientContext): void {
     order: -100,
     locale: NS,
     inject: () => ({
-      auth: ctx.remote.errgrindCodexAuth,
       catalog: modelCatalog,
     }),
   }, ModelOnboarding))
-  ctx.slots.inject('settings.models.footer', () => ctx.slots.register({
-    name: 'settings.models.footer',
-    id: 'errgrind-codex-auth',
-    order: 20,
-    locale: NS,
-    inject: (): { auth: CodexAuthRemote } => ({ auth: ctx.remote.errgrindCodexAuth }),
-  }, CodexAuthSettings))
 }
 
 export type { DrillDraftCardProps, ErrorCardProps, TeachStepProps }

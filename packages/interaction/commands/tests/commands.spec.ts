@@ -89,6 +89,20 @@ describe('CommandRuntime', () => {
     expect(ctx.commands.list(agent).map(item => item.name)).toEqual(['alpha', 'middle', 'zeta'])
   })
 
+  it('omits hiddenCommands from list while still resolving and executing them', async () => {
+    const ctx = new Context()
+    await ctx.plugin(SessionStore)
+    await ctx.plugin(CommandRuntime, { hiddenCommands: ['secret'] })
+    const { agent } = await mintAgentScope(ctx, 'a')
+    ctx.commands.register(command('open'))
+    ctx.commands.register(command('secret'))
+
+    expect(ctx.commands.list(agent).map(item => item.name)).toEqual(['open'])
+    expect(ctx.commands.find(agent, 'secret')).toBeDefined()
+    expect((await ctx.commands.execute(agent, '/secret', [], new AbortController().signal))?.result)
+      .toEqual({ kind: 'success', text: 'ran:secret' })
+  })
+
   it('uses agent-scoped shadows and removes them with their scope', async () => {
     const ctx = await mount()
     const { scope, agent } = await mintAgentScope(ctx, 'a')

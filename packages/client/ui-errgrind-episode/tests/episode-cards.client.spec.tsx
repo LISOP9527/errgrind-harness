@@ -137,13 +137,6 @@ function createTestHarness() {
   ctx.provide('remote', {})
   ctx.provide('remote.commands', { execute: vi.fn() })
   ctx.provide('remote.session', { openDerivedError: vi.fn() })
-  ctx.provide('remote.errgrindCodexAuth', {
-    status: vi.fn().mockResolvedValue({ ok: true, value: { available: true } }),
-    beginDeviceCode: vi.fn(),
-    noticesAfter: vi.fn(),
-    cancel: vi.fn(),
-  })
-
   return { ctx, slots, events, locale }
 }
 
@@ -152,7 +145,6 @@ describe('ui-errgrind-episode browser plugin', () => {
     expect(inject).toContain('slots')
     expect(inject).toContain('locale')
     expect(inject).toContain('uiConversation')
-    expect(inject).toContain('remote.errgrindCodexAuth')
   })
 
   it('registers all event definitions and locale dictionaries on apply', () => {
@@ -537,21 +529,4 @@ describe('ErrGrind branding slots and components', () => {
     expect(harness.slots.entries('conversation.hero.brand.mark')).toHaveLength(0)
   })
 
-  it('preserves Codex sign-in slot registration in settings.models.footer', () => {
-    const harness = createTestHarness()
-    apply(harness.ctx)
-
-    const unregisterSettings = harness.slots.register({
-      name: 'root',
-      children: {
-        'settings.models.footer': { kind: 'list', scope: 'root' },
-      },
-    }, (_props: PropsRuntime<'root'> & PropsRenderSlots<'settings.models.footer'>) => null)
-
-    const entries = harness.slots.entries('settings.models.footer')
-    expect(entries.some(e => e.options.id === 'errgrind-codex-auth')).toBe(true)
-
-    unregisterSettings()
-    expect(harness.slots.entries('settings.models.footer')).toHaveLength(0)
-  })
 })
