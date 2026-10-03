@@ -84,7 +84,6 @@ export const SERVICE_PAGE: Record<string, string> = {
   deepseekAccount: 'credentials.md',
   credentials: 'credentials.md',
   credentialsController: 'credentials.md',
-  codexAuthController: 'credentials.md',
   settingsController: 'settings.md',
   directoryPicker: 'workspace.md',
   deepseekLlmApiExtensions: 'llm-streaming.md',
@@ -697,8 +696,7 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   AuthorizationSession: 'credentials.md',
   AuthorizationSettlement: 'credentials.md',
   AuthorizationStatus: 'credentials.md',
-  CodexAuthStatus: 'credentials.md',
-  CodexAuthNotice: 'credentials.md',
+
   CredentialRef: 'credentials.md',
   CredentialKey: 'credentials.md',
   CredentialInfo: 'credentials.md',

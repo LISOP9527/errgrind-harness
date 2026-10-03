@@ -213,7 +213,7 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
       throw new Error(JSON.stringify({
         pageErrors,
         body: (await page.locator('body').innerText()).slice(0, 3000),
-        host: [...scaffold.ctx.loader.entries()].filter(entry => /settings-controller|codex-auth/.test(entry.id))
+        host: [...scaffold.ctx.loader.entries()].filter(entry => /settings-controller/.test(entry.id))
           .map(entry => ({ id: entry.id, state: entry.fiber?.state })),
         url: page.url(),
       }))
@@ -586,15 +586,11 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(pageErrors).toEqual([])
   })
 
-  it.skipIf(MODE === 'record')('shows the Codex sign-in entry in Web Models settings', async () => {
+  it.skipIf(MODE === 'record')('keeps the removed Codex sign-in surface out of Web Models settings', async () => {
     await openSettings(page, 'en')
     const dialog = page.getByRole('dialog', { name: 'Settings' })
     await dialog.getByRole('button', { name: 'Models', exact: true }).click()
-    try {
-      await dialog.getByRole('heading', { name: 'Codex sign-in' }).waitFor({ timeout: 10_000 })
-    } catch {
-      throw new Error(`Codex sign-in card missing: ${(await dialog.innerText()).slice(-3000)}`)
-    }
-    await dialog.getByRole('button', { name: 'Sign in with ChatGPT' }).waitFor({ timeout: 10_000 })
+    expect(await dialog.getByRole('heading', { name: 'Codex sign-in' }).count()).toBe(0)
+    expect(await dialog.getByRole('button', { name: 'Sign in with ChatGPT' }).count()).toBe(0)
   })
 })

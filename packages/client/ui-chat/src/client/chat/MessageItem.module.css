@@ -303,6 +303,27 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+.turnErrorDetails {
+  margin-top: 4px;
+}
+
+.turnErrorDetailsSummary {
+  cursor: pointer;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.turnErrorDetailsBody {
+  margin-top: 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-markdown-code-block-small);
+  white-space: pre-wrap;
+}
+
+.turnErrorCode {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-markdown-code-block-small);
+}
+
 .maxTokensTitle {
   margin-right: 6px;
   color: var(--dsw-alias-state-warn-primary);

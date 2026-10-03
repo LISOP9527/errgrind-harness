@@ -30,7 +30,6 @@
     "tests/scaffold.ts",
     "tests/errgrind-image-receipt.e2e.ts",
     "tests/errgrind-keyless-onboarding.e2e.ts",
-    "tests/errgrind-live-codex.e2e.ts",
     "tests/errgrind-multiturn-replay.e2e.ts",
     "tests/voice-input.e2e.ts",
     "tests/voice-setup.e2e.ts",

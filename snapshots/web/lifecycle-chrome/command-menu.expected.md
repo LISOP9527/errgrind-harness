@@ -7,5 +7,5 @@
   - text: Commands
   - option "Compact Compact older conversation history"
   - option "Permission Switch the permission preset (sandbox mode + approval policy)"
-  - option "Model Select the model for this conversation"
+  - option "Model Select the model for this session"
   - option "Export Download this Session log as a ZIP archive"

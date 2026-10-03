@@ -32,19 +32,3 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
 export interface SettingsDocumentOpenValue {
   readonly opened: true
 }
-
-/** Safe lifecycle projection for the fixed Codex OAuth device-code flow. */
-export interface CodexAuthStatus {
-  readonly available: boolean
-  /** True only for a structurally valid pi-ai OAuth grant at the fixed key. */
-  readonly authorized: boolean
-  readonly inFlight: boolean
-  readonly phase: 'idle' | 'waiting' | 'authorized' | 'cancelled' | 'failed'
-}
-
-/** Device-code instructions approved for browser display. */
-export interface CodexAuthNotice {
-  readonly id: number
-  readonly verificationUri: 'https://auth.openai.com/codex/device'
-  readonly userCode: string
-}

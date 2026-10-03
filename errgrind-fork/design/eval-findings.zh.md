@@ -51,11 +51,11 @@ todo 36–40 的结果：一次聚焦的 Spec/Draft 提示词评估、Judge 判�
 
 ## 用量核算（todo 40）——通过
 
-基于三份真实验收运行会话日志验证（`session-8e1ffc5b…`、opus 运行、第二个 session）。
+在 `session-8e1ffc5b…` 验收日志上做了逐条验证——三份运行中只有它完成了完整成功流程；下列凡依赖事件 schema 而非实际日志观察的条目均已标注。
 
 - **阶段可区分**：每条 `assistant/message` 都有逐步 `usage`（input/output/total/cacheRead），步骤上的工具调用标识 Record/Grill/Teach/Drill 阶段；隔离 Draft 调用在 `errgrind/drill-draft-finished` 上单独报告用量。
 - **失败可区分**：`drill-draft-finished.status`（`success|failed|aborted`）与 `turn/end` 原因类别。
-- **修复/重试**：重试落为额外步骤、各带自身用量；无显式修复标记——工具调用重复即信号（已记录）。
+- **修复/重试**（按 retry/step 事件 schema 推断——已验证日志中未观察到重试）：重试应落为额外步骤、各带自身用量；无显式修复标记——工具调用重复应是信号。
 - **缓存**：中继报告时 `cacheReadTokens` 逐次记录。观察到的行为：hongyun 在会话中段停止上报缓存命中（turns 7–9 约 25k-token 上下文无 `cacheReadTokens`）——是真人测试"缓存用量"项的一个数据点。
 - **缺失用量**：provider 不上报时 `usage` 字段缺省（schema 设计上可空）。
 - **隐私**：日志中零凭据材料——无 key 值、无 `Bearer`/`apiKey` 字符串；`request/header` 只记配置（provider、model、effort、maxTokens）与工具名。

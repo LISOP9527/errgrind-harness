@@ -18,11 +18,15 @@
 ## DSH 瘦身：持续、按依赖逐层做
 
 - [x] 首批可逆组合：产品 patch 禁用当前 Error 流程不需要的 coding 和浏览器插件；保留会话、附件、模型、认证与聊天基础设施。相关 Web 回放已通过；这一步主要缩小运行功能和可见入口，不等于磁盘体积已减少。
-- [x] 对仍挂载的插件记录“用户流程为何需要、谁依赖它、是否模型可见、是否有持久数据、安全权限和浏览器入口”。优先删除用户可见且有权限风险的无用能力；每次只移除一组，并运行针对启动、上传、会话冷读、恢复、模型选择和隐私的定向回归。若基础 UI 对它有硬依赖，先调整依赖再移除。审计已完成（`design/plugin-audit.md`）：dump-config 解析出 105 个挂载条目，按层记录六字段，删除候选分 G1–G8 组（G1=DeepSeek 请求管线封闭簇最先）；保留项含整条沙箱链（tools 契约硬依赖）与 spill/image-offload。分组落地进度：G1–G6 已移除并通过定向回归（挂载集 105→89；G4+G5 同提交，G6 只落地 directory-picker——session-query-sqlite 是 session-controller 的必需 inject，禁用会让整个会话面挂起，已实机验证回退）；G7 守卫策略保留；G8 保留——uiWorkspace 是 ui-conversation 血缘面包屑/工作区导航的真实实现（派生会话跳转在用），重写代价大于收益且 UI 已全隐藏。
+- [x] 对仍挂载的插件记录“用户流程为何需要、谁依赖它、是否模型可见、是否有持久数据、安全权限和浏览器入口”。优先删除用户可见且有权限风险的无用能力；每次只移除一组，并运行针对启动、上传、会话冷读、恢复、模型选择和隐私的定向回归。若基础 UI 对它有硬依赖，先调整依赖再移除。审计已完成（`design/plugin-audit.md`）：dump-config 解析出 105 个挂载条目，按层记录六字段，删除候选分 G1–G8 组（G1=DeepSeek 请求管线封闭簇最先）；保留项含整条沙箱链（tools 契约硬依赖）与 spill/image-offload。分组落地进度：G1–G5 已移除并通过定向回归（挂载集 105→90；G4+G5 同提交）；G6 无落地——session-query-sqlite 是 session-controller 的必需 inject（禁用会让整个会话面挂起，已实机验证回退），directory-picker 移除后亦回退（defaultWorkspaceFailed 的"选择工作区"恢复面，`remote.directoryPicker` 按名字取它）；G7 守卫策略保留；G8 保留——uiWorkspace 是 ui-conversation 血缘面包屑/工作区导航的真实实现（派生会话跳转在用），重写代价大于收益且 UI 已全隐藏。
 - [ ] 产品组合稳定后，再考虑从构建和发行物中排除不用的包、测试和通用 DSH 配置。测量启动时间、内存、构建耗时和发布体积，证明确有收益；不要为了减少仓库文件数删除上游测试或破坏共享包契约。保留必要的第三方许可和来源说明。测量基线已记录（`design/plugin-audit.md` 末节）：182 挂载 / 140 未挂载（26.9 MB 源码）、客户端 1.3 MB JS 已 tree-shake 无收益、host RSS ~231 MB、VPS 全新构建 212s/2323MiB 峰值。结论：物理删除省的是构建时间与 checkout 体积，运行时收益为零；组合层 disabled 已是可逆机制，物理排除属发行物层面。
 - [x] 在 3.8 GiB VPS 上验证 `errgrind:build` 的原生、Host、Client、Web 产物及客户端构建记录；按项目引用构建并限制 Node 堆后已完成，记录包含 267 个客户端文件。`errgrind:build:web` 仍只供本地静态资源更新，不产生完整记录。
 - [x] 在全新 checkout 上验证 3.8 GiB VPS 的 ErrGrind 产品构建内存与耗时；已通过的本机验证使用了 TypeScript 增量产物。已验证（VPS lisop@111.228.51.243，Node 24.21，全新 clone `d03accca96`）：clone 4m36s；`pnpm install` 63s / 峰值 RSS 743 MiB（两个无害 bin 警告，与本机相同）；`pnpm run errgrind:build` 212s / 峰值 RSS 2323 MiB，exit 0——在 3.8 GiB 总量、约 2.7 GiB 可用内通过，不触发 OOM。注意区分：这是产品构建（tsdown + client bundle）；仓库级 `tsc -b tsconfig.host.json` typecheck 此前在 4GB heap 下仍 OOM，属于开发门禁而非安装要求。
 - [x] 修复 Web TypeScript 项目的 TS2878，并在资源足够的环境运行根级 Host/Client TypeScript 汇总检查；ErrGrind 本机构建会检查包级引用，但暂不执行这些根级项目。已在 32GB VM 完成（`9cae9eb`）：两个新 e2e 注册进 host include/apps/web exclude，`ui-errgrind-episode` 进 client program，`pnpm run typecheck`（host tsc + tsdown + client contracts）全绿，pre-push 钩子通过并已推 origin。
+
+## 验证通道状态
+
+- [ ] Web 无密钥回放通道（`vitest.web.config.ts` + `DSH_SNAPSHOT=replay|refresh`）在 fork 基线处即整体挂起：在 `f1c5900f9e`（评审范围起点，仅含 typecheck 修复、无任何 de-brand/G 批）上跑 `lifecycle-chrome.e2e.ts` 出现与本分支完全相同的失败——composer 的 `session/modelCatalog` 远程调用永不返回（金样里 `button "Loading models…"` 常驻）、`permissionPresets`/`agent preset` 芯片因目录未到而缺席、replay 已绑定脚本却不再发后续模型调用导致 `no turn/end within 30000ms` 与 `fixture not fully consumed`。Headless `test:snapshot`（`snapshots/session`）同机通过，说明挂起点在 Web 会话→浏览器 remote 链路而非 replay 基础设施。该问题早于本次评审的 24 个提交，属上游漂移或环境级缺陷，修复需单独排查（怀疑 remote 命名空间派发或会话接线，非文案层）。已刷金样仅保留 `lifecycle-chrome/command-menu.expected.md` 的纯文案漂移（`this conversation`→`this session`）；`live-interactions` 的 retry-exhausted/error-auth 与 `queue-actions/writer-held` 三处金样因通道挂起无法安全刷新，待通道修复后统一 refresh。另外 `support.ts` 的 `connectFreshWorkspaceZh` 已随新 zh 占位文案更新。
 
 ## 真人测试与发布前顺序
 

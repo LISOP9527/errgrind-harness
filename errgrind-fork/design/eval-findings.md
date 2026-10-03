@@ -51,11 +51,11 @@ From `errgrind/cli/commands.py` and `errgrind/application/drill.py`:
 
 ## Usage accounting (todo 40) — PASS
 
-Verified on three real acceptance-run session logs (`session-8e1ffc5b…`, opus run, second session).
+Verified in detail on the `session-8e1ffc5b…` acceptance log — the only one of the three runs with a complete successful pass; items below that rest on the event schema rather than an observed log are marked as such.
 
 - **Phase distinguishable**: per-step `usage` on every `assistant/message` (input/output/total/cacheRead), with tool calls on steps identifying Record/Grill/Teach/Drill phase; the isolated draft call reports usage separately on `errgrind/drill-draft-finished`.
 - **Failure distinguishable**: `drill-draft-finished.status` (`success|failed|aborted`) and `turn/end` reason kinds.
-- **Repair/retry**: retries land as additional steps carrying their own usage; there is no explicit repair marker — repetition of a tool call is the signal (noted).
+- **Repair/retry** (inferred from the retry/step event schema — no retry observed in the verified log): retries are expected to land as additional steps carrying their own usage; there is no explicit repair marker — repetition of a tool call would be the signal.
 - **Cache**: `cacheReadTokens` recorded per call when the relay reports it. Observed behavior: hongyun stops reporting cache reads mid-session (turns 7–9 ran ~25k-token contexts with no `cacheReadTokens`) — a data point for the human-test 缓存用量 item.
 - **Missing usage**: `usage` is absent when the provider omits it (schema optional by design).
 - **Privacy**: zero credential material in the logs — no key values, no `Bearer`/`apiKey` strings; `request/header` records config (provider, model, effort, maxTokens) and tool names only.

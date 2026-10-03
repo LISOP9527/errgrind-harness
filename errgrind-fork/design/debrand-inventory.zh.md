@@ -52,9 +52,9 @@
 
 ## 建议的最小处理集（供排期）
 
-1. ~~设置页 Models tab：摘 openai-codex/DeepSeek provider 行、Codex sign-in 区块、"+ Add model provider"~~ **已做（批 1）** — `web.patch.yml` 停 codex 路由与 `llm-deepseek`；删 `CodexAuthSettings`；新增 `providerAddition` 引导开关藏加号卡
-2. ~~命令面：摘 Compact/Permission/Export（另评 Feedback/Model）；点选不落裸 `/cmd` 模板~~ **已做（批 1）** — `/compact` 随 `command-compact` 移除，`/export` 随 `session-log-download` 禁用消失，`/permission` 由新增的 `CommandRuntime.hiddenCommands` 隐藏（插件保留以持有沙箱预设）；Feedback/Model 保留——通用项非 DSH
-3. ~~turn 失败卡：友好文案映射，隐藏 provider/model/compat/HTTP body~~ **已做（批 2）**——`message.failure.*` locale 键（中英）+ `MessageItem.tsx` `failureMessage()` 映射；实机 AUTH 失败验证显示 "This turn failed — API key is invalid"
+1. ~~设置页 Models tab：摘 openai-codex/DeepSeek provider 行、Codex sign-in 区块、"+ Add model provider"~~ **已做（批 1）** — `web.patch.yml` 停 codex 路由与 `llm-deepseek`；删 `CodexAuthSettings`；新增 `providerAddition` 引导开关藏加号卡。Host 侧后来也清理：`CodexAuthController` 及其 `errgrindCodexAuth` Remote namespace 从 `dsh-api-settings-controller` 删除（路由移除后即空转），连带 `CodexAuthStatus`/`CodexAuthNotice` 类型、host spec、live-codex e2e 与 credentials.md 小节
+2. ~~命令面：摘 Compact/Permission/Export（另评 Feedback/Model）；点选不落裸 `/cmd` 模板~~ **已做（批 1）** — `/compact` 随 `command-compact` 移除，`/export` 随 `session-log-download` 禁用消失，`/permission` 由新增的 `CommandRuntime.hiddenCommands` 隐藏（插件保留以持有沙箱预设）；Feedback/Model 保留——通用项非 DSH。后续加固：`hiddenCommands` 只过滤 `list`，因此 `web.patch.yml` 也摘掉了 `workspace-write`/`danger-full-access` 预设——只配 `read-only`，手打 `/permission` 会按普通聊天提交
+3. ~~turn 失败卡：友好文案映射，隐藏 provider/model/compat/HTTP body~~ **已做（批 2）**——`message.failure.*` locale 键（中英）+ `MessageItem.tsx` `failureMessage()` 映射；实机 AUTH 失败验证显示 "This turn failed — API key is invalid"。后续精修：原始诊断完全不可见，卡片恢复 `code` 徽章并新增“错误详情”折叠区展示 `node.message`（AUTH 在 `displayFailure` 已清空防凭据回显），重试详情行重新显示原始失败消息
 4. ~~"Default workspace"：会话标题回退 + 未分类段措辞~~ **已做（批 2）**——`defaultWorkspace.title` → 'ErrGrind'；`history.unclassified` → 'Sessions not yet linked to an Error:'；已存在的旧会话标题仍为原文案
 5. ~~`ui-sidebar-right` 禁用 + 设置页 agent 系分项隐藏~~ **已做（批 2）**——`expandButton: false` 关掉 header-corner 按钮；新增 `hiddenSettingsItems` 配置 + `RenderOpts.except` 隐藏 `developer-tools`、`current-version`、`composer-enter`、`performance-usage`、`open-document`；收尾补 `link-opening`；同批收窄 effort 档位（第 15 项）
 6. ~~401 文案去 "dsh web"~~ **已做（批 1）** — `connection.productLabel` 配置；页面显示 "ErrGrind authentication required"

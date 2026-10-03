@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url'
 import { chromium, type Browser, type Page } from 'playwright'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { FiberState } from '@deepseek-ai/cordis'
-import type {} from '../../../packages/api/settings-controller/src/codex-auth.ts'
 import { launchWebScaffold, type WebScaffold } from './scaffold.ts'
 import { newEnglishPage } from './support.ts'
 
@@ -33,7 +32,7 @@ describe('web e2e: ErrGrind without model credentials', () => {
     await scaffold?.close()
   })
 
-  it('shows a path to sign in before the first message', async () => {
+  it('shows the model-setup path before the first message', async () => {
     const activeIds = [...scaffold.ctx.loader.entries()]
       .filter(entry => entry.fiber?.state === FiberState.ACTIVE)
       .map(entry => entry.options.id)
@@ -45,12 +44,12 @@ describe('web e2e: ErrGrind without model credentials', () => {
     expect(await scaffold.ctx.llm.listModels('openai-codex')).toEqual([])
     expect(scaffold.ctx.workspaceRegistry.list()).toHaveLength(1)
     expect(await page.locator('[data-hero-workspace-picker]').isVisible()).toBe(false)
-    await page.getByText('Sign in to Codex to start', { exact: true }).waitFor({ timeout: 10_000 })
+    await page.getByText('No model is available yet', { exact: true }).waitFor({ timeout: 10_000 })
     expect(await page.getByRole('dialog').count()).toBe(0)
     expect(await page.title()).toBe('ErrGrind')
     if (process.env.ERRGRIND_CAPTURE_UX === '1') await page.screenshot({ path: '/tmp/errgrind-ux-keyless.png' })
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.getByRole('button', { name: 'Sign in with ChatGPT' }).waitFor()
+    await page.getByText('Configure a model credential in Settings → Models to continue.').waitFor()
     const history = page.getByRole('button', { name: 'Error history' })
     await history.waitFor()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

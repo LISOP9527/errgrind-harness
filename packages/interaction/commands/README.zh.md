@@ -59,7 +59,7 @@ ctx.commands.register({
 
 ### 从适配器分派
 
-交互式适配器调用 `execute(agent, line, attachments, signal)`，传入确切的接收 agent、完整命令行与本次提交的有序附件。它返回已结算的 `CommandExecution`——规范化结果加生命周期配对 `commandId`——语法无效或名称未知时返回 `undefined`。`list(agent)` 与 `find(agent, name)` 在应用 agent 作用域遮蔽后用于命令发现。
+交互式适配器调用 `execute(agent, line, attachments, signal)`，传入确切的接收 agent、完整命令行与本次提交的有序附件。它返回已结算的 `CommandExecution`——规范化结果加生命周期配对 `commandId`——语法无效或名称未知时返回 `undefined`。`list(agent)` 与 `find(agent, name)` 在应用 agent 作用域遮蔽后用于命令发现。Host 配置 `hiddenCommands` 会把命令名从 `list` 发现结果中省略，而 `find` 与 `execute` 仍能解析它们，因此部署可以交付一个不在选择器中提供的命令。默认无。
 
 ### 取消
 

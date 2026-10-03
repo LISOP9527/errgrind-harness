@@ -48,10 +48,10 @@ interface RetryCountdown {
 }
 
 /**
- * Localized user-facing copy for a durable failure. Raw failure messages can
- * carry provider/model ids, compatibility vocabulary, and HTTP response
- * bodies; the Session log keeps them, but Chat shows only taxonomy-level
- * copy keyed on the Harness-owned failure code.
+ * Localized user-facing copy for a durable failure. The primary line stays
+ * taxonomy-level so provider ids and HTTP bodies do not read as product
+ * errors; the raw diagnostic (already credential-stripped at
+ * `displayFailure`) stays one disclosure away for debugging.
  */
 function failureMessage(
   code: unknown,
@@ -132,7 +132,7 @@ function ModelRetryItem({ node, active, t }: {
         </div>
         <div>
           <span className={css.retryDetailLabel}>{t('message.retry.failure')}</span>
-          {failureMessage(node.failure.code, t)}
+          {node.failure.message === '' ? failureMessage(node.failure.code, t) : node.failure.message}
         </div>
       </div>
     </details>
@@ -150,7 +150,14 @@ function TurnErrorItem({ node, t }: {
       <div className={css.turnErrorCopy}>
         <span className={css.turnErrorTitle}>{t('message.turnError')}</span>
         <span className={css.turnErrorMessage}>{failureMessage(node.code, t)}</span>
+        {node.message !== '' && (
+          <details className={css.turnErrorDetails}>
+            <summary className={css.turnErrorDetailsSummary}>{t('message.failure.details')}</summary>
+            <div className={css.turnErrorDetailsBody}>{node.message}</div>
+          </details>
+        )}
       </div>
+      {node.code !== undefined && <code className={css.turnErrorCode}>{node.code}</code>}
     </div>
   )
 }

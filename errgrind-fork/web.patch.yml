@@ -245,12 +245,6 @@
       read-only:
         sandbox: read-only
         approval: ask
-      workspace-write:
-        sandbox: workspace-write
-        approval: ask
-      danger-full-access:
-        sandbox: danger-full-access
-        approval: never
     defaultPreset: read-only
 
 - id: preset-standard
@@ -399,9 +393,12 @@
 - id: session-log-download
   disabled: true
 
-# The permission plugin also owns the sandbox presets, so it stays mounted;
-# hide only its /permission row from command discovery (preset switching is
-# meaningless under ErrGrind's fixed read-only policy).
+# The permission plugin also owns the sandbox presets, so it stays mounted.
+# Only the deployment's fixed read-only preset is configured above, and its
+# /permission row is hidden from command discovery — hiddenCommands filters
+# `list` only, so `execute` still resolves the name and a typed `/permission`
+# submits as ordinary chat; removing the wider presets is what closes the
+# preset-switch path.
 - id: commands
   config:
     hiddenCommands: [permission]

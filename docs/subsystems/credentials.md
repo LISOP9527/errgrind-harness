@@ -59,10 +59,6 @@ PlatformSession is a Host-only snapshot from getPlatformSession: origin names th
 
 AccountDetails.balance projects recharge wallets in value and promotional wallets in bonusWallets, with independent currency and decimal balance strings. Failed queries contain no wallet arrays.
 
-## ErrGrind Codex device login
-
-The ErrGrind Web authorization controller exposes only the fixed `llm-pi-ai/openai-codex` flow. `CodexAuthStatus` reports availability, stored OAuth grant presence, whether a flow is running, and its current phase. `CodexAuthNotice` contains only the fixed verification URL and a bounded user code. Access and refresh tokens remain in the Host credential store; the browser cannot select a different credential or answer a secret prompt. See the [controller](../../packages/api/settings-controller/README.md) for interaction and cancellation behavior.
-
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -131,38 +127,6 @@ async begin(request: AuthorizationRequest): Promise<AuthorizationOutcome>
 ```
 
 Source: [`packages/credentials/authorization/src/index.ts`](../../packages/credentials/authorization/src/index.ts)
-
-<a id="ctxcodexauthcontroller--codexauthcontroller"></a>
-
-### `ctx.codexAuthController` — `CodexAuthController`
-
-Host Remote owner for the fixed `errgrindCodexAuth` namespace.
-
-```ts cordis-catalog
-/**
- * Read whether the fixed device-code flow is available and its safe lifecycle state.
- * @returns no credential or authorization payload.
- */
-@Remote async status(): Promise<CodexAuthStatus>
-
-/**
- * Start the fixed Codex OAuth flow and return immediately; callers poll `notices` and `status`.
- * @returns whether this call admitted a new attempt.
- */
-@Remote beginDeviceCode(): { readonly started: boolean }
-
-/**
- * Poll only validated device-code instructions emitted by this attempt.
- * @param after - last notice id already displayed by the caller.
- * @returns bounded safe notices and the latest cursor.
- */
-@Remote noticesAfter(after: number): { readonly notices: readonly CodexAuthNotice[]; readonly next: number }
-
-/** Cancel the in-flight attempt for the fixed credential key. */
-@Remote cancel(): void
-```
-
-Source: [`packages/api/settings-controller/src/codex-auth.ts`](../../packages/api/settings-controller/src/codex-auth.ts)
 
 <a id="ctxcredentials--credentialprovider-abstract-seam"></a>
 

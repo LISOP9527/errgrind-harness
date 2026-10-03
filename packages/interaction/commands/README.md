@@ -59,7 +59,7 @@ A command may declare `input.attachments` to accept composer images and generic 
 
 ### Dispatching from an adapter
 
-An interactive adapter calls `execute(agent, line, attachments, signal)` with the exact receiving agent, the full command line, and the submission's ordered attachments. It returns the settled `CommandExecution` — the normalized result plus its lifecycle `commandId` — or `undefined` for invalid syntax or an unknown name. `list(agent)` and `find(agent, name)` serve discovery after agent-scoped shadowing.
+An interactive adapter calls `execute(agent, line, attachments, signal)` with the exact receiving agent, the full command line, and the submission's ordered attachments. It returns the settled `CommandExecution` — the normalized result plus its lifecycle `commandId` — or `undefined` for invalid syntax or an unknown name. `list(agent)` and `find(agent, name)` serve discovery after agent-scoped shadowing. Host configuration `hiddenCommands` omits names from `list` discovery while `find` and `execute` still resolve them, so a deployment can ship a command it does not offer in pickers. Default: none.
 
 ### Cancellation
 

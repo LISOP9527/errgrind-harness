@@ -29,7 +29,7 @@ Open the Models page from the Settings navigation to see every configured provid
 
 A provider with a stored catalog error remains visible with its diagnostic and edit/delete actions. Add actions are offered only for registered settings namespaces, so an unavailable namespace cannot leave a button that opens no editor. A rejected save leaves the editor open and displays the Host diagnostic.
 
-Host configuration `credentialOnboarding` and `welcomeNotice` both default to `true`. Electron’s preload marker suppresses the credential step automatically; other product compositions can set either option to `false` while retaining the Models settings page. The Host publishes these public booleans through `webserver/index-inject`, and the Client validates them before registering its dialogs. They are page initialization data, not persisted completion flags.
+Host configuration `credentialOnboarding`, `welcomeNotice`, and `providerAddition` all default to `true`. Electron’s preload marker suppresses the credential step automatically; other product compositions can set any option to `false` while retaining the Models settings page — `providerAddition` removes the **Add model provider** entry and its card for deployments that ship fixed routes. The Host publishes these public booleans through `webserver/index-inject`, and the Client validates them before registering its dialogs. They are page initialization data, not persisted completion flags.
 
 ### API keys
 

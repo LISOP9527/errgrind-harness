@@ -29,7 +29,7 @@ kind: "package-reference"
 
 存在已存储目录错误的提供商仍显示诊断以及编辑、删除入口。添加操作只面向已注册的 settings 命名空间，因此不可用的命名空间不会留下无法打开编辑器的按钮。保存被拒绝时，编辑器保持打开并展示 Host 诊断。
 
-Host 配置 `credentialOnboarding` 和 `welcomeNotice` 均默认为 `true`。Electron preload 标记会自动抑制凭证引导；其他产品组合可将任一选项设为 `false`，同时保留模型设置页。Host 通过 `webserver/index-inject` 发布这两个公开布尔值，Client 在注册弹窗前校验它们。它们是页面初始化数据，不是持久化的完成标记。
+Host 配置 `credentialOnboarding`、`welcomeNotice` 和 `providerAddition` 均默认为 `true`。Electron preload 标记会自动抑制凭证引导；其他产品组合可将任一选项设为 `false`，同时保留模型设置页——`providerAddition` 会为发布固定路由的部署移除「添加模型提供商」入口及其卡片。Host 通过 `webserver/index-inject` 发布这些公开布尔值，Client 在注册弹窗前校验它们。它们是页面初始化数据，不是持久化的完成标记。
 
 ### API 密钥
 
