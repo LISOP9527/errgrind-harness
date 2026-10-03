@@ -84,7 +84,7 @@ real usage telemetry.
 ## Migration status and remaining gaps
 
 - The first direct or relayed text and attachment facts seed structured
-  Error-time Evidence in stateVersion 8. Initial attachment Evidence uses an
+  Error-time Evidence in stateVersion 9. Initial attachment Evidence uses an
   empty quote, since the durable image is the source. The
   `latest-probe-answer` alias resolves to its durable source before evidence
   grounding validation. Replies recorded as user messages while an

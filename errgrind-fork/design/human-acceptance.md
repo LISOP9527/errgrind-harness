@@ -3,8 +3,8 @@
 Run the diagnostic and Drill cases after the keyless workflow and transport
 checks pass; run the mobile and product-surface cases after the reversible Web
 slimming pass. Both checkpoints precede old-data import, MCP integration, and
-release. A human tester supplies a fresh `ERRGRIND_HOME`, completes provider
-sign-in, and records observations in a copy of this table. Do not copy an old
+release. A human tester supplies a fresh `ERRGRIND_HOME`, launches with both relay
+API key environment variables set, and records observations in a copy of this table. Do not copy an old
 database, attachments, or credentials into the fork.
 
 ## 1. Diagnostic quality
