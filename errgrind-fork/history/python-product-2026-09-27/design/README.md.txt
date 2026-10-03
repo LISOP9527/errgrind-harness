@@ -27,10 +27,10 @@
 - [原 Codex app-server 接入决策](decisions/2026-08-29-codex-app-server-provider.md)：历史方案；生成和凭据读取边界已由直连决策替代。
 - [OCR 作为需人工校对的录题入口](decisions/2026-08-31-ocr-as-reviewed-input.md)：历史 OCR 方案；Web 路径已 supersede，CLI `/ocr` 兼容性仍可保留。
 - [在录题字段内整合图片识别](decisions/2026-09-06-record-field-image-input.md)：历史 Web 字段 OCR 方案，已由直接多模态附件决策 supersede。
-- [直接多模态 Web 输入](decisions/2026-09-11-direct-multimodal-web-input.md)：Web 的 Record、Error 对话和 Drill 直接发送图片；SQLite 保存附件出处与恢复所需的字节。
+- [直接多模态 Web 输入](decisions/2026-09-11-direct-multimodal-web-input.md)：Web 的 Record、Error 对话和 Drill 直接发送图片；SQLite 保存附件 provenance 与恢复所需的字节。
 - [assistant-ui conversation workspace spike](decisions/2026-09-14-assistant-ui-spike.md)：用 ExternalStoreRuntime 验证可替换的对话 UI 基础设施，并记录当前 Record 字段级图片语义的持久化限制。
 - [React + assistant-ui WebUI 正式迁移](decisions/2026-09-14-assistant-ui-migration.md)：将 React 工作区接入单端口生产服务，保留 Flask/Application/SQLite 业务权威和原始附件限制。
-- [Evidence 来源与 Drill Action Ledger](decisions/2026-09-01-evidence-origin-drill-ledger.md)：记录 Error 来源、Drill 判分与衍生 Error 的可追溯关系。
+- [Evidence 来源与 Drill Action Ledger](decisions/2026-09-01-evidence-provenance-drill-ledger.md)：记录 Error 来源、Drill 判分与衍生 Error 的可追溯关系。
 - [暂缓长期 Pattern Observation 校验](decisions/2026-09-02-defer-pattern-observation-validation.md)：跨 Error 的 Observation 与 promotion 仍 deferred；本次 episode-level structured Grill 由 2026-09-04 ADR 约束。
 - [Application 工作流边界](decisions/2026-09-03-application-workflow-boundary.md)：Grill、Teach、Drill 通过 UI 无关 façade 供未来前端复用。
 - [Grill 作为主动诊断](decisions/2026-09-04-grill-as-active-diagnosis.md)：Grill 通过区分候选解释收集 Evidence；一次结果只是 episode-level diagnosis，长期 Pattern 需跨证据支持。

@@ -133,7 +133,7 @@ patterns
 
 ### Stage 0：来源与干预账本
 
-已在 `2026-09-01-evidence-origin-drill-ledger` 决策中实现。它解决数据是否来自真实 Error、OCR 还是 Drill，以及 Action 结果能否追溯的问题。
+已在 `2026-09-01-evidence-provenance-drill-ledger` 决策中实现。它解决数据是否来自真实 Error、OCR 还是 Drill，以及 Action 结果能否追溯的问题。
 
 当前 MVP 已完成这一阶段；`grilling_summary` 仍是兼容性的自然语言输出，不能单独视为长期 Pattern。
 

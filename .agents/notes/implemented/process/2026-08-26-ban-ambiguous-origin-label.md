@@ -20,6 +20,8 @@ The rule applies to source, tests, documentation, active Agent Notes, prompts, s
 
 Historical persistence evidence retains identifiers from its selected source tree. The check excludes release schema JSON under `docs/persistence-changes/releases/` and `docs/persistence-changes/historical-formats/vN.schema.json`. In `vN.md` and `vN.zh.md`, only the schema content inside one valid pair of `persistence-format-schema` markers is exempt; `verify-persistence-formats` requires that content to match the generated historical schema. Authored prose, current catalogs, and current schemas remain checked. Renaming a captured identifier would misrepresent the historical declarations; the [persistence history decision](2026-09-11-persistence-type-history.md) owns that evidence.
 
+The frozen product-history snapshot under `errgrind-fork/history/` is excluded for the same reason: its repository policy keeps the original bytes and filenames, and its `manifest.json` proves they match the copied source tree.
+
 This decision partially supersedes the earlier decision's rejection of fixed word bans and identifier renames for this one token. The earlier decision remains active for all other abstract language and for choosing each replacement according to its local meaning.
 
 ## Alternatives considered

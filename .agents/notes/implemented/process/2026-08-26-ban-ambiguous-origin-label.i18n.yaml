@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-26-ban-ambiguous-origin-label.md
-2026-08-26-ban-ambiguous-origin-label.md: b4c161a8a963e0aebdb3dcf24b8aac028429f349
-2026-08-26-ban-ambiguous-origin-label.zh.md: 2d592f44429d8622b5a42c55c7f92eae6da96800
+2026-08-26-ban-ambiguous-origin-label.md: 7684a55c2e0cd65f688949dc482858200b38bc4a
+2026-08-26-ban-ambiguous-origin-label.zh.md: 97ea9879cecf989a786855db0d525fcfb565e542

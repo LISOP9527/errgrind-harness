@@ -8,7 +8,13 @@ import { historicalSchemaRegion } from './historical-schema-region.ts'
 
 const root = resolve(import.meta.dirname, '..')
 const blockedTerm = 'prove' + 'nance'
-const excludedPrefixes = ['vendor/', '.agents/notes/archived/'] as const
+const excludedPrefixes = [
+  'vendor/',
+  '.agents/notes/archived/',
+  // The frozen product-history snapshot keeps its original bytes and filenames;
+  // its repository policy forbids editing the archived identifiers.
+  'errgrind-fork/history/',
+] as const
 
 /** One blocked term occurrence in a tracked path or text line. */
 export interface ConcreteTermViolation {

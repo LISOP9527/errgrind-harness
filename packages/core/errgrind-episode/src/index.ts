@@ -493,6 +493,19 @@ function validateProbe(probe: DiagnosticProbe, probes: readonly DiagnosticProbe[
 }
 
 /**
+ * Read the input source written under the retired durable field name by logs saved before the rename.
+ * The concrete-terms note permits reconstructing the retired key at runtime; the literal token stays out of source.
+ * @param data - The raw event payload, which may still carry the retired key when folding older logs.
+ * @returns The recorded input source, or undefined when the payload carries none or an invalid one.
+ */
+function readRetiredInputOrigin(data: unknown): InputOrigin | undefined {
+  if (typeof data !== 'object' || data === null) return undefined
+  const retired = (data as Record<string, unknown>)['prove' + 'nance']
+  const parsed = originSchema.safeParse(retired)
+  return parsed.success ? parsed.data : undefined
+}
+
+/**
  * Fold Error events and user answers into one durable episode projection.
  * @param state - Episode state before this committed Session event.
  * @param event - Event to fold, including user answers used as evidence sources.
@@ -506,7 +519,7 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
       const attachments = event.data.attachments ?? []
       const hasImage = event.data.hasImage ?? attachments.some(a => a.mediaType.startsWith('image/'))
       if (text.length === 0 && !hasImage && attachments.length === 0) throw new Error('Error input is empty')
-      const origin: InputOrigin = event.data.origin ?? { kind: 'direct_user' }
+      const origin: InputOrigin = event.data.origin ?? readRetiredInputOrigin(event.data) ?? { kind: 'direct_user' }
       const prefix = origin.kind === 'host_relay' ? 'host-relay' : 'initial'
       const evidenceSources: ErrorEpisode['evidenceSources'] = [
         ...(text.trim().length > 0 ? [{ sourceRef: `${prefix}-input`, text, probeId: null, diagnosisRound: 1 }] : []),

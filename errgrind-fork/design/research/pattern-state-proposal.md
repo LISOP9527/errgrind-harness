@@ -135,7 +135,7 @@ patterns
 
 ### Stage 0：来源与干预账本（历史基线）
 
-已在历史 [2026-09-01-evidence-origin-drill-ledger 决策](../../history/python-product-2026-09-27/design/decisions/2026-09-01-evidence-origin-drill-ledger.md.txt) 中作为前驱基线实现。它解决数据是否来自真实 Error、OCR 还是 Drill，以及 Action 结果能否追溯的问题。
+已在历史快照 2026-09-01 的「evidence 来源与 Drill 账本」决策中作为前驱基线实现（快照原文见[快照索引](../../history/python-product-2026-09-27/inventory.md)）。它解决数据是否来自真实 Error、OCR 还是 Drill，以及 Action 结果能否追溯的问题。
 
 在前驱系统中已完成这一阶段；历史 `grilling_summary` 仍是兼容性的自然语言输出，不能单独视为长期 Pattern。当前 Harness fork 以 Session durable facts 与 Core 校验器接替了这一来源审计与谱系边界。
 

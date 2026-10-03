@@ -83,6 +83,6 @@ Grill 开放期间，agent 可调用 `error_clarify` 显示事实澄清问题，
 <details>
 <summary>维护者工作语境——点击展开</summary>
 
-`origin` 记录首条 Error 输入是直接到达会话（`direct_user`）还是经宿主转述（`host_relay`）。早期字段名下落盘的日志读取时按 `direct_user` 处理。
+`origin` 记录首条 Error 输入是直接到达会话（`direct_user`）还是经宿主转述（`host_relay`）。折叠时仍会读取改名前日志写下的旧字段名；缺失或非法的值回落为 `direct_user`。
 
 </details>

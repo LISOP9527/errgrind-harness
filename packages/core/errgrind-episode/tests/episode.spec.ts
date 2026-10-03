@@ -132,6 +132,31 @@ describe('Error episode event rules', () => {
     expect(state?.draft?.revision).toBe(2)
   })
 
+  it('reads the input source written under the retired durable field name', () => {
+    const session = Session.create(SessionId('errgrind-episode-retired'))
+    const retiredField = 'prove' + 'nance'
+    const state = applyEpisodeEvent(null, session.append('errgrind/error-open', {
+      text: 'I used the wrong formula.',
+      turn: 1,
+      [retiredField]: { kind: 'host_relay', rpcId: 'rpc-9', clientTimeZone: 'Asia/Shanghai' },
+    }))
+    expect(state?.origin).toEqual({ kind: 'host_relay', rpcId: 'rpc-9', clientTimeZone: 'Asia/Shanghai' })
+    expect(state?.evidenceSources[0]?.sourceRef).toBe('host-relay-input')
+
+    // An invalid retired value falls back to the direct-user default.
+    const invalid = applyEpisodeEvent(null, session.append('errgrind/error-open', {
+      text: 'x', turn: 2, [retiredField]: 'junk',
+    }))
+    expect(invalid?.origin).toEqual({ kind: 'direct_user' })
+
+    // The current field wins when both are present.
+    const both = applyEpisodeEvent(null, session.append('errgrind/error-open', {
+      text: 'y', turn: 3, origin: { kind: 'derived_drill', sourceSessionId: 's1' },
+      [retiredField]: { kind: 'host_relay' },
+    }))
+    expect(both?.origin).toEqual({ kind: 'derived_drill', sourceSessionId: 's1' })
+  })
+
   it('grounds initial text and image observations without treating them as probe answers', () => {
     const session = Session.create(SessionId('errgrind-initial-evidence'))
     let state = applyEpisodeEvent(null, session.append('errgrind/error-open', {

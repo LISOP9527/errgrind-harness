@@ -64,6 +64,19 @@ describe('concrete terminology policy', () => {
     )).toEqual([{ file: '.agents/notes/implemented/process/current.md', line: 1 }])
   })
 
+  it('excludes the frozen fork history snapshot but keeps current fork docs strict', () => {
+    expect(findConcreteTermViolations(
+      `errgrind-fork/history/product-2026-09-27/design/decisions/2026-01-01-${blockedTerm}-decision.md.txt`,
+      blockedTerm,
+    )).toEqual([])
+    expect(findConcreteTermViolations('errgrind-fork/history/product-2026-09-27/manifest.json', blockedTerm))
+      .toEqual([])
+    expect(findConcreteTermViolations('errgrind-fork/design/current.md', blockedTerm))
+      .toEqual([{ file: 'errgrind-fork/design/current.md', line: 1 }])
+    expect(findConcreteTermViolations('errgrind-fork/history-extra/current.md', blockedTerm))
+      .toEqual([{ file: 'errgrind-fork/history-extra/current.md', line: 1 }])
+  })
+
   it('preserves historical identifiers only in alpha and RC release schema snapshots', () => {
     for (const channel of ['alpha', 'rc']) {
       expect(findConcreteTermViolations(

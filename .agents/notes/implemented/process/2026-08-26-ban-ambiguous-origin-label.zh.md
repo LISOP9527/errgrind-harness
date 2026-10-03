@@ -20,6 +20,8 @@ Status: implemented
 
 历史持久化证据保留选定源码树中的标识符。检查排除 `docs/persistence-changes/releases/` 下的发行版 schema JSON 和 `docs/persistence-changes/historical-formats/vN.schema.json`。在 `vN.md` 与 `vN.zh.md` 中，只有一组有效 `persistence-format-schema` 标记内的 schema 内容获得豁免；`verify-persistence-formats` 要求该内容匹配生成的历史 schema。人工说明、当前目录和当前 schema 仍接受检查。重命名已记录的标识符会歪曲历史声明；[持久化历史决策](2026-09-11-persistence-type-history.zh.md)负责这类证据。
 
+`errgrind-fork/history/` 下的冻结产品历史快照出于同一原因被排除：其仓库规则要求保留原始字节与文件名，`manifest.json` 用来证明它们与拷贝的源树一致。
+
 本决策针对这一个术语，部分取代了旧决策中不采用固定禁词和标识符重命名的选择。旧决策仍适用于其他抽象语言，也仍负责要求根据每处使用的具体含义选择替代名称。
 
 ## 曾考虑的替代方案

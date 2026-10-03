@@ -83,6 +83,6 @@ Tool descriptions and schemas are static, preserving request prefix stability wh
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-`origin` records whether the first Error input reached the session directly (`direct_user`) or through a host relay (`host_relay`). Logs written under the earlier field name read as `direct_user`.
+`origin` records whether the first Error input reached the session directly (`direct_user`) or through a host relay (`host_relay`). Folding still reads the retired field name written by pre-rename logs; an absent or invalid value falls back to `direct_user`.
 
 </details>
