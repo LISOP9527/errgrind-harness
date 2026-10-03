@@ -11097,7 +11097,7 @@
       "kind": "event",
       "event": "errgrind/error-open",
       "surface": false,
-      "digest": "2016b12c8aa7d18199f6e0153d69b049509d73672ded056679fc75631f533a4b",
+      "digest": "c10e92e826a1deaef63fd94d4b64754a47ce4f6ebc010ad0e03ddfc8428b40b6",
       "schema": {
         "root": 0,
         "nodes": [
@@ -11146,7 +11146,7 @@
                 "optional": true
               },
               {
-                "name": "provenance",
+                "name": "origin",
                 "type": 16,
                 "optional": true
               },
@@ -30706,296 +30706,6 @@
       ]
     },
     {
-      "digest": "1508b6f504243ceb74c62b713fb320d7d8a61258ca1c754813e70ed390002b46",
-      "schema": {
-        "root": 0,
-        "nodes": [
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "attachments",
-                "type": 1,
-                "optional": true
-              },
-              {
-                "name": "hasImage",
-                "type": 14,
-                "optional": true
-              },
-              {
-                "name": "provenance",
-                "type": 15,
-                "optional": true
-              },
-              {
-                "name": "text",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "turn",
-                "type": 3,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "array",
-            "element": 2
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "bytes",
-                "type": 3,
-                "optional": false
-              },
-              {
-                "name": "mediaType",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "name",
-                "type": 4,
-                "optional": true
-              },
-              {
-                "name": "normalizedImageRef",
-                "type": 5,
-                "optional": true
-              },
-              {
-                "name": "originalFileRef",
-                "type": 7,
-                "optional": true
-              },
-              {
-                "name": "sha256",
-                "type": 4,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "primitive",
-            "type": "number"
-          },
-          {
-            "kind": "primitive",
-            "type": "string"
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "attachmentId",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "bytes",
-                "type": 3,
-                "optional": false
-              },
-              {
-                "name": "errgrindOriginal",
-                "type": 6,
-                "optional": true
-              },
-              {
-                "name": "height",
-                "type": 3,
-                "optional": false
-              },
-              {
-                "name": "mediaType",
-                "type": 8,
-                "optional": false
-              },
-              {
-                "name": "name",
-                "type": 4,
-                "optional": true
-              },
-              {
-                "name": "originalDimensions",
-                "type": 13,
-                "optional": true
-              },
-              {
-                "name": "width",
-                "type": 3,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "bytes",
-                "type": 3,
-                "optional": false
-              },
-              {
-                "name": "fileRef",
-                "type": 7,
-                "optional": false
-              },
-              {
-                "name": "mediaType",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "sha256",
-                "type": 4,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "attachmentId",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "bytes",
-                "type": 3,
-                "optional": false
-              },
-              {
-                "name": "name",
-                "type": 4,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "union",
-            "types": [
-              9,
-              10,
-              11,
-              12
-            ]
-          },
-          {
-            "kind": "literal",
-            "value": "image/gif"
-          },
-          {
-            "kind": "literal",
-            "value": "image/jpeg"
-          },
-          {
-            "kind": "literal",
-            "value": "image/png"
-          },
-          {
-            "kind": "literal",
-            "value": "image/webp"
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "height",
-                "type": 3,
-                "optional": false
-              },
-              {
-                "name": "width",
-                "type": 3,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "primitive",
-            "type": "boolean"
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "clientTimeZone",
-                "type": 4,
-                "optional": true
-              },
-              {
-                "name": "kind",
-                "type": 16,
-                "optional": false
-              },
-              {
-                "name": "rpcId",
-                "type": 4,
-                "optional": true
-              },
-              {
-                "name": "senderSessionId",
-                "type": 4,
-                "optional": true
-              },
-              {
-                "name": "sourceAnswerRef",
-                "type": 4,
-                "optional": true
-              },
-              {
-                "name": "sourcePreparationId",
-                "type": 4,
-                "optional": true
-              },
-              {
-                "name": "sourceSessionId",
-                "type": 4,
-                "optional": true
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "union",
-            "types": [
-              17,
-              18,
-              19
-            ]
-          },
-          {
-            "kind": "literal",
-            "value": "derived_drill"
-          },
-          {
-            "kind": "literal",
-            "value": "direct_user"
-          },
-          {
-            "kind": "literal",
-            "value": "host_relay"
-          }
-        ]
-      },
-      "names": [],
-      "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:140"
-      ]
-    },
-    {
       "digest": "15196447222782e773eb943c92b18316ce96b9af0f0cfddb6e57ba8274ecc5ff",
       "schema": {
         "root": 0,
@@ -33017,333 +32727,6 @@
       "sources": []
     },
     {
-      "digest": "2016b12c8aa7d18199f6e0153d69b049509d73672ded056679fc75631f533a4b",
-      "schema": {
-        "root": 0,
-        "nodes": [
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "data",
-                "type": 1,
-                "optional": false
-              },
-              {
-                "name": "ignorable",
-                "type": 21,
-                "optional": true
-              },
-              {
-                "name": "seq",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "time",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "type",
-                "type": 22,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "attachments",
-                "type": 2,
-                "optional": true
-              },
-              {
-                "name": "hasImage",
-                "type": 15,
-                "optional": true
-              },
-              {
-                "name": "provenance",
-                "type": 16,
-                "optional": true
-              },
-              {
-                "name": "text",
-                "type": 5,
-                "optional": false
-              },
-              {
-                "name": "turn",
-                "type": 4,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "array",
-            "element": 3
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "bytes",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "mediaType",
-                "type": 5,
-                "optional": false
-              },
-              {
-                "name": "name",
-                "type": 5,
-                "optional": true
-              },
-              {
-                "name": "normalizedImageRef",
-                "type": 6,
-                "optional": true
-              },
-              {
-                "name": "originalFileRef",
-                "type": 8,
-                "optional": true
-              },
-              {
-                "name": "sha256",
-                "type": 5,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "primitive",
-            "type": "number"
-          },
-          {
-            "kind": "primitive",
-            "type": "string"
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "attachmentId",
-                "type": 5,
-                "optional": false
-              },
-              {
-                "name": "bytes",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "errgrindOriginal",
-                "type": 7,
-                "optional": true
-              },
-              {
-                "name": "height",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "mediaType",
-                "type": 9,
-                "optional": false
-              },
-              {
-                "name": "name",
-                "type": 5,
-                "optional": true
-              },
-              {
-                "name": "originalDimensions",
-                "type": 14,
-                "optional": true
-              },
-              {
-                "name": "width",
-                "type": 4,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "bytes",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "fileRef",
-                "type": 8,
-                "optional": false
-              },
-              {
-                "name": "mediaType",
-                "type": 5,
-                "optional": false
-              },
-              {
-                "name": "sha256",
-                "type": 5,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "attachmentId",
-                "type": 5,
-                "optional": false
-              },
-              {
-                "name": "bytes",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "name",
-                "type": 5,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "union",
-            "types": [
-              10,
-              11,
-              12,
-              13
-            ]
-          },
-          {
-            "kind": "literal",
-            "value": "image/gif"
-          },
-          {
-            "kind": "literal",
-            "value": "image/jpeg"
-          },
-          {
-            "kind": "literal",
-            "value": "image/png"
-          },
-          {
-            "kind": "literal",
-            "value": "image/webp"
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "height",
-                "type": 4,
-                "optional": false
-              },
-              {
-                "name": "width",
-                "type": 4,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "primitive",
-            "type": "boolean"
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "clientTimeZone",
-                "type": 5,
-                "optional": true
-              },
-              {
-                "name": "kind",
-                "type": 17,
-                "optional": false
-              },
-              {
-                "name": "rpcId",
-                "type": 5,
-                "optional": true
-              },
-              {
-                "name": "senderSessionId",
-                "type": 5,
-                "optional": true
-              },
-              {
-                "name": "sourceAnswerRef",
-                "type": 5,
-                "optional": true
-              },
-              {
-                "name": "sourcePreparationId",
-                "type": 5,
-                "optional": true
-              },
-              {
-                "name": "sourceSessionId",
-                "type": 5,
-                "optional": true
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "union",
-            "types": [
-              18,
-              19,
-              20
-            ]
-          },
-          {
-            "kind": "literal",
-            "value": "derived_drill"
-          },
-          {
-            "kind": "literal",
-            "value": "direct_user"
-          },
-          {
-            "kind": "literal",
-            "value": "host_relay"
-          },
-          {
-            "kind": "literal",
-            "value": true
-          },
-          {
-            "kind": "literal",
-            "value": "errgrind/error-open"
-          }
-        ]
-      },
-      "names": [],
-      "sources": []
-    },
-    {
       "digest": "20a57544bbf204dacd1ae6beb2ab29444365c3c869f2afdf489dcdcbc3d9c8c5",
       "schema": {
         "root": 0,
@@ -35190,6 +34573,296 @@
       },
       "names": [],
       "sources": []
+    },
+    {
+      "digest": "315028083ce2b6f75c708941947fa43bb47cef29e0ed687445172428b02aa7ac",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachments",
+                "type": 1,
+                "optional": true
+              },
+              {
+                "name": "hasImage",
+                "type": 14,
+                "optional": true
+              },
+              {
+                "name": "origin",
+                "type": 15,
+                "optional": true
+              },
+              {
+                "name": "text",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "turn",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "bytes",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "mediaType",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "normalizedImageRef",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "originalFileRef",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "sha256",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachmentId",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "bytes",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "errgrindOriginal",
+                "type": 6,
+                "optional": true
+              },
+              {
+                "name": "height",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "mediaType",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "originalDimensions",
+                "type": 13,
+                "optional": true
+              },
+              {
+                "name": "width",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "bytes",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "fileRef",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "mediaType",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachmentId",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "bytes",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              9,
+              10,
+              11,
+              12
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "image/gif"
+          },
+          {
+            "kind": "literal",
+            "value": "image/jpeg"
+          },
+          {
+            "kind": "literal",
+            "value": "image/png"
+          },
+          {
+            "kind": "literal",
+            "value": "image/webp"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "height",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "width",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "clientTimeZone",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "kind",
+                "type": 16,
+                "optional": false
+              },
+              {
+                "name": "rpcId",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "senderSessionId",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "sourceAnswerRef",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "sourcePreparationId",
+                "type": 4,
+                "optional": true
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 4,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              17,
+              18,
+              19
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "derived_drill"
+          },
+          {
+            "kind": "literal",
+            "value": "direct_user"
+          },
+          {
+            "kind": "literal",
+            "value": "host_relay"
+          }
+        ]
+      },
+      "names": [],
+      "sources": [
+        "packages/core/errgrind-episode/lib/types/types.d.ts:146"
+      ]
     },
     {
       "digest": "31907de9563751822af6d9be02bafaf26faa098bbd1cb412524134d577cc1648",
@@ -47943,7 +47616,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:163"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:169"
       ]
     },
     {
@@ -49633,7 +49306,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:148"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:154"
       ]
     },
     {
@@ -54605,7 +54278,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:168"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:174"
       ]
     },
     {
@@ -59236,7 +58909,7 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#InputProvenanceKind"
+        "packages/core/errgrind-episode/lib/types/types.d.ts#InputOriginKind"
       ],
       "sources": [
         "packages/core/errgrind-episode/lib/types/types.d.ts:24"
@@ -76501,7 +76174,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:158"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:164"
       ]
     },
     {
@@ -86988,7 +86661,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:203"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:209"
       ]
     },
     {
@@ -87836,7 +87509,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:186"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:192"
       ]
     },
     {
@@ -88402,8 +88075,8 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:178",
-        "packages/core/errgrind-episode/lib/types/types.d.ts:195"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:184",
+        "packages/core/errgrind-episode/lib/types/types.d.ts:201"
       ]
     },
     {
@@ -95128,6 +94801,333 @@
       ]
     },
     {
+      "digest": "c10e92e826a1deaef63fd94d4b64754a47ce4f6ebc010ad0e03ddfc8428b40b6",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 21,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 22,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachments",
+                "type": 2,
+                "optional": true
+              },
+              {
+                "name": "hasImage",
+                "type": 15,
+                "optional": true
+              },
+              {
+                "name": "origin",
+                "type": 16,
+                "optional": true
+              },
+              {
+                "name": "text",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "turn",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 3
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "bytes",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "mediaType",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "normalizedImageRef",
+                "type": 6,
+                "optional": true
+              },
+              {
+                "name": "originalFileRef",
+                "type": 8,
+                "optional": true
+              },
+              {
+                "name": "sha256",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachmentId",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "bytes",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "errgrindOriginal",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "height",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "mediaType",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "originalDimensions",
+                "type": 14,
+                "optional": true
+              },
+              {
+                "name": "width",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "bytes",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "fileRef",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "mediaType",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "sha256",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "attachmentId",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "bytes",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "name",
+                "type": 5,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              10,
+              11,
+              12,
+              13
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "image/gif"
+          },
+          {
+            "kind": "literal",
+            "value": "image/jpeg"
+          },
+          {
+            "kind": "literal",
+            "value": "image/png"
+          },
+          {
+            "kind": "literal",
+            "value": "image/webp"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "height",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "width",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "boolean"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "clientTimeZone",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "kind",
+                "type": 17,
+                "optional": false
+              },
+              {
+                "name": "rpcId",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "senderSessionId",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "sourceAnswerRef",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "sourcePreparationId",
+                "type": 5,
+                "optional": true
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 5,
+                "optional": true
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              18,
+              19,
+              20
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "derived_drill"
+          },
+          {
+            "kind": "literal",
+            "value": "direct_user"
+          },
+          {
+            "kind": "literal",
+            "value": "host_relay"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "errgrind/error-open"
+          }
+        ]
+      },
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "c15bbce5087bfe2fbff2afe5b8ea4fed68ba54a639bd297362c5c44f64754cf6",
       "schema": {
         "root": 0,
@@ -96104,7 +96104,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:173"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:179"
       ]
     },
     {
@@ -104682,7 +104682,7 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#InputProvenance"
+        "packages/core/errgrind-episode/lib/types/types.d.ts#InputOrigin"
       ],
       "sources": [
         "packages/core/errgrind-episode/lib/types/types.d.ts:26"

@@ -111,7 +111,7 @@ declarations.
 
 Closed cluster: every consumer is inside the cluster or already-disabled (`llm-deepseek`).
 ErrGrind requests route through `llm-pi-ai` → Hongyun relay; none of this executes.
-**Removed 2026-10-01 (`f3d4a92`).**
+**Removed 2026-10-01.**
 
 ## Layer I — host/web transport (keep except flagged)
 
@@ -157,11 +157,11 @@ ErrGrind requests route through `llm-pi-ai` → Hongyun relay; none of this exec
 
 Ordered for "one group per landing, targeted regression after each" per the todo.
 
-- **G1 — DeepSeek request plumbing** (`deepseek-llm-api-extensions`, `session-log-deepseek`, `plugin-package-inventory-deepseek`): closed cluster, zero ErrGrind-path usage. **LANDED** (`f3d4a92`): launch + real Astra turn passed.
-- **G2 — Delegation and jobs** (`subagent`, `subagent-spawn-in-process`, `subagent-fork-in-process`, `jobs`): no enabled consumer; every delegation tool and UI row already disabled. **LANDED** (`ff36891`): launch, cold-read, resume, and a 35s Opus turn that advanced the episode ledger passed.
-- **G3 — Goals and user questions** (`goal`, `goal-round-driver`, `user-questions`): no enabled consumer. **LANDED** (`1dd82bb`): launch + real turn passed.
-- **G4 — Model web backends** (`web`, `web-search-deepseek`, `web-fetch-http`, `mcp-resources`): tool-web already off; runner reads ctx.web only as optional sandbox guidance. **LANDED** (`5e450a6`): launch + real turn passed.
-- **G5 — OTel backend** (`session-telemetry-otel`): no telemetry coordinator mounted; its default exporter pointed at harness-telemetry.deepseeksvc.com. **LANDED** (`5e450a6`, same commit as G4): launch + real turn passed.
+- **G1 — DeepSeek request plumbing** (`deepseek-llm-api-extensions`, `session-log-deepseek`, `plugin-package-inventory-deepseek`): closed cluster, zero ErrGrind-path usage. **LANDED** (2026-10-01): launch + real Astra turn passed.
+- **G2 — Delegation and jobs** (`subagent`, `subagent-spawn-in-process`, `subagent-fork-in-process`, `jobs`): no enabled consumer; every delegation tool and UI row already disabled. **LANDED** (2026-10-01): launch, cold-read, resume, and a 35s Opus turn that advanced the episode ledger passed.
+- **G3 — Goals and user questions** (`goal`, `goal-round-driver`, `user-questions`): no enabled consumer. **LANDED** (2026-10-01): launch + real turn passed.
+- **G4 — Model web backends** (`web`, `web-search-deepseek`, `web-fetch-http`, `mcp-resources`): tool-web already off; runner reads ctx.web only as optional sandbox guidance. **LANDED** (2026-10-01): launch + real turn passed.
+- **G5 — OTel backend** (`session-telemetry-otel`): no telemetry coordinator mounted; its default exporter pointed at harness-telemetry.deepseeksvc.com. **LANDED** (2026-10-01, same commit as G4): launch + real turn passed.
 - **G6 — Dormant services** (`session-query-sqlite`, `directory-picker`): split at landing — `session-controller` declares `sessionQuery` in its **required inject list** (`listSessions`/`observeSession`), so disabling `session-query-sqlite` leaves the whole session plane PENDING (verified live: launch warned "session-controller … waiting for service: sessionQuery"; workspace entry and last-session restore both dead). `session-query-sqlite` therefore **stays mounted**; removing it means first making that inject optional — shared-package surgery deferred to a later pass. `directory-picker` **REVERTED** (stays mounted): the audit missed that the picker is the recovery surface — when default-Workspace init fails, the `defaultWorkspaceFailed` toast sends the user to 'Choose workspace', and `remote.directoryPicker` picks this plugin by name (`packages/client/ui-workspace/src/client/navigation.ts:145`). With it disabled the picker gesture opens an empty menu, dead-ending the only recovery path. Found during todo-39 settings acceptance (2026-10-01).
 - **G7 — Guard policies for absent tools** (`repeat-tool-reminder`, `timeout-policy`, `fs-observation-policy`): registered against zero executable tools. Cheapest to keep; revisit only if the loop surface shrinks further.
 - **G8 — ui-workspace** (`ui-workspace`): **KEPT — hard dependency, functional**. `ui-conversation/src/client/apply.ts` calls `uiWorkspace.openSession` / `openWorkspace` for the session-header lineage crumb and the workspace picker; `openSession` is exercised by ErrGrind's own derived-session lineage ("Investigate this new Error" children), and the service carries supersession/creation/notice logic that would have to be re-implemented in ui-conversation. All its user-visible output is already CSS-hidden (inventory #19), so removal buys nothing a user can see — the navigation brain stays.
@@ -188,7 +188,7 @@ Measured numbers behind any later physical-removal decision:
   here; 14 MB is sourcemaps, ~3 MB fonts/static.
 - **Running host RSS**: ~231 MB for the source-launched web profile after
   ~1 h uptime with session activity.
-- **Fresh-checkout build on 3.8 GiB VPS** (`d03accca96`): clone 4 m 36 s;
+- **Fresh-checkout build on 3.8 GiB VPS** (2026-10-01): clone 4 m 36 s;
   `pnpm install` 63 s / 743 MiB peak; `pnpm run errgrind:build` 212 s /
   2323 MiB peak — passes with ~400 MiB headroom.
 - **Workspace weight**: 206 MB packages/ source, 1.7 GB node_modules

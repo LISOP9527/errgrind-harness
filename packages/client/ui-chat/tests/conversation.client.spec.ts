@@ -41,8 +41,10 @@ describe('toAssistantBlock', () => {
     expect(emptyAssistantBlock('future')).toEqual({ kind: 'other', block: null })
   })
 
-  it('redacts auth failures and presents the remaining durable values', () => {
+  it('redacts credential-echo failures and presents the remaining durable values', () => {
     expect(displayFailure({ code: 'AUTH', message: 'secret' })).toEqual({ code: 'AUTH', message: '' })
+    expect(displayFailure({ code: 'INVALID_CREDENTIAL', message: 'key fragment sk-abc' }))
+      .toEqual({ code: 'INVALID_CREDENTIAL', message: '' })
     expect(displayFailure({ code: 'TRANSPORT', message: 'offline' }))
       .toEqual({ code: 'TRANSPORT', message: 'offline' })
     expect(displayFailure({ code: 'UNKNOWN' })).toEqual({ code: 'UNKNOWN', message: '{"code":"UNKNOWN"}' })

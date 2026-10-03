@@ -50,5 +50,5 @@ message 映射成各自的请求协议。所有图片继续通过 `load_image` �
 
 SQLite `attachments` 表保存 BLOB、MIME、SHA-256 和归属关系；conversation JSON 只保存附件
 ID，不塞入 base64，也不写入模板或隐藏浏览器状态。Error 删除时由外键清理其附件，Drill
-pending/attempt 使用独立 provenance 关系。旧 CLI `/ocr`、字段 OCR 和 Drill OCR 方法可以
+pending/attempt 使用独立出处关系。旧 CLI `/ocr`、字段 OCR 和 Drill OCR 方法可以
 暂留兼容，但 Web 不再提供或调用这些 route。

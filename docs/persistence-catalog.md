@@ -45,7 +45,7 @@ The [format references](persistence-changes/historical-formats/README.md) cover 
 | `event:errgrind/error-clarify` | event | `d9f76cbe2d736e650a7e65557e47deec43ce0b0485ccc0e7950ffe72be406911` | [`{ type: "errgrind/error-clarify" }`](#persistence-type-sha256-d9f76cbe2d736e650a7e65557e47deec43ce0b0485ccc0e7950ffe72be406911) |
 | `event:errgrind/error-confirm` | event | `b796530d308a2351d1c4ad53efdcb1f47f2e94d09a918af79fafaba823449dec` | [`{ type: "errgrind/error-confirm" }`](#persistence-type-sha256-b796530d308a2351d1c4ad53efdcb1f47f2e94d09a918af79fafaba823449dec) |
 | `event:errgrind/error-draft` | event | `e16c3b67c6a94b25cfc4eee31453ea6704142f7d1a441d620c15215af35c1dd3` | [`{ type: "errgrind/error-draft" }`](#persistence-type-sha256-e16c3b67c6a94b25cfc4eee31453ea6704142f7d1a441d620c15215af35c1dd3) |
-| `event:errgrind/error-open` | event | `2016b12c8aa7d18199f6e0153d69b049509d73672ded056679fc75631f533a4b` | [`{ type: "errgrind/error-open" }`](#persistence-type-sha256-2016b12c8aa7d18199f6e0153d69b049509d73672ded056679fc75631f533a4b) |
+| `event:errgrind/error-open` | event | `c10e92e826a1deaef63fd94d4b64754a47ce4f6ebc010ad0e03ddfc8428b40b6` | [`{ type: "errgrind/error-open" }`](#persistence-type-sha256-c10e92e826a1deaef63fd94d4b64754a47ce4f6ebc010ad0e03ddfc8428b40b6) |
 | `event:errgrind/grill-conclude` | event | `7647a33d5e8a0f159ddcb15a4a7b7f12e8e8a559d520875f8cbff4fba91b1f5a` | [`{ type: "errgrind/grill-conclude" }`](#persistence-type-sha256-7647a33d5e8a0f159ddcb15a4a7b7f12e8e8a559d520875f8cbff4fba91b1f5a) |
 | `event:errgrind/grill-probe` | event | `52a6af21e9b7269a8ac0cf7ada9af2eaff522507b132ee6b6875c6fa02e03b4e` | [`{ type: "errgrind/grill-probe" }`](#persistence-type-sha256-52a6af21e9b7269a8ac0cf7ada9af2eaff522507b132ee6b6875c6fa02e03b4e) |
 | `event:errgrind/teach-step` | event | `bbac7e333f3f83ecada97567f0b7a11093b98bc5369d2e21c800fcf5e917f10f` | [`{ type: "errgrind/teach-step" }`](#persistence-type-sha256-bbac7e333f3f83ecada97567f0b7a11093b98bc5369d2e21c800fcf5e917f10f) |
@@ -535,7 +535,7 @@ Source: [`packages/core/session/src/types.ts:311`](../packages/core/session/src/
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:165`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:172`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinddrill-answer-draft--log-only"></a>
 
@@ -612,7 +612,7 @@ Source: [`packages/core/errgrind-episode/src/drill.ts:133`](../packages/core/err
 'errgrind/error-clarify': { text: string; turn: number }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:177`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:184`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinderror-confirm--log-only"></a>
 
@@ -623,7 +623,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:177`](../packages/core/err
 'errgrind/error-confirm': { revision: number; commandId: string }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:179`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:186`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinderror-draft--log-only"></a>
 
@@ -634,7 +634,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:179`](../packages/core/err
 'errgrind/error-draft': { revision: number; text: string }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:175`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:182`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinderror-open--log-only"></a>
 
@@ -646,12 +646,12 @@ Source: [`packages/core/errgrind-episode/src/types.ts:175`](../packages/core/err
   text: string
   turn: number
   hasImage?: boolean | undefined
-  provenance?: InputProvenance | undefined
+  origin?: InputOrigin | undefined
   attachments?: readonly ErrorAttachment[] | undefined
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:157`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:164`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrindgrill-conclude--log-only"></a>
 
@@ -674,7 +674,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:157`](../packages/core/err
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:191`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:198`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrindgrill-probe--log-only"></a>
 
@@ -693,7 +693,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:191`](../packages/core/err
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:181`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:188`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrindteach-step--log-only"></a>
 
@@ -710,7 +710,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:181`](../packages/core/err
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:205`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:212`](../packages/core/errgrind-episode/src/types.ts)
 
 ### `feedback/*`
 
@@ -4520,11 +4520,11 @@ One of:
 
 <a id="persistence-type-sha256-e25ec167b939412765f6b94111dc83523e0f4383c6df05069898e41e80b54667"></a>
 
-<a id="persistence-type-inputprovenance"></a>
+<a id="persistence-type-inputorigin"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsinputprovenance"></a>
+<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsinputorigin"></a>
 
-### `InputProvenance`
+### `InputOrigin`
 
 SHA-256: `e25ec167b939412765f6b94111dc83523e0f4383c6df05069898e41e80b54667`
 
@@ -4533,7 +4533,7 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:26`](../packages/
 | Property | Presence | Type |
 |---|---|---|
 | `clientTimeZone` | optional | `string` |
-| `kind` | required | [`InputProvenanceKind`](#persistence-type-sha256-5def47faaf660538ff3ca195ed65fd98d961f211d17adfbf3438c89c4df83e63) |
+| `kind` | required | [`InputOriginKind`](#persistence-type-sha256-5def47faaf660538ff3ca195ed65fd98d961f211d17adfbf3438c89c4df83e63) |
 | `rpcId` | optional | `string` |
 | `senderSessionId` | optional | `string` |
 | `sourceAnswerRef` | optional | `string` |
@@ -4542,11 +4542,11 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:26`](../packages/
 
 <a id="persistence-type-sha256-5def47faaf660538ff3ca195ed65fd98d961f211d17adfbf3438c89c4df83e63"></a>
 
-<a id="persistence-type-inputprovenancekind"></a>
+<a id="persistence-type-inputoriginkind"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsinputprovenancekind"></a>
+<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsinputoriginkind"></a>
 
-### `InputProvenanceKind`
+### `InputOriginKind`
 
 SHA-256: `5def47faaf660538ff3ca195ed65fd98d961f211d17adfbf3438c89c4df83e63`
 
@@ -6535,7 +6535,7 @@ Sources: [`packages/subagent/tool-subagent/src/model-selection-state.ts:17`](../
 
 SHA-256: `a46c3e3c5716b848fa06f1948a4cb0ca072050543c930c38fca671d527185998`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:203`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:209`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -6551,7 +6551,7 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:203`](../packages
 
 SHA-256: `a8529baa023ccb6489ce3e02d1e3ccba7a371a885b80a2cd62ab2e606b6c7329`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:186`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:192`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -6572,7 +6572,7 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:186`](../packages
 
 SHA-256: `c25683ba2428d8bcb54e57a92b5a6541e810ce1d8eb8c68e6343c5b8162438cf`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:173`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:179`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -6614,19 +6614,19 @@ Sources: [`packages/core/session/src/types.ts:361`](../packages/core/session/src
 | `step` | required | `number` |
 | `turn` | required | `number` |
 
-<a id="persistence-type-sha256-1508b6f504243ceb74c62b713fb320d7d8a61258ca1c754813e70ed390002b46"></a>
+<a id="persistence-type-sha256-315028083ce2b6f75c708941947fa43bb47cef29e0ed687445172428b02aa7ac"></a>
 
-### `{ attachments?, hasImage?, provenance?, text, … }`
+### `{ attachments?, hasImage?, origin?, text, … }`
 
-SHA-256: `1508b6f504243ceb74c62b713fb320d7d8a61258ca1c754813e70ed390002b46`
+SHA-256: `315028083ce2b6f75c708941947fa43bb47cef29e0ed687445172428b02aa7ac`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:140`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:146`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | Property | Presence | Type |
 |---|---|---|
 | `attachments` | optional | [`ErrorAttachment[]`](#persistence-type-sha256-b554e350da644e063daa120f310453f082dc94fd2d47852dfd5b2858d5d454f3) |
 | `hasImage` | optional | `boolean` |
-| `provenance` | optional | [`InputProvenance`](#persistence-type-sha256-e25ec167b939412765f6b94111dc83523e0f4383c6df05069898e41e80b54667) |
+| `origin` | optional | [`InputOrigin`](#persistence-type-sha256-e25ec167b939412765f6b94111dc83523e0f4383c6df05069898e41e80b54667) |
 | `text` | required | `string` |
 | `turn` | required | `number` |
 
@@ -6809,7 +6809,7 @@ Sources: [`packages/interaction/commands/src/types.ts:112`](../packages/interact
 
 SHA-256: `5650197a5378ec48df4dfe9da67bd49bfac7602eac7aa38da66228a10e1beeac`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:168`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:174`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -7125,7 +7125,7 @@ Sources: [`packages/interaction/user-approval/src/types.ts:55`](../packages/inte
 
 SHA-256: `acfb56674033b54bb907326da1753aba853b8dff3baa9f00a613787ff31a472c`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:178`](../packages/core/errgrind-episode/lib/types/types.d.ts) · [`packages/core/errgrind-episode/lib/types/types.d.ts:195`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:184`](../packages/core/errgrind-episode/lib/types/types.d.ts) · [`packages/core/errgrind-episode/lib/types/types.d.ts:201`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -8624,7 +8624,7 @@ Sources: [`packages/interaction/permission-presets/src/index.ts:59`](../packages
 
 SHA-256: `48fbd71615a0199a115d4fb11e80c10b46e9bfca259da929cd9ca57015536988`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:148`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:154`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -8655,7 +8655,7 @@ Sources: [`packages/core/session/src/types.ts:297`](../packages/core/session/src
 
 SHA-256: `88f3bc7176ce1855c92cf2322b32acf20812a141cf5d5ff27dee11271ce6b9a1`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:158`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:164`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -8762,7 +8762,7 @@ Sources: [`packages/experimental/agent-team/src/types.ts:212`](../packages/exper
 
 SHA-256: `42bc4ea83df93ff7e3bf63ee1bf6acbde381feb0059686fc7a2e27efe29aeb07`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:163`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:169`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -9238,17 +9238,17 @@ SHA-256: `e16c3b67c6a94b25cfc4eee31453ea6704142f7d1a441d620c15215af35c1dd3`
 | `time` | required | `number` |
 | `type` | required | `"errgrind/error-draft"` |
 
-<a id="persistence-type-sha256-2016b12c8aa7d18199f6e0153d69b049509d73672ded056679fc75631f533a4b"></a>
+<a id="persistence-type-sha256-c10e92e826a1deaef63fd94d4b64754a47ce4f6ebc010ad0e03ddfc8428b40b6"></a>
 
 <a id="persistence-type-eventerrgrinderror-open"></a>
 
 ### `{ type: "errgrind/error-open" }`
 
-SHA-256: `2016b12c8aa7d18199f6e0153d69b049509d73672ded056679fc75631f533a4b`
+SHA-256: `c10e92e826a1deaef63fd94d4b64754a47ce4f6ebc010ad0e03ddfc8428b40b6`
 
 | Property | Presence | Type |
 |---|---|---|
-| `data` | required | [`{ attachments?, hasImage?, provenance?, text, … }`](#persistence-type-sha256-1508b6f504243ceb74c62b713fb320d7d8a61258ca1c754813e70ed390002b46) |
+| `data` | required | [`{ attachments?, hasImage?, origin?, text, … }`](#persistence-type-sha256-315028083ce2b6f75c708941947fa43bb47cef29e0ed687445172428b02aa7ac) |
 | `ignorable` | optional | `true` |
 | `seq` | required | `number` |
 | `time` | required | `number` |

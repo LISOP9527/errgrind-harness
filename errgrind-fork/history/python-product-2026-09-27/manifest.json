@@ -8,21 +8,21 @@
     {
       "source": "AGENTS.md",
       "snapshot": "AGENTS.md.txt",
-      "sha256": "c1151f42a944fabc1ae484379f3b47dfcbd06b8de30f340fbbc6307d2ccace57",
+      "sha256": "8c0254c3f27e5ff96cd4794597893f84bfb530b3d8779d968c09d81fe5421d22",
       "disposition": "通用工作规则承接；Python 专属指令仅归档",
       "current_owner": "../../design/engineering-principles.md"
     },
     {
       "source": "README.md",
       "snapshot": "README.md.txt",
-      "sha256": "d4aeb08e2d13166980ed4d5fe913927f25cd92a49df232cafe4ab908278f900e",
+      "sha256": "7620e4fa49c2c9687d1ae7b0b50c70f14e116ece4540eb6ff70761948208f8bd",
       "disposition": "历史资料；不作为 Harness 的运行规则",
       "current_owner": ""
     },
     {
       "source": "design/README.md",
       "snapshot": "design/README.md.txt",
-      "sha256": "5a5a9f676404de724ebe417af923f58d059bc9388163a12392dc4bba1b58468c",
+      "sha256": "a402e338256b2b7958a48afe50b13e0d522320da23ac4804f3bc921aa35aa821",
       "disposition": "旧索引归档；现行索引已建立",
       "current_owner": "../../design/README.md"
     },
@@ -69,9 +69,9 @@
       "current_owner": "../../design/migration.md"
     },
     {
-      "source": "design/decisions/2026-09-01-evidence-provenance-drill-ledger.md",
-      "snapshot": "design/decisions/2026-09-01-evidence-provenance-drill-ledger.md.txt",
-      "sha256": "c65e5ba1cf12edebe150972dc4954a783d8389225c62b50116439c5c80bb5eba",
+      "source": "design/decisions/2026-09-01-evidence-origin-drill-ledger.md",
+      "snapshot": "design/decisions/2026-09-01-evidence-origin-drill-ledger.md.txt",
+      "sha256": "0ae7a4bf3cc7ff2ce4940a1fe151193965a7ae5b92e3889370640e08b19ae1bb",
       "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
       "current_owner": "../../design/migration.md"
     },
@@ -85,7 +85,7 @@
     {
       "source": "design/decisions/2026-09-03-application-workflow-boundary.md",
       "snapshot": "design/decisions/2026-09-03-application-workflow-boundary.md.txt",
-      "sha256": "78ed43ce6ce1aceb0407a756ff6ae052bbbe39617d0e77d489d5a56e1c53e7c4",
+      "sha256": "995207a1a44b17bfe10732efd0f2a260d95ff0d59cb4e831a8702db74e0d02d9",
       "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
       "current_owner": "../../design/migration.md"
     },
@@ -155,7 +155,7 @@
     {
       "source": "design/decisions/2026-09-11-direct-multimodal-web-input.md",
       "snapshot": "design/decisions/2026-09-11-direct-multimodal-web-input.md.txt",
-      "sha256": "9b5b2db61f699349801fc2c131efe805cc275eec3c7f9d6f35e7f0a804c608e3",
+      "sha256": "b45d0200ae1ae0c507587ccbf98610dc186022d59914df5a866a78ac07cde45e",
       "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
       "current_owner": "../../design/migration.md"
     },
@@ -169,7 +169,7 @@
     {
       "source": "design/decisions/2026-09-14-assistant-ui-spike.md",
       "snapshot": "design/decisions/2026-09-14-assistant-ui-spike.md.txt",
-      "sha256": "f4bf539431e80ee1446b694d5d797fd36b7ca395e4a23caffd84b5827d319309",
+      "sha256": "8998e683c80d6b02477acf6d203949e0ca172d88d773c6a48fb945fd47159993",
       "disposition": "保留决策理由；适用原则与实现替代见迁移说明",
       "current_owner": "../../design/migration.md"
     },
@@ -190,49 +190,49 @@
     {
       "source": "design/decisions/README.md",
       "snapshot": "design/decisions/README.md.txt",
-      "sha256": "8e5a29efa0720dba93a2137c93a053047c32806aa3bb2e49d847043c48dbe088",
+      "sha256": "5aebe3abf00daf6247bc1ff0922909b1c26ce5bc83f83d3eb16963e2e369ceeb",
       "disposition": "旧索引归档；现行索引已建立",
       "current_owner": "../../design/README.md"
     },
     {
       "source": "design/evaluation-strategy.md",
       "snapshot": "design/evaluation-strategy.md.txt",
-      "sha256": "cbe283d1c61fbbf19de707283dbd5b562a8c4e7d9b4a1997e7907a18af42171b",
+      "sha256": "e708857f420b105dd4167434efde41c0a5e190560985b18e681fa53bda2c6bb4",
       "disposition": "长期设计已完整迁入并标明旧实现范围",
       "current_owner": "../../design/research/evaluation-strategy.md"
     },
     {
       "source": "design/long-term-architecture.md",
       "snapshot": "design/long-term-architecture.md.txt",
-      "sha256": "075f5d5b1fd6ba3a575bdc6b811b8e7707995dd55cec41839129ccec0776535a",
+      "sha256": "e4c28d130648d2d619b093613ec069fa9dd6e9e99008d9216d520e4f8d21a0aa",
       "disposition": "长期设计已完整迁入并标明旧实现范围",
       "current_owner": "../../design/research/long-term-architecture.md"
     },
     {
       "source": "design/pattern-state-proposal.md",
       "snapshot": "design/pattern-state-proposal.md.txt",
-      "sha256": "0da7ab2be391f6f8a1b2bb758ebd826dbef3e2fe3293c21ba731a7de32d3f64c",
+      "sha256": "d1d14630a4b5202b2a470b7ff0eeca590d7aaf036b9f56ccd6346d9eaf4d2d63",
       "disposition": "长期设计已完整迁入并标明旧实现范围",
       "current_owner": "../../design/research/pattern-state-proposal.md"
     },
     {
       "source": "design/record-input.md",
       "snapshot": "design/record-input.md.txt",
-      "sha256": "3debc23499cda6dbbd05ea92d56565e42c68b340f4b83d02490e960038659511",
+      "sha256": "34fd10ee45447ee06545ae388d9e851b80f9d4bc537d1f06487fa2b147029ccb",
       "disposition": "Core/UI 解耦及原始附件来源承接；旧三字段/SQLite 实现仅归档",
       "current_owner": "../../design/product-contract.md"
     },
     {
       "source": "design/ui-decoupling.md",
       "snapshot": "design/ui-decoupling.md.txt",
-      "sha256": "25e6cc182bfed5d8d7f2fb16f752740046e445a1bd7ca18f8aa2e7227135fa5a",
+      "sha256": "bdd3d2f79aea732f240d999f54f0c825b9d0881b4df4a1220683341d1aaf63ca",
       "disposition": "Core/UI 解耦及原始附件来源承接；旧三字段/SQLite 实现仅归档",
       "current_owner": "../../design/product-contract.md"
     },
     {
       "source": "design/version-plan.md",
       "snapshot": "design/version-plan.md.txt",
-      "sha256": "564e75eb9041159dbcf1eaba8c9014c5da0bdb6d12e984b0f953643fcb1218fb",
+      "sha256": "bc920aa96897f7ad6c4b3b100d985db215b2bdbed105a24bab7b6cba8736adb6",
       "disposition": "长期设计已完整迁入并标明旧实现范围",
       "current_owner": "../../design/research/version-plan.md"
     },
@@ -302,7 +302,7 @@
     {
       "source": "todo.md",
       "snapshot": "todo.md.txt",
-      "sha256": "04f6d7cd9d66e737691e654127ceb0d75fef99c24fdb1463bdd4793bb27b42dd",
+      "sha256": "b15f107357d06c8537d8629e1b3bf3c31e340e69aa38d74c8097b546d97d54c8",
       "disposition": "旧验证记录归档；未决质量问题转入现行待办，不继承旧通过结论",
       "current_owner": "../../todo.md"
     }

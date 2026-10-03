@@ -3,7 +3,7 @@
 ## Context
 
 This spike evaluates whether assistant-ui can provide commodity conversation UI
-infrastructure while ErrGrind keeps its own Error object, sidebar, provenance,
+infrastructure while ErrGrind keeps its own Error object, sidebar, origin,
 workflow state, and persistence authority. It is intentionally separate from
 the existing Flask/Jinja WebUI.
 
@@ -41,7 +41,7 @@ selected file, never to OCR or model-generated text.
 The current Application boundary accepts Record semantic fields as strings and
 accepts `image_paths` separately. It validates and stores the original image
 bytes as initial Error attachments, which is enough to prove attachment
-provenance through Record → Error → Grill for a text-backed draft. The frontend
+origin through Record → Error → Grill for a text-backed draft. The frontend
 keeps the richer shape visible and does not pretend that the current database
 has field-level media semantics.
 
@@ -57,7 +57,7 @@ of which semantic field. The API reported this as
 near the draft. It must not OCR or flatten an image merely to satisfy the
 legacy column. A production change would require a small field-content
 relation/JSON contract storing ordered text parts and original attachment IDs,
-with provenance and migration rules; this spike deliberately does not migrate
+with origin and migration rules; this spike deliberately does not migrate
 the production schema. The production implementation subsequently added durable
 pending attachments and permits a pure-image Record confirmation, while the
 field-level semantic limitation remains.

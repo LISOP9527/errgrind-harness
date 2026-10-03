@@ -12,7 +12,7 @@ Evidence
 
 形成一个持续优化的闭环。
 
-当前 MVP 的最小可审计实现是：Error 记录保留 `origin`、`source_error_id` 与 `source_drill_attempt_id` provenance，Drill 判分保留为 Action ledger。该 ledger 记录干预结果，但不等同于 Future Error 减少的证明；后者需要后续真实学习事件和时间窗口分析。
+当前 MVP 的最小可审计实现是：Error 记录保留 `origin`、`source_error_id` 与 `source_drill_attempt_id` 出处，Drill 判分保留为 Action ledger。该 ledger 记录干预结果，但不等同于 Future Error 减少的证明；后者需要后续真实学习事件和时间窗口分析。
 
 ---
 
@@ -34,7 +34,7 @@ Teach、Drill 或其他干预之后的观察仍可保存为审计记录，但当
 - 录题时的 initial user thoughts；
 - Grill 中真实的用户回答；
 - 用户上传并持久保存的原始图片附件。附件本身是 artifact Evidence，必须保留 attachment
-  provenance；它可以作为 Grill 的 grounded Evidence source，但图片内容的模型转录不是用户逐字引文。
+  出处；它可以作为 Grill 的 grounded Evidence source，但图片内容的模型转录不是用户逐字引文。
 
 如果用户在当前对话中产生新的 Error，而该 Error 无法归因于原始 Error 的 mechanism，它不能作为原始诊断的区分性 Evidence；可以保存为观察，但不得写成支持或反驳原始机制的因果证据。
 

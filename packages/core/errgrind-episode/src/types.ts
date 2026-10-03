@@ -25,11 +25,11 @@ export interface ErrorAttachment {
 }
 
 /** Whether the first Error input came directly from the learner or through an agent host. */
-export type InputProvenanceKind = 'direct_user' | 'host_relay' | 'derived_drill'
+export type InputOriginKind = 'direct_user' | 'host_relay' | 'derived_drill'
 
 /** Source metadata for the first Error input. */
-export interface InputProvenance {
-  readonly kind: InputProvenanceKind
+export interface InputOrigin {
+  readonly kind: InputOriginKind
   readonly rpcId?: string | undefined
   readonly clientTimeZone?: string | undefined
   readonly senderSessionId?: string | undefined
@@ -123,7 +123,7 @@ export interface ErrorEpisode {
   readonly firstInputHasImage: boolean
   readonly firstInputTurn: number
   readonly latestTurn: number
-  readonly provenance: InputProvenance
+  readonly origin: InputOrigin
   readonly attachments: readonly ErrorAttachment[]
   readonly draft: ErrorDescriptionDraft | null
   readonly confirmedRevision: number | null
@@ -165,7 +165,7 @@ declare module '@deepseek-ai/dsh-session/types' {
       text: string
       turn: number
       hasImage?: boolean | undefined
-      provenance?: InputProvenance | undefined
+      origin?: InputOrigin | undefined
       attachments?: readonly ErrorAttachment[] | undefined
     }
     /** A wrong Drill answer promoted into a separate Error investigation with exact source lineage. */

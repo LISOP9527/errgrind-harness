@@ -17,8 +17,8 @@ ErrGrind 的独特价值在 Error / Evidence / diagnosis / intervention 的产�
 - **Search before build.** 对新的非平凡基础设施或 UI primitive，默认先做一次有针对性的生态检查。若仍选择自建，应能说明现成方案为何不适配、集成成本为何更高或会破坏产品边界。
 - **Reuse implementations aggressively; import ontologies conservatively.** 可以大胆复用成熟实现，但框架必须适配 ErrGrind，而不是让 ErrGrind 的 domain model 适配框架。完整产品型框架尤其要警惕其信息架构和对象模型反向绑架产品。这里的“适配 ErrGrind”指遵守产品目标与 domain 不变量，不表示必须保持当前 Core 的模块边界，或让候选 Agent 单方面适配现有 Application。
 - **比较总成本，不比较“有没有轮子”。** 引入第三方方案时同时计算迁移、构建链、运行依赖、安全面、测试、升级和退出成本；已有实现接近完成时，不因发现新框架就自动重写。
-- **把模型调用当作昂贵且有损的 I/O。** 已有结构化状态应尽量结构化传递；避免 `structured state → prose summary → another LLM re-derivation` 这类无必要 round-trip。新增模型调用前先问：是否已有数据可直接复用，是否会丢 provenance / uncertainty，是否只是用 token 替代普通程序逻辑。
-- **保留 provenance 和事实来源。** 用户行为、模型解释、派生摘要、附件、OCR/vision 结果和系统推断必须保持来源可区分；任何 transformation 都不能把模型生成内容伪装成用户 Evidence。
+- **把模型调用当作昂贵且有损的 I/O。** 已有结构化状态应尽量结构化传递；避免 `structured state → prose summary → another LLM re-derivation` 这类无必要 round-trip。新增模型调用前先问：是否已有数据可直接复用，是否会丢出处 / uncertainty，是否只是用 token 替代普通程序逻辑。
+- **保留出处和事实来源。** 用户行为、模型解释、派生摘要、附件、OCR/vision 结果和系统推断必须保持来源可区分；任何 transformation 都不能把模型生成内容伪装成用户 Evidence。
 - **重复 workaround 是缺失 contract 的信号。** 如果多个 frontend 需要同一逻辑，或 adapter 为同一个 Core 限制反复打补丁，应优先补 Core/domain contract，而不是继续堆 Web/CLI 特例。
 - **真实数据优先于漂亮 fixture。** 新 UI、恢复路径、长文本、数学渲染和状态流转至少用一个真实或足够脏/长的代表案例验收；短 fake fixture 通过不等于产品可用。
 - **Implementation surface 不等于 product surface。** CLI command、数据库表、状态枚举、API endpoint、内部 pipeline stage 都只是实现能力或 contract，不能默认一一映射成页面、导航、tab 或用户心智模型。新 frontend 应先从用户对象、任务与动作设计信息架构，再映射到底层能力。

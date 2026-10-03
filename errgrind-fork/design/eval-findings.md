@@ -39,7 +39,7 @@ From `errgrind/cli/commands.py` and `errgrind/application/drill.py`:
 - **`/drills` history surface** (question + target Pattern 5 fields + "不代表已确认的长期 Pattern" disclaimer + prompt/schema SHA-256): the fork has no drill-history surface. Keep on the list — the episode card's history section is the natural home.
 - **Verdict-only popup**: old drill showed only 正确/错误 in the modal; feedback persisted to `drill_attempts` but wasn't displayed. The fork renders verdict + feedback durably in the transcript card — deliberate divergence, kept (feedback is where the evidence-insufficiency nuance lives).
 - **Atomic attempt record**: old `record_drill_attempt` wrote the attempt and derived Error in one transaction; the fork's `errgrind/drill-judged` event carries `derivedError` in the same event. Equivalent atomicity preserved.
-- **Judge provenance**: old stored provider + model + prompt-sha256 + schema-sha256 on the attempt. Fork stores provider + model on the event; prompts and schemas are git-tracked in `prompts/tools.json`, so version provenance resolves through the repo. Acceptable — no per-attempt sha needed while prompts stay version-controlled.
+- **Judge origin**: old stored provider + model + prompt-sha256 + schema-sha256 on the attempt. Fork stores provider + model on the event; prompts and schemas are git-tracked in `prompts/tools.json`, so version origin resolves through the repo. Acceptable — no per-attempt sha needed while prompts stay version-controlled.
 
 ## Settings acceptance (todo 39) — PASS, one fix landed
 

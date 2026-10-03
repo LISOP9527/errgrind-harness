@@ -24,7 +24,7 @@ YYYY-MM-DD-short-title.md
 - [Single-workspace WebUI](2026-09-10-single-workspace-webui.md)：Web 围绕 Error 对象、临时 action 与单一主 workspace 组织，不把 CLI slash commands 或内部 workflow 阶段展开成页面结构。
 - [Drill 目标查询与判题结果展示](2026-09-08-drill-target-query-and-verdict.md)：通过 `/drills` 查看历史目标机制，判题后的即时结果仅展示正确或错误。
 - [Drill 答题图片输入](2026-09-08-drill-answer-ocr.md)：复用字段图片输入交互，当前答案校对后进入 Judge。
-- [直接多模态 Web 输入](2026-09-11-direct-multimodal-web-input.md)：Record、Error 对话和 Drill 直接发送图片，保留附件 provenance 与恢复所需的字节。
+- [直接多模态 Web 输入](2026-09-11-direct-multimodal-web-input.md)：Record、Error 对话和 Drill 直接发送图片，保留附件出处与恢复所需的字节。
 - [assistant-ui conversation workspace spike](2026-09-14-assistant-ui-spike.md)：历史基础设施 spike；正式迁移与 durable pending attachment 结论见后续 ADR。
 - [React + assistant-ui WebUI 正式迁移](2026-09-14-assistant-ui-migration.md)：React 工作区接入单端口生产服务，保留 Flask/Application/SQLite 业务权威。
 - [Grill 与 Teach 会话生命周期](2026-07-27-conversation-lifecycle.md)：完成的 Grill 只读，partial Grill 可恢复，Teach 作为可持续进入的单一会话。
@@ -35,7 +35,7 @@ YYYY-MM-DD-short-title.md
 - [原 Codex app-server 接入决策](2026-08-29-codex-app-server-provider.md)：历史方案；生成和凭据读取边界已由直连决策替代。
 - [OCR 作为需人工校对的录题入口](2026-08-31-ocr-as-reviewed-input.md)：历史 CLI/Web OCR 入口；Web 直接多模态输入已 supersede 其 Web 路径，CLI 兼容能力可暂留。
 - [在录题字段内整合图片识别](2026-09-06-record-field-image-input.md)：历史 Web 字段 OCR 方案，已由直接多模态附件决策 supersede；保留历史背景。
-- [Evidence 来源与 Drill Action Ledger](2026-09-01-evidence-provenance-drill-ledger.md)：记录来源 provenance 与 Drill 干预账本；不把正确率当作未来 Error 减少证明。
+- [Evidence 来源与 Drill Action Ledger](2026-09-01-evidence-origin-drill-ledger.md)：记录来源出处与 Drill 干预账本；不把正确率当作未来 Error 减少证明。
 - [暂缓长期 Pattern Observation 校验](2026-09-02-defer-pattern-observation-validation.md)：跨 Error 的 Pattern Observation 与 promotion 仍 deferred；episode-level structured Grill 已由后续 ADR 纳入当前实现。
 - [Application 工作流边界](2026-09-03-application-workflow-boundary.md)：以 UI 无关的 application façade 编排 Grill、Teach、Drill，CLI 退为终端 adapter。
 - [Grill 作为主动诊断](2026-09-04-grill-as-active-diagnosis.md)：Grill 区分候选解释并允许不确定结果；一次 Grill 不是已确认的长期 Pattern。

@@ -346,7 +346,7 @@ describe('ErrGrind episode real Loader composition', () => {
       firstInput: direct.content[0]?.type === 'text' ? direct.content[0].text : '',
       firstInputHasImage: true,
       firstInputTurn: 1,
-      provenance: { kind: 'direct_user', rpcId: 'rpc-prompt-1', clientTimeZone: 'Asia/Shanghai' },
+      origin: { kind: 'direct_user', rpcId: 'rpc-prompt-1', clientTimeZone: 'Asia/Shanghai' },
       draft: null,
       confirmedRevision: null,
     })
@@ -371,7 +371,7 @@ describe('ErrGrind episode real Loader composition', () => {
       firstInputHasImage: episode.firstInputHasImage,
       firstInputTurn: episode.firstInputTurn,
       latestTurn: episode.latestTurn,
-      provenance: episode.provenance,
+      origin: episode.origin,
       attachments: episode.attachments,
       draft: episode.draft,
       confirmedRevision: episode.confirmedRevision,
@@ -392,7 +392,7 @@ describe('ErrGrind episode real Loader composition', () => {
       session.inheritedEventCount,
     )
     expect(restored.checkpoint.errgrindEpisode).toMatchObject({
-      ver: 8,
+      ver: 9,
       val: {
         evidenceSources: [
           { sourceRef: 'initial-input', probeId: null, diagnosisRound: 1, text: episode.firstInput },
@@ -851,8 +851,8 @@ describe('ErrGrind episode real Loader composition', () => {
     }, () => Promise.resolve({ kind: 'enter' as const, messages: [relayMessage] }))
 
     const secondEpisode = ctx.sessionProjections.stateOf(second, 'errgrindEpisode')
-    expect(secondEpisode?.provenance.kind).toBe('host_relay')
-    expect(secondEpisode?.provenance.senderSessionId).toBe('parent-agent')
+    expect(secondEpisode?.origin.kind).toBe('host_relay')
+    expect(secondEpisode?.origin.senderSessionId).toBe('parent-agent')
 
     // Test undetermined conclusion on second session
     await ctx.tools.execute({

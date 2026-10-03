@@ -11,11 +11,23 @@ English | [中文](README.zh.md)
 
 `@errgrind/episode` records authentic Error inputs and verbatim original attachments in a session projection, supports visible intake clarification, Error drafting and confirmation, Grill diagnosis, public Teach steps, and independent Drill attempts. Teach and Drill are interventions, not evidence about what caused the original Error. The original Error draft is locked once Teach starts. The package distinguishes direct user input from host relays and provides `/error-status` to inspect episode state.
 
+## Table of Contents
+
+- [Event flow](#event-flow)
+- [Human Commands](#human-commands)
+- [Session projection](#session-projection)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+-----
+
+<a id="event-flow"></a>
 ## Event flow
 
-On an entered agent step, the plugin inspects the claimed user-sourced message before the model call. If text or attachments are present and no episode is open, it appends `errgrind/error-open` with the text, turn, provenance (`direct_user` or `host_relay`), and SHA-256 attachment records. This first text and its attachment facts seed structured Error-time Evidence; an initial attachment Evidence item uses an empty quote because the image itself, rather than extracted text, is the source. When the host attachments service is mounted, original image bytes require a durable `saveFile` receipt before normalization. Upload fails if `saveFile` fails; an initial Error message without that receipt cannot open an episode. Normalized image refs carry the exact original receipt (`errgrindOriginal`), and batch validation precedes writes. Keyless Web E2E covers browser image admission, durable original receipts, cold Session reconstruction, and image reads after page reload; a separate Host restart test covers synthetic-image recovery. These tests do not exercise real model image interpretation.
+On an entered agent step, the plugin inspects the claimed user-sourced message before the model call. If text or attachments are present and no episode is open, it appends `errgrind/error-open` with the text, turn, origin (`direct_user` or `host_relay`), and SHA-256 attachment records. This first text and its attachment facts seed structured Error-time Evidence; an initial attachment Evidence item uses an empty quote because the image itself, rather than extracted text, is the source. When the host attachments service is mounted, original image bytes require a durable `saveFile` receipt before normalization. Upload fails if `saveFile` fails; an initial Error message without that receipt cannot open an episode. Normalized image refs carry the exact original receipt (`errgrindOriginal`), and batch validation precedes writes. Keyless Web E2E covers browser image admission, durable original receipts, cold Session reconstruction, and image reads after page reload; a separate Host restart test covers synthetic-image recovery. These tests do not exercise real model image interpretation.
 
-The registered `errgrindEpisode` projection folds Error, Grill, and `errgrind/teach-step` events plus grounding excerpts from `user/message`. Its Host state maintains the authentic first input, attachment references, provenance, description draft, confirmed revision, diagnosis history, evidence sources, and active diagnostic ledger. Its browser wire view contains only the first 300 Unicode characters of the public description, coarse stage, and current Drill eligibility for Error history. `errgrind/error-clarify` and `errgrind/teach-step` are durable public conversation events. The `latest-probe-answer` source alias resolves to its durable `user/message` source before grounding checks. User answers after Teach starts are excluded from Error-time evidence. Unrelated events preserve the existing projection state.
+The registered `errgrindEpisode` projection folds Error, Grill, and `errgrind/teach-step` events plus grounding excerpts from `user/message`. Its Host state maintains the authentic first input, attachment references, origin, description draft, confirmed revision, diagnosis history, evidence sources, and active diagnostic ledger. Its browser wire view contains only the first 300 Unicode characters of the public description, coarse stage, and current Drill eligibility for Error history. `errgrind/error-clarify` and `errgrind/teach-step` are durable public conversation events. The `latest-probe-answer` source alias resolves to its durable `user/message` source before grounding checks. User answers after Teach starts are excluded from Error-time evidence. Unrelated events preserve the existing projection state.
 
 The separate `errgrindDrill` projection stores a private DrillSpec and reference answer, the public question, persisted user answer references, a reviewable image-answer draft, and judged attempts. `drill_answer_draft` records the image transcription as a draft; the learner must reply `确认` or `修正：...` to complete the answer before judgment. `drill_judge` records the provider and model from the request header. A wrong result includes a derived Error snapshot with exact question, answer, reference answer, and source attempt in the same `errgrind/drill-judged` event. The browser can request a separate pending-Grill Session from that snapshot. The Host reuses the same target Session on repeated requests and preserves its source lineage in the durable log.
 
@@ -25,17 +37,20 @@ During active Grill, the agent can call `error_clarify` to show one factual clar
 
 The current Web composition defaults new sessions to the read-only permission preset. It disables PTC execution, shell settings, file/session references, and `/error-status`, which can expose attachment hashes and diagnostic state. Image attachments and revision-bound `/error-confirm <revision>` remain available; the standard preset exposes eight ErrGrind model tools, including Teach, Drill, and `drill_answer_draft`.
 
+<a id="human-commands"></a>
 ## Human Commands
 
 - `/error-confirm <revision>` — Confirms the displayed Error description revision. Fails if no draft exists, the supplied revision is stale, or that revision was already confirmed.
-- `/error-status` — Displays the episode provenance, original input size, attachment hashes, draft confirmation status, diagnosis conclusion, and ledger counts.
+- `/error-status` — Displays the episode origin, original input size, attachment hashes, draft confirmation status, diagnosis conclusion, and ledger counts.
 
+<a id="session-projection"></a>
 ## Session projection
 
-The session log is the durable source of truth for all episode state. `errgrindEpisode` uses state version `8` and starts at `null`; `errgrindDrill` uses version `3` and starts empty. Both reconstruct by folding committed session events. The browser receives the narrow `errgrindEpisode` wire view only when its Host `browserView` policy allows that key; the private fold state remains on the Host. Calling `currentEpisode` fails explicitly if the projection service or registered key is unavailable.
+The session log is the durable source of truth for all episode state. `errgrindEpisode` uses state version `9` and starts at `null`; `errgrindDrill` uses version `3` and starts empty. Both reconstruct by folding committed session events. The browser receives the narrow `errgrindEpisode` wire view only when its Host `browserView` policy allows that key; the private fold state remains on the Host. Calling `currentEpisode` fails explicitly if the projection service or registered key is unavailable.
 
 There is no `./invariant` export: the fold checks the owned event transitions, and this package owns no relation to a second service or store.
 
+<a id="model-experience"></a>
 ## Model Experience
 
 ### Diagnostic tools and session conversation
@@ -54,8 +69,20 @@ Tool descriptions and schemas are static, preserving request prefix stability wh
 
 ## Known Limitations and Deferred Work
 
+<a id="known-limitations-and-deferred-work"></a>
+
 - **Browser view scope** — ErrGrind Web uses a strict event and field allowlist: the browser receives user messages, the complete Error draft and revision, confirmation, public intake clarifications and Grill questions, safe conclusion fields, and the narrow Error history view. Assistant messages, tool results, private Grill events, reasoning, tool arguments, private projection state, and original attachment references remain on the Host. Image/file reads use event-position locators that the Host resolves inside the owning Session. Other compositions must configure an equivalent `browserView` policy explicitly.
 - **Web image and recovery coverage** — Keyless browser tests cover image upload, original receipts, cold Session reconstruction, and image restoration after page reload. A separate Host restart test covers recovery with a synthetic image. These checks do not exercise a real model's image interpretation.
 - **Product flow and mobile acceptance** — Keyless browser replay uses scripted model outputs for a simple fraction Error and covers description revision, Grill, Teach, wrong-answer Drill, opening the derived Error in a separate Session, idempotent retry, cold read, reload, and a 390px layout (2/2 targeted tests passed). Image answers now have a review-and-confirm correction path before judgment; full mobile product acceptance and live-model full-chain validation remain deferred.
 - **Cache behavior needs more data** — One isolated real Codex intake run reported 11,520 `cacheReadTokens` on its second model call. This does not establish sustained hit rate or cost across the workflow.
 - **Python legacy migration deferred** — Error #8 and SQLite historical records remain read-only reference data; database migration is not implemented.
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+`origin` records whether the first Error input reached the session directly (`direct_user`) or through a host relay (`host_relay`). Logs written under the earlier field name read as `direct_user`.
+
+</details>

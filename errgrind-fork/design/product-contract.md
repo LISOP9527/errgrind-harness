@@ -56,7 +56,7 @@ The DSH Session log is the durable fact source for this fork. Core projections
 and validators own the episode state, evidence grounding, transitions, and
 Drill lineage. The runtime owns model calls and context assembly; the browser
 receives a public projection. A future MCP adapter must use the same domain
-rules and preserve observable host relay provenance instead of creating its
+rules and preserve observable host relay origin instead of creating its
 own Error workflow or authoritative store. The older Python Application and
 SQLite schema are migration inputs, not fixed interfaces for this fork.
 
@@ -77,7 +77,7 @@ SQLite schema are migration inputs, not fixed interfaces for this fork.
 `errgrind-fork/web.patch.yml` loads `prompts/system.md`; the episode plugin
 loads `prompts/tools.json` as its actual model-visible tool descriptions and
 parameter guidance. The `legacy/` symlinks are removed. Core still enforces
-schema, provenance, privacy, and state. Static prompt and tool schemas keep
+schema, origin, privacy, and state. Static prompt and tool schemas keep
 the request prefix stable for provider cache reuse; actual hit rate needs
 real usage telemetry.
 
@@ -124,7 +124,7 @@ real usage telemetry.
   building a nontrivial generic capability, inspect what DSH and established
   implementations already provide; compare integration, security, upkeep,
   and exit costs.
-- Preserve provenance and one workflow authority across Web and future MCP.
+- Preserve origin and one workflow authority across Web and future MCP.
   Do not implement state transitions, diagnostic validation, or private-data
   filtering independently in each adapter. Keep public responses free of the
   private Grill ledger, predictions, variant keys, and pre-judgment Drill

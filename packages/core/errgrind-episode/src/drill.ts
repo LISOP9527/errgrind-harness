@@ -384,7 +384,7 @@ export function applyDrillEvent(state: DrillState, event: SessionEvent): DrillSt
         throw new Error('Drill judgment must reference the persisted user answer')
       }
       if (answer.imageSourceRef !== event.data.imageSourceRef) {
-        throw new Error('Drill judgment must preserve image answer provenance')
+        throw new Error('Drill judgment must preserve image answer origin')
       }
       if (event.data.feedback.trim().length === 0) throw new Error('Drill feedback cannot be empty')
       if (event.data.isCorrect === (event.data.derivedError !== null)) {

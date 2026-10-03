@@ -150,9 +150,10 @@ export function displayFailure(failure: unknown): DisplayFailure {
   if (failure === null || typeof failure !== 'object') return { message: String(failure) }
   const record = failure as { code?: unknown; message?: unknown }
   const code = typeof record.code === 'string' ? record.code : undefined
-  // Provider AUTH messages may echo a masked or partially preserved credential.
-  // Keep the raw diagnostic in the Session log, but never retain it in UI state.
-  if (code === 'AUTH') return { code, message: '' }
+  // Provider AUTH and INVALID_CREDENTIAL messages may echo a masked or
+  // partially preserved credential. Keep the raw diagnostic in the Session
+  // log, but never retain it in UI state.
+  if (code === 'AUTH' || code === 'INVALID_CREDENTIAL') return { code, message: '' }
   return {
     ...(code === undefined ? {} : { code }),
     message: typeof record.message === 'string' ? record.message : JSON.stringify(failure),

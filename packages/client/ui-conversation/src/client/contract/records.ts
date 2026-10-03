@@ -134,7 +134,7 @@ export interface TurnErrorNode {
   time: number
   turn: number
   step: number
-  /** Provider diagnostic message retained for debugging; emptied only for `AUTH`, whose raw text can echo credentials. */
+  /** Provider diagnostic message retained for debugging; emptied for `AUTH` and `INVALID_CREDENTIAL` (raw text can echo credentials). */
   message: string
   /** Stable provider failure code, when recorded. */
   code?: string

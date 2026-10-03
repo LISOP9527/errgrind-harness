@@ -323,9 +323,9 @@ export class SessionController extends TypertRemoteService {
     if ('error' in target) throw target.error
     const session = target.agent.session
     const existing = this.ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
-    if (existing !== null && (existing?.provenance.kind !== 'derived_drill'
-      || existing.provenance.sourceSessionId !== request.sourceSessionId
-      || existing.provenance.sourcePreparationId !== request.preparationId)) {
+    if (existing !== null && (existing?.origin.kind !== 'derived_drill'
+      || existing.origin.sourceSessionId !== request.sourceSessionId
+      || existing.origin.sourcePreparationId !== request.preparationId)) {
       throw new RemoteError('gateway/internal', 'Derived Error Session identity conflicts with another Error', {})
     }
     const text = `Practice question: ${derived.question}\nLearner answer: ${derived.userResponse}`

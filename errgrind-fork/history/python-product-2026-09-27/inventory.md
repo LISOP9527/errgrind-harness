@@ -17,7 +17,7 @@
 | `design/decisions/2026-07-28-drill-spec-isolation.md` | [原文](design/decisions/2026-07-28-drill-spec-isolation.md.txt) | 保留决策理由；适用原则与实现替代见迁移说明 | [当前入口](../../design/migration.md) |
 | `design/decisions/2026-08-29-codex-app-server-provider.md` | [原文](design/decisions/2026-08-29-codex-app-server-provider.md.txt) | 保留决策理由；适用原则与实现替代见迁移说明 | [当前入口](../../design/migration.md) |
 | `design/decisions/2026-08-31-ocr-as-reviewed-input.md` | [原文](design/decisions/2026-08-31-ocr-as-reviewed-input.md.txt) | 保留决策理由；适用原则与实现替代见迁移说明 | [当前入口](../../design/migration.md) |
-| `design/decisions/2026-09-01-evidence-provenance-drill-ledger.md` | [原文](design/decisions/2026-09-01-evidence-provenance-drill-ledger.md.txt) | 保留决策理由；适用原则与实现替代见迁移说明 | [当前入口](../../design/migration.md) |
+| `design/decisions/2026-09-01-evidence-origin-drill-ledger.md` | [原文](design/decisions/2026-09-01-evidence-origin-drill-ledger.md.txt) | 保留决策理由；适用原则与实现替代见迁移说明 | [当前入口](../../design/migration.md) |
 | `design/decisions/2026-09-02-defer-pattern-observation-validation.md` | [原文](design/decisions/2026-09-02-defer-pattern-observation-validation.md.txt) | 保留决策理由；适用原则与实现替代见迁移说明 | [当前入口](../../design/migration.md) |
 | `design/decisions/2026-09-03-application-workflow-boundary.md` | [原文](design/decisions/2026-09-03-application-workflow-boundary.md.txt) | 保留决策理由；适用原则与实现替代见迁移说明 | [当前入口](../../design/migration.md) |
 | `design/decisions/2026-09-04-grill-as-active-diagnosis.md` | [原文](design/decisions/2026-09-04-grill-as-active-diagnosis.md.txt) | 保留决策理由；适用原则与实现替代见迁移说明 | [当前入口](../../design/migration.md) |

@@ -2369,7 +2369,7 @@ describe('built-in conversation node Definitions', () => {
         retry: 2,
         maxRetries: 2,
         delayMs: 20,
-        failure: { code: 'TRANSPORT', message: 'second' },
+        failure: { code: 'AUTH', message: 'sk-echo' },
       }),
       at(6, 'step/end', { turn: 1, step: 1 }),
       at(7, 'turn/end', {
@@ -2380,6 +2380,10 @@ describe('built-in conversation node Definitions', () => {
     const retryNode = node(snapshot(retry), 'model-retry')
     const retryData = retryNode?.data as RetryChatData
     expect(retryData.attempts.map(attempt => attempt.retryState)).toEqual(['started', 'cancelled'])
+    expect(retryData.attempts.map(attempt => attempt.failure)).toEqual([
+      { code: 'TRANSPORT', message: 'first' },
+      { code: 'AUTH', message: '' },
+    ])
     expect(node(snapshot(retry), 'turn-error')?.data).toMatchObject({
       kind: 'turn-error',
       turn: 1,

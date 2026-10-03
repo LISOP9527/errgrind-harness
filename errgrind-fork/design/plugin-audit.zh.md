@@ -102,7 +102,7 @@
 | plugin-package-inventory-deepseek | 面向官方 DeepSeek 请求的活动包清单 | 注册到 deepseek-llm-api-extensions | 是 | 否 | 无 | 无 |
 
 封闭簇：所有消费者都在簇内或已禁用（`llm-deepseek`）。ErrGrind 请求经
-`llm-pi-ai` → Hongyun 中转；这套东西永不执行。**2026-10-01 已移除（`f3d4a92`）。
+`llm-pi-ai` → Hongyun 中转；这套东西永不执行。**2026-10-01 已移除。**
 
 ## 层 I — host/web 传输（除标记外保留）
 
@@ -148,11 +148,11 @@
 
 按 todo 要求"每次只移除一组，落地后跑定向回归"排序。
 
-- **G1 — DeepSeek 请求管线**（`deepseek-llm-api-extensions`、`session-log-deepseek`、`plugin-package-inventory-deepseek`）：封闭簇，ErrGrind 路径零使用。**已落地**（`f3d4a92`）：启动 + 真实 Astra turn 通过。
-- **G2 — 委派与 jobs**（`subagent`、`subagent-spawn-in-process`、`subagent-fork-in-process`、`jobs`）：无启用态消费者；所有委派工具与 UI 行已禁用。**已落地**（`ff36891`）：启动、冷读、恢复、一轮推进账本的 35 秒 Opus turn 均通过。
-- **G3 — goal 与 user questions**（`goal`、`goal-round-driver`、`user-questions`）：无启用态消费者。**已落地**（`1dd82bb`）：启动 + 真实 turn 通过。
-- **G4 — 模型 web 后端**（`web`、`web-search-deepseek`、`web-fetch-http`、`mcp-resources`）：tool-web 已关；runner 仅把 ctx.web 当沙箱提示文本。**已落地**（`5e450a6`）：启动 + 真实 turn 通过。
-- **G5 — OTel 后端**（`session-telemetry-otel`）：无 telemetry 协调器挂载；默认导出器指向 harness-telemetry.deepseeksvc.com。**已落地**（`5e450a6`，与 G4 同提交）：启动 + 真实 turn 通过。
+- **G1 — DeepSeek 请求管线**（`deepseek-llm-api-extensions`、`session-log-deepseek`、`plugin-package-inventory-deepseek`）：封闭簇，ErrGrind 路径零使用。**已落地**（2026-10-01）：启动 + 真实 Astra turn 通过。
+- **G2 — 委派与 jobs**（`subagent`、`subagent-spawn-in-process`、`subagent-fork-in-process`、`jobs`）：无启用态消费者；所有委派工具与 UI 行已禁用。**已落地**（2026-10-01）：启动、冷读、恢复、一轮推进账本的 35 秒 Opus turn 均通过。
+- **G3 — goal 与 user questions**（`goal`、`goal-round-driver`、`user-questions`）：无启用态消费者。**已落地**（2026-10-01）：启动 + 真实 turn 通过。
+- **G4 — 模型 web 后端**（`web`、`web-search-deepseek`、`web-fetch-http`、`mcp-resources`）：tool-web 已关；runner 仅把 ctx.web 当沙箱提示文本。**已落地**（2026-10-01）：启动 + 真实 turn 通过。
+- **G5 — OTel 后端**（`session-telemetry-otel`）：无 telemetry 协调器挂载；默认导出器指向 harness-telemetry.deepseeksvc.com。**已落地**（2026-10-01，与 G4 同提交）：启动 + 真实 turn 通过。
 - **G6 — 休眠服务**（`session-query-sqlite`、`directory-picker`）：落地时拆分——`session-controller` 在**必需 inject 列表**中声明 `sessionQuery`（`listSessions`/`observeSession`），禁用 `session-query-sqlite` 会让整个会话面挂起（实机验证：启动日志报 "session-controller … waiting for service: sessionQuery"，工作区进入与最近会话恢复均失效）。因此 `session-query-sqlite` **保留挂载**；要移除需先把该 inject 改为可选，属共享包手术，留待后续。`directory-picker` **已回退**（保留挂载）：审计漏看了它是兜底恢复面——默认 Workspace 初始化失败时，`defaultWorkspaceFailed` toast 指引用户去“选择工作区”，而 `remote.directoryPicker` 按名字取的就是这个插件（`packages/client/ui-workspace/src/client/navigation.ts:145`）。禁用后 picker 手势打开空菜单，唯一的恢复路径断掉。2026-10-01 核对 todo-39 设置验收时发现。
 - **G7 — 缺席工具的守卫策略**（`repeat-tool-reminder`、`timeout-policy`、`fs-observation-policy`）：挂在零可执行工具上。保留成本最低；仅当 loop 面进一步收缩时再评。
 - **G8 — ui-workspace**（`ui-workspace`）：**保留——硬依赖且有真实功能**。`ui-conversation/src/client/apply.ts` 调用 `uiWorkspace.openSession` / `openWorkspace` 驱动会话头血缘面包屑与工作区选择；`openSession` 被 ErrGrind 自己的派生会话血缘用到（"Investigate this new Error" 子会话），且该服务承载 supersession/创建/通知逻辑，在 ui-conversation 里重写等同重复实现。其全部可见输出已 CSS 隐藏（inventory #19），移除换不来任何用户可见收益——导航大脑保留。
@@ -175,7 +175,7 @@ tree-shake 到可达 import。以下为后续是否做物理删除决策的实�
   vendor + 596 KB index）——已经过 tree-shake，物理排除在这里几乎无收益；
   另有 14 MB sourcemap 与约 3 MB 字体/静态资源。
 - **运行中 host RSS**：源码启动的 web profile 在约 1 小时运行后约 231 MB。
-- **3.8 GiB VPS 全新 checkout 构建**（`d03accca96`）：clone 4 分 36 秒；
+- **3.8 GiB VPS 全新 checkout 构建**（2026-10-01）：clone 4 分 36 秒；
   `pnpm install` 63 秒 / 峰值 743 MiB；`pnpm run errgrind:build` 212 秒 /
   峰值 2323 MiB——以约 400 MiB 余量通过。
 - **工作区总量**：packages/ 源码 206 MB，node_modules 1.7 GB（含测试与

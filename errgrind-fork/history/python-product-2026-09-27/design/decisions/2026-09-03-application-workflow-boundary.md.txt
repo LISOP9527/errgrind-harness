@@ -27,7 +27,7 @@ Grill、Teach 与 Drill 的状态转换、Prompt 组装、LLM 调用、输出契
 ## Rationale
 
 这是让下一种前端成为薄 adapter 的最小拆分：当前基础设施和产品协议保持不变，且不引入
-repository interface、DI framework 或尚未需要的服务层次。会话与 provenance 的唯一事实
+repository interface、DI framework 或尚未需要的服务层次。会话与出处的唯一事实
 来源仍是 ErrGrind 数据库。
 
 ## Consequences

@@ -19,7 +19,7 @@ import type {
   ErrorListEntry,
   Hypothesis,
   HypothesisStatus,
-  InputProvenance,
+  InputOrigin,
   PendingDiagnosisConclusion,
 } from './types.ts'
 import { applyDrill } from './drill.ts'
@@ -134,7 +134,7 @@ const attachmentSchema = zod.object({
   normalizedImageRef: zod.any().optional(),
 }).strict()
 
-const provenanceSchema = zod.object({
+const originSchema = zod.object({
   kind: zod.enum(['direct_user', 'host_relay', 'derived_drill']),
   rpcId: zod.string().optional(),
   clientTimeZone: zod.string().optional(),
@@ -150,7 +150,7 @@ const episodeSchema: ZodType<ErrorEpisode | null> = zod.union([
     firstInputHasImage: zod.boolean(),
     firstInputTurn: zod.number().int().positive(),
     latestTurn: zod.number().int().positive(),
-    provenance: provenanceSchema,
+    origin: originSchema,
     attachments: zod.array(attachmentSchema),
     draft: zod.object({ revision: zod.number().int().positive(), text: zod.string().min(1) }).nullable(),
     confirmedRevision: zod.number().int().positive().nullable(),
@@ -506,8 +506,8 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
       const attachments = event.data.attachments ?? []
       const hasImage = event.data.hasImage ?? attachments.some(a => a.mediaType.startsWith('image/'))
       if (text.length === 0 && !hasImage && attachments.length === 0) throw new Error('Error input is empty')
-      const provenance: InputProvenance = event.data.provenance ?? { kind: 'direct_user' }
-      const prefix = provenance.kind === 'host_relay' ? 'host-relay' : 'initial'
+      const origin: InputOrigin = event.data.origin ?? { kind: 'direct_user' }
+      const prefix = origin.kind === 'host_relay' ? 'host-relay' : 'initial'
       const evidenceSources: ErrorEpisode['evidenceSources'] = [
         ...(text.trim().length > 0 ? [{ sourceRef: `${prefix}-input`, text, probeId: null, diagnosisRound: 1 }] : []),
         ...attachments.map((_, index) => ({
@@ -519,7 +519,7 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         firstInputHasImage: hasImage,
         firstInputTurn: event.data.turn,
         latestTurn: event.data.turn,
-        provenance,
+        origin,
         attachments,
         draft: null,
         confirmedRevision: null,
@@ -547,7 +547,7 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         firstInputHasImage: false,
         firstInputTurn: 1,
         latestTurn: 1,
-        provenance: {
+        origin: {
           kind: 'derived_drill', sourceSessionId: data.sourceSessionId,
           sourcePreparationId: data.sourcePreparationId, sourceAnswerRef: data.sourceAnswerRef,
         },
@@ -821,7 +821,7 @@ export function apply(ctx: Context, config: Config = { statusCommand: true }): v
   ctx.sessionProjections.register({
     key: 'errgrindEpisode',
     stateSchema: episodeSchema,
-    stateVersion: 8,
+    stateVersion: 9,
     init: () => null,
     apply: applyEpisodeEvent,
     wire: { viewSchema: errorListEntrySchema, view: publicErrorListEntry },
@@ -877,7 +877,7 @@ export function apply(ctx: Context, config: Config = { statusCommand: true }): v
         const input = snapshots[index]
         const fileRef = fileRefs[index]
         /* v8 ignore next -- map indices are valid after saveImages returned the exact input count. */
-        if (input === undefined || fileRef === undefined) throw new Error('Attachment batch provenance was lost')
+        if (input === undefined || fileRef === undefined) throw new Error('Attachment batch origin was lost')
         return {
           ...imageRef,
           errgrindOriginal: {
@@ -907,7 +907,7 @@ export function apply(ctx: Context, config: Config = { statusCommand: true }): v
 
     const isRelay = (userSourced.source as { form?: string }).form === 'relay' || userSourced.source.kind !== 'user'
     const sourceRecord = userSourced.source as Record<string, unknown>
-    const provenance: InputProvenance = {
+    const origin: InputOrigin = {
       kind: isRelay ? 'host_relay' : 'direct_user',
       ...(typeof sourceRecord.rpcId === 'string' ? { rpcId: sourceRecord.rpcId } : {}),
       ...(typeof sourceRecord.clientTimeZone === 'string' ? { clientTimeZone: sourceRecord.clientTimeZone } : {}),
@@ -945,7 +945,7 @@ export function apply(ctx: Context, config: Config = { statusCommand: true }): v
         text,
         turn,
         hasImage,
-        provenance,
+        origin,
         attachments: episodeAttachments,
       })
     }
@@ -1407,7 +1407,7 @@ export function apply(ctx: Context, config: Config = { statusCommand: true }): v
       if (episode === null) return { kind: 'success', text: '当前会话尚未记录 Error 输入。' }
 
       const lines: string[] = ['【Error Episode 状态】']
-      lines.push(`• 来源: ${episode.provenance.kind === 'direct_user' ? '用户直接输入' : '宿主转述'}`)
+      lines.push(`• 来源: ${episode.origin.kind === 'direct_user' ? '用户直接输入' : '宿主转述'}`)
       lines.push(`• 原始输入: ${episode.firstInput.length} 字，附件 ${episode.attachments.length} 个`)
       if (episode.attachments.length > 0) {
         const hashes = episode.attachments.map(a => `${a.name ?? 'image'}: ${a.sha256.slice(0, 8)}... (${a.bytes}B)`).join(', ')

@@ -72,12 +72,12 @@ describe('Error episode event rules', () => {
     }))).toThrow('locked after Teach begins')
   })
 
-  it('keeps the authentic first input, attachments, and provenance', () => {
+  it('keeps the authentic first input, attachments, and origin', () => {
     const session = Session.create(SessionId('errgrind-episode'))
     let state = applyEpisodeEvent(null, session.append('errgrind/error-open', {
       text: '  My original solution was wrong.  ',
       turn: 1,
-      provenance: { kind: 'direct_user', rpcId: 'rpc-1' },
+      origin: { kind: 'direct_user', rpcId: 'rpc-1' },
       attachments: [{
         sha256: 'abc123def456',
         mediaType: 'image/jpeg',
@@ -88,7 +88,7 @@ describe('Error episode event rules', () => {
     expect(state?.firstInput).toBe('  My original solution was wrong.  ')
     expect(state?.firstInputHasImage).toBe(true)
     expect(state?.firstInputTurn).toBe(1)
-    expect(state?.provenance.kind).toBe('direct_user')
+    expect(state?.origin.kind).toBe('direct_user')
     expect(state?.attachments).toHaveLength(1)
     expect(state?.attachments[0]?.sha256).toBe('abc123def456')
     expect(state?.draft).toBeNull()
@@ -740,7 +740,7 @@ describe('Error episode event rules', () => {
     }))
     expect(state?.firstInput).toBe('')
     expect(state?.firstInputHasImage).toBe(true)
-    expect(state?.provenance.kind).toBe('direct_user')
+    expect(state?.origin.kind).toBe('direct_user')
 
     const notUser = session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'Host relay' }], source: { kind: 'agent-message' } as never,
@@ -1096,7 +1096,7 @@ describe('Error episode event rules', () => {
     expect(state?.evidenceSources).toEqual([
       { sourceRef: 'derived-answer', text: '54', probeId: null, diagnosisRound: 1 },
     ])
-    expect(state?.provenance).toEqual({
+    expect(state?.origin).toEqual({
       kind: 'derived_drill',
       sourceSessionId: 'session-prev',
       sourcePreparationId: 'prep-42',

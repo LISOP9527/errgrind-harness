@@ -192,9 +192,9 @@ const retry = (seq: number): ModelRetryNode => ({
   retry: 1, maxRetries: 2, delayMs: 450,
   failure: { code: 'TRANSPORT', message: '连接被重置' },
 })
-const turnError = (seq: number, code?: string): TurnErrorNode => ({
+const turnError = (seq: number, code?: string, message?: string): TurnErrorNode => ({
   kind: 'turn-error', seq, time: seq * 1_000, turn: 1, step: 0,
-  message: seq === 2 ? 'API key is invalid' : 'plugin exploded',
+  message: message ?? (seq === 2 ? 'API key is invalid' : 'plugin exploded'),
   ...(code === undefined ? {} : { code }),
 })
 const turnMaxTokens = (seq: number): TurnMaxTokensNode => ({
@@ -2103,17 +2103,19 @@ describe('ChatView', () => {
   })
 
   it('renders terminal turn failures with localized copy and keeps the raw provider payload behind a disclosure', () => {
-    const h = makeHarness({ nodes: [user(1, 'try'), turnError(2, 'AUTH'), turnError(3)] })
+    const h = makeHarness({ nodes: [user(1, 'try'), turnError(2, 'TRANSPORT'), turnError(3), turnError(4, 'AUTH', '')] })
     const view = render(<h.ChatView {...h.props} />)
     const statuses = view.getAllByRole('status')
-    expect(statuses[0]?.textContent).toContain('本轮运行失败API 密钥无效')
+    expect(statuses[0]?.textContent).toContain('本轮运行失败与模型的连接中断')
     expect(statuses[1]?.textContent).toContain('本轮运行失败模型请求失败')
+    expect(statuses[2]?.textContent).toContain('本轮运行失败API 密钥无效')
     const disclosures = view.container.querySelectorAll('details')
     expect(disclosures).toHaveLength(2)
     expect(disclosures[0]?.textContent).toBe('错误详情API key is invalid')
     expect(disclosures[1]?.textContent).toBe('错误详情plugin exploded')
-    expect(statuses[0]?.querySelector('code')?.textContent).toBe('AUTH')
+    expect(statuses[0]?.querySelector('code')?.textContent).toBe('TRANSPORT')
     expect(statuses[1]?.querySelector('code')).toBeNull()
+    expect(statuses[2]?.querySelector('code')?.textContent).toBe('AUTH')
   })
 
   it('renders the max-tokens notice with localized guidance, distinct from turn errors', () => {

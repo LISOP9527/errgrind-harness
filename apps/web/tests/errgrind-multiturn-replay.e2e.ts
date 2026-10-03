@@ -548,7 +548,7 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     const derivedAgent = scaffold.ctx.agents.get(derivedId)
     expect(derivedAgent).toBeDefined()
     const derivedEpisode = scaffold.ctx.sessionProjections.stateOf(derivedAgent!.session, 'errgrindEpisode')
-    expect(derivedEpisode?.provenance).toMatchObject({
+    expect(derivedEpisode?.origin).toMatchObject({
       kind: 'derived_drill', sourceSessionId: sessionId,
       sourcePreparationId: firstAttempt.preparationId,
     })
@@ -561,7 +561,7 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
       .toHaveLength(1)
     const derivedPersisted = await readPersistedEvents(scaffold, derivedId)
     const coldDerived = Session.create(derivedId, derivedPersisted)
-    expect(scaffold.ctx.sessionProjections.stateOf(coldDerived, 'errgrindEpisode')?.provenance.kind)
+    expect(scaffold.ctx.sessionProjections.stateOf(coldDerived, 'errgrindEpisode')?.origin.kind)
       .toBe('derived_drill')
     expect(inboundFrames.join('\n')).not.toContain(SENTINEL)
     await page.reload({ waitUntil: 'load' })

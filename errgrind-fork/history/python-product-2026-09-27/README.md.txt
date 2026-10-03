@@ -21,7 +21,7 @@ python3 -m venv .venv
 - **Error**：打开后在同一个连续对话工作区中查看 Original Error、Grill、本次诊断、Teach 和下一步动作。原题自然出现在开头，顶部可随时重新打开题目和元数据。
 - **New error**：文字与可选的 PNG/JPEG/WebP 图片直接作为多模态输入交给当前模型；模型在同一个对话工作区中整理题目、当时思路和参考答案，用户可继续补充或纠正。点击 Grill 时确认当前整理结果并创建 Error，原始图片作为 Error 附件保留。
 - **Grill / Teach**：在同一个 Error 对话工作区中开始、恢复、暂停或继续讨论；完成的 Grill 只读，Teach 保存后仍可继续。两者都可以用同一个 `+ 图片` 入口发送图片；图片随用户消息持久化，失败后刷新可恢复，消息中显示已保存的图片附件。
-- **Drill**：一次临时练习只展示题目、答案输入和“正确/错误”结果。答案文字与图片直接交给 Judge；答错时按现有 Core 语义产生新的 Error，并保留答案图片 provenance。
+- **Drill**：一次临时练习只展示题目、答案输入和“正确/错误”结果。答案文字与图片直接交给 Judge；答错时按现有 Core 语义产生新的 Error，并保留答案图片出处。
 
 模型工作时显示等待秒数并禁止重复操作；Grill 不模拟逐 token 输出。
 Markdown 与数学公式在浏览器展示，原始文本保持不变；渲染资源随包提供，无需外部 CDN。
@@ -52,5 +52,5 @@ Web integration tests 使用临时数据库和 fake LLM，不调用真实 provid
 
 正式 React 前端源码位于 [`frontend/`](frontend/README.md)，生产构建由同一个 Flask/Waitress
 进程提供。assistant-ui 负责通用对话、附件和滚动等 UI primitive；Flask、
-`ErrGrindApplication` 与 SQLite 继续保持 workflow、持久化和 provenance 权威。迁移决策见
+`ErrGrindApplication` 与 SQLite 继续保持 workflow、持久化和出处权威。迁移决策见
 [React + assistant-ui WebUI 正式迁移](design/decisions/2026-09-14-assistant-ui-migration.md)。
