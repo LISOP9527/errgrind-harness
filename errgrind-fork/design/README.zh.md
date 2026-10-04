@@ -6,11 +6,11 @@
 
 - [产品契约](product-contract.md)：当前数学调查、Evidence、确认、干预、隐私和持久化规则。
 - [工程原则](engineering-principles.md)：可复用的项目与 agent 工作规则；Harness 基础设施指令仍然适用。
-- [产品待办](../todo.md)与[真人验收](human-acceptance.md)：当前工作和未验证的产品质量。
+- [产品待办](../todo.md)与[真人验收](human-acceptance.md)：当前进度与未验证项的唯一记录，以及需要真人完成的检查。
 - [迁移归属](migration.md)与[来源清单](../history/python-product-2026-09-27/inventory.md)：不依赖旧工作区的本地权威和完整原文保存。
 - [DSH 痕迹盘点](debrand-inventory.md)：用户可见的 DeepSeek/DSH 残留及逐项处理路径。
-- [已挂载插件必要性审计](plugin-audit.md)：105 个挂载条目的六字段审计与 G1–G8 删除分组。
-- [评估与验收结论](eval-findings.md)：Spec/Draft 指引评估、Judge 判定拆分分析、旧 Drill UX 保留清单、Settings 验收与用量核算核对（todo 36–40）。
+- [已挂载插件必要性审计](plugin-audit.md)：审计开始时 105 个挂载条目的六字段审计与 G1–G8 删除分组；经实际移除与回退后，当前挂载 90 个条目。
+- [评估与验收结论](eval-findings.md)：Spec/Draft 指引评估、Judge 判定拆分分析、旧 Drill UX 保留清单、Settings 验收与用量核算核对。
 
 ## 研究与路线图
 

@@ -2,9 +2,9 @@
 
 English | [中文](eval-findings.zh.md)
 
-Results for todo items 36–40: one focused Spec/Draft guidance evaluation, the Judge verdict-split analysis (no schema change — that item explicitly forbids auto-approval), old-Drill UX archaeology, Settings acceptance, and usage accounting against real session logs.
+Results of five evaluation and acceptance checks from the [product TODO](../todo.md): one focused Spec/Draft guidance evaluation, the Judge verdict-split analysis (no schema change — that item explicitly forbids auto-approval), old-Drill UX archaeology, Settings acceptance, and usage accounting against real session logs.
 
-## Spec and Draft prompt guidance (todo 36) — PASS
+## Spec and Draft prompt guidance — PASS
 
 Method: replay the exact model-facing context over `hongyun-astra` — `prompts/system.md` + the verbatim `drill_prepare` tool contract from `prompts/tools.json` + a compact concluded-episode summary — then run the isolated draft call byte-identically to `drill.ts` (system = `prompts/drill-draft.md`, user = `JSON.stringify(spec)`). Three episodes: denominator-constant-term miss (ellipse), square-expansion cross-term, inequality sign-flip.
 
@@ -18,7 +18,7 @@ Method: replay the exact model-facing context over `hongyun-astra` — `prompts/
 
 Caveats: single route (astra only), one sample per case, episode inputs were constructed summaries rather than real Grill transcripts, and `rejectSourceLeak` was not stress-tested with adversarial specs.
 
-## Judge verdict split (todo 37) — risk documented, no schema change
+## Judge verdict split — risk documented, no schema change
 
 Current contract: `drill_judge` returns `{isCorrect, feedback}`; the tool prompt tells the model that insufficient mechanism evidence is not a math failure and must not alone derive an Error. The Python product judged math correctness and success-signal evidence in the same boolean ("无法观察到信号判为错误").
 
@@ -32,7 +32,7 @@ Options, when Judge is next touched (schema changes require explicit approval �
 
 Recommendation: **(b)**. It preserves the atomic derive semantics while making the evidence-insufficient case a first-class, loggable outcome instead of a rounding decision.
 
-## Old-Drill UX archaeology (todo 38) — keep list
+## Old-Drill UX archaeology — keep list
 
 From `errgrind/cli/commands.py` and `errgrind/application/drill.py`:
 
@@ -41,7 +41,7 @@ From `errgrind/cli/commands.py` and `errgrind/application/drill.py`:
 - **Atomic attempt record**: old `record_drill_attempt` wrote the attempt and derived Error in one transaction; the fork's `errgrind/drill-judged` event carries `derivedError` in the same event. Equivalent atomicity preserved.
 - **Judge origin**: old stored provider + model + prompt-sha256 + schema-sha256 on the attempt. Fork stores provider + model on the event; prompts and schemas are git-tracked in `prompts/tools.json`, so version origin resolves through the repo. Acceptable — no per-attempt sha needed while prompts stay version-controlled.
 
-## Settings acceptance (todo 39) — PASS, one fix landed
+## Settings acceptance — PASS, one fix landed
 
 - **Credential no-echo**: the credentials controller projects only `{configured, source, writable}`; `set` is write-only (`packages/api/settings-controller/src/credentials.ts`, `projectCredentialInfo`).
 - **No cross-use**: per-route `apiKeyEnv`; the astra/opus keys are separate refs — the live AUTH-failure run proved independence.
@@ -49,7 +49,7 @@ From `errgrind/cli/commands.py` and `errgrind/application/drill.py`:
 - **Stale-draft fencing**: `ProviderEditor` refuses writes when the draft was opened at an older revision (`expectedRevision` in operations).
 - **Directory fallback**: `defaultWorkspaceDirectory` resolves `Documents/deepseek-harness/ErrGrind`; a failed or disabled Documents lookup throws → `defaultWorkspaceFailed` toast → 'Choose workspace' picker. That recovery path was broken by the G6 `directory-picker` removal — `remote.directoryPicker` resolves the plugin by name, so the picker opened an empty menu. The removal row has been reverted and the audit corrected.
 
-## Usage accounting (todo 40) — PASS
+## Usage accounting — PASS
 
 Verified in detail on the `session-8e1ffc5b…` acceptance log — the only one of the three runs with a complete successful pass; items below that rest on the event schema rather than an observed log are marked as such.
 

@@ -3,7 +3,7 @@
 2026-10-01 对 ErrGrind Web 组合的审计，用
 `dsh --profile web --patch errgrind-fork/web.patch.yml --dump-config` 解析（覆盖所有嵌套
 层级的条目、祖先 `disabled` 逐层传递、`!!js` 条件按 Linux + profile `web` 求值）。
-结果：审计时 **105 个挂载条目，148 个禁用**；同日 G1–G6 删除组落地后挂载集为 **89**；后 directory-picker 回退（G6），当前 **90**（G6 中 `session-query-sqlite` 保留，见分组表）。
+结果：审计时 **105 个挂载条目，148 个禁用**（下表以此为基线）。G1–G5 已移除；G6 两个候选均已回退（`session-query-sqlite` 与 `directory-picker` 有真实消费者）；G7、G8 保留。当前挂载 **90** 个条目。
 
 列含义按 todo 要求：**flow** = 哪个用户流程需要它；**dep** = 启用态消费者
 （服务读取经 grep 验证，或文档化的结构性依赖方）；**model** = 是否进入模型请求；

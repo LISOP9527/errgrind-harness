@@ -2,24 +2,24 @@
 
 [English](README.md) | 中文
 
-这个 patch 是 fork 的首个 Web 组合，并插入 `@errgrind/episode`。标准 preset 保留基础的自动上下文压缩；不挂载 `/compact` 命令。Web UI 展示 Error、Grill、Teach 和 Drill 卡片，将用户提供的首次输入和附件事实记录为 Error 时点 Evidence，并通过 `/error-confirm <revision>` 按版本确认。附件 Evidence 的 quote 为空，因为来源是图像本身。八个模型工具是 `error_draft`、`error_clarify`、`grill_probe`、`grill_conclude`、`teach_step`、`drill_prepare`、`drill_judge` 和 `drill_answer_draft`；Web 中禁用了 `/error-status`。Teach 与 Drill 回答属于干预后的观察，不再作为原始 Error 成因证据。浏览器会隐藏普通 assistant 文本。
+本目录是 Harness fork 的 ErrGrind 产品组合。`web.patch.yml` 启动 DSH Web profile，插入 `@errgrind/episode`，并禁用 Error 流程用不到的 coding、浏览器和 DSH 品牌界面。ErrGrind 每次围绕一条真实数学 Error，依次经过 Error 录入、Grill、Teach 和隔离 Drill；[产品契约](design/product-contract.md)定义该流程及其 Evidence、隐私和持久化规则。
 
-默认模型为 `hongyun-astra/gpt-6-astra`（OpenAI Responses 协议），推理强度为 medium；可在 Web 中改选 `hongyun-opus/claude-opus-5-5`（Anthropic Messages 协议）。两者都是本 patch 声明、指向 Hongyun 中转的 `llm-pi-ai` 路由。API key 取自启动进程的 `ERRGRIND_RELAY_OPENAI_API_KEY` 与 `ERRGRIND_RELAY_ANTHROPIC_API_KEY` 环境变量；patch 不保存 key，Web UI 也不提供登录或添加 provider 的入口。2026-10-01 的真实模型验收中，Astra 路由用一条带两张图片的真实数学错题跑通了全链路：录入、描述修订、探针、结论、确认、Teach、隔离 Drill、判分和衍生 Error。Opus 路由在默认档和 `xhigh` 档都完成了真实 turn。真实模型验收不能代替真人验收。
+## 模型与 key
 
-Web 组合仍保留上游会话、附件、模型和聊天基础设施，以及上游 workspace 选择器和会话界面。原始图像字节现在需要持久化的 `saveFile` 凭据；保存失败会使上传失败，首条 Error 消息中的图像若缺少凭据就不能打开 episode。归一化图像引用携带确切的原件凭据，写入前先执行批量校验。真实 `LocalAttachmentStore` 测试和使用两张真实图片的隔离浏览器回归已验证输入准入、原件哈希与刷新恢复。
+默认模型为 `hongyun-astra/gpt-6-astra`（OpenAI Responses 协议），推理强度为 medium；可在 Web 中改选 `hongyun-opus/claude-opus-5-5`（Anthropic Messages 协议）。两者都是本 patch 声明、指向 Hongyun 中转的 `llm-pi-ai` 路由。API key 取自启动进程的 `ERRGRIND_RELAY_OPENAI_API_KEY` 与 `ERRGRIND_RELAY_ANTHROPIC_API_KEY` 环境变量；patch 不保存 key，Web UI 也不提供登录或添加 provider 的入口。
 
-先运行 `corepack pnpm run errgrind:build` 构建源码，再运行 `npm run errgrind:start` 启动产品。此构建在限定 Node 堆内存的情况下检查各包的 TypeScript 引用项目，并生成 native、Host、Client 和 Web 产物。它不执行根级 Host/Client TypeScript 汇总项目及 Web TypeScript 项目；`corepack pnpm run typecheck` 将根级汇总项目作为独立门禁执行，Web 项目的 TS2878 已于 2026-09-30 修复。专用构建会记录 ErrGrind 客户端 profile，并输出 ErrGrind 浏览器标题、manifest 和图标；普通 `build` 命令仍保留 DSH 品牌。ErrGrind 产品构建成功后，本地只修改 Web 品牌时可运行 `corepack pnpm run errgrind:build:web`，它只更新 Web 资源，不生成完整客户端构建记录。启动器使用 `ERRGRIND_HOME`（默认 `~/.errgrind`），并选择 Web profile 和 fork patch。只有调试底层 DSH 启动器时，才使用隔离的 `DSH_HOME`，并从仓库根目录运行 `corepack pnpm dsh --profile web --patch errgrind-fork/web.patch.yml --no-open`。这些说明用于启动当前组合，不代表所有产品流程均已完成或验证。只有经 Core 校验并关联来源的观察才可成为诊断 Evidence；聊天记录本身不是诊断结论。
+## 构建与启动
 
-在这台 3.8 GiB VPS 上，普通 Host 汇总检查设置 2 GiB 和 2.5 GiB Node 堆上限时都发生内存不足。限定内存的 ErrGrind 构建利用已有的 TypeScript 增量产物成功完成，并验证了包含 267 个文件的客户端构建记录。这份记录证明当前产物字节和公开构建 profile 一致，不代表被跳过的根级类型检查已经通过。在同一台 VPS 的全新 checkout 上，`pnpm install` 用时 63 秒（峰值 RSS 743 MiB），`errgrind:build` 用时 212 秒（峰值 RSS 2323 MiB），未发生内存不足；逐包构建和 tsdown 仍覆盖大量 DSH 工作区包。
+先运行 `corepack pnpm run errgrind:build` 构建源码，再运行 `npm run errgrind:start` 启动产品。此构建在限定 Node 堆内存的情况下检查各包的 TypeScript 引用项目，并生成 native、Host、Client 和 Web 产物；它不执行根级 TypeScript 汇总项目，这些由 `corepack pnpm run typecheck` 作为独立门禁执行。它输出 ErrGrind 浏览器标题、manifest 和图标；普通 `build` 命令仍保留 DSH 品牌。产品构建成功后，本地只修改 Web 品牌时可运行 `corepack pnpm run errgrind:build:web`，它只更新 Web 资源，不生成完整客户端构建记录。启动器使用 `ERRGRIND_HOME`（默认 `~/.errgrind`）和 fork patch 的绝对路径，不会导入旧数据库或凭据。只有调试底层 DSH 启动器时，才使用隔离的 `DSH_HOME`，并从仓库根目录运行 `corepack pnpm dsh --profile web --patch errgrind-fork/web.patch.yml --no-open`。
 
-当前 fork 的产品契约见 `errgrind-fork/design/product-contract.md`；[产品待办](todo.md)跟踪迁移、产品呈现与逐步瘦身。[设计索引](design/README.zh.md)连接当前规则与研究；[本地迁移清单](history/python-product-2026-09-27/inventory.md)保留原始 fork 决策及全部前驱设计、agent 指令、进度和 Prompt 来源。Git 历史记录了准确的 DeepSeek Harness 基点；本 fork 遵循上游 MIT 许可。
+模型可见的 ErrGrind 指导集中在 `prompts/system.md` 和 `prompts/tools.json`；修改后重启 Web。可执行 schema 与校验仍在 `packages/core/errgrind-episode/src/index.ts` 和 `src/drill.ts`。若启动目录不是仓库根目录，把 `ERRGRIND_PROMPT_PATH` 设为 system prompt 的绝对路径；插件默认从同一目录加载 `tools.json`，也可用 `ERRGRIND_TOOL_PROMPTS_PATH` 覆盖。
 
-## 当前里程碑
+## 文档
 
-当前切片覆盖带有持久化 `saveFile` 图像凭据的首次输入捕获、模型撰写的描述草稿（`error_draft`）、Grill 追问（`grill_probe`）、暂定结论（`grill_conclude`），以及对最终描述的人工确认（`/error-confirm`）；确认与 Grill 完成同时发生。未确认时，Grill 保持开放，仍可澄清、追问和修订描述。完成后才可进入 Teach 和独立 Drill。主 agent 生成精确的 15 字段 DrillSpec，Core 在模型调用前持久化；之后独立的模型调用只接收该规格，并生成题目和参考答案。生成失败后会用已保存的规格重试；参考答案仅作为私有持久化 Judge 上下文。判分引用已持久化的用户回答。图片作答先通过 `drill_answer_draft` 形成可核对的草稿，用户回复 `确认` 或 `修正：...` 后才可判分。答错时，判分事件同时保存带来源关系的衍生 Error 快照；用户可将它打开为独立的待 Grill 会话。重复打开会复用同一会话，持久化日志可用于冷读恢复。首次 Error 时点 Evidence 来自 `error-open` 的来源文本和附件事实；澄清与探针回答 Evidence 来自 `user/message` 事件。有依据的诊断仍需真实探针回答支持，引用须匹配来源文本和当前诊断轮次。`latest-probe-answer` 会解析为持久化来源。Teach 开始后，后续回答不再成为原始 Error 成因的 Evidence，原始描述草稿也会锁定。Error 投影状态版本为 9，独立 Drill 投影为版本 3。
+- [产品契约](design/product-contract.md)：当前流程、Evidence、隐私和持久化规则。
+- [产品待办](todo.md)：进度、已完成验证和剩余工作的唯一记录，包括真实模型验收和构建测量。
+- [真人验收计划](design/human-acceptance.md)：需要真人学习者完成的检查；真实模型验收不能代替这些检查。
+- [设计索引](design/README.zh.md)：工程规则、审计、评估结论和研究。
+- [本地迁移清单](history/python-product-2026-09-27/inventory.md)：原始 fork 决策及全部前驱设计、agent 指令、进度和 Prompt 来源。fork 早期的历史交接在 [history/handoffs](history/handoffs/2026-09-23.md)。
 
-模型可见的 ErrGrind 指导集中在 `errgrind-fork/prompts/system.md` 和 `errgrind-fork/prompts/tools.json`；修改后重启 Web。插件从 `tools.json` 加载工具描述，可执行 schema 与校验仍在 `packages/core/errgrind-episode/src/index.ts` 和 `src/drill.ts`。若启动目录不是仓库根目录，把 `ERRGRIND_PROMPT_PATH` 设为 system prompt 的绝对路径；插件默认从同一目录加载 `tools.json`，也可用 `ERRGRIND_TOOL_PROMPTS_PATH` 覆盖。
-
-`errgrindEpisode` 与 `errgrindDrill` 投影只在宿主内部使用。Error 投影使用 stateVersion 9，并将 `latest-probe-answer` 别名解析到其持久化来源；澄清问题待回答时记录为用户消息的回复，会连同来源文本和图像写入结构化 Evidence。Drill 投影使用 stateVersion 3，通过 `drill_answer_draft` 支持图片作答草稿；学习者须回复 `确认` 或 `修正：...` 完成作答后才可判分。浏览器展示 Error、Grill、Teach 和 Drill 卡片并隐藏普通 assistant 文本；Session Controller 的公开视图会筛选事件字段，因此私有诊断数据和 Drill 答案保留在 Host 上下文中。
-
-简单分数错题的无密钥浏览器回放覆盖 Error 描述修订与确认、Grill 追问与结论、Teach、独立 Drill 生成与判分、图片作答草稿和复核、在独立会话打开衍生 Error、幂等重试、冷读、刷新恢复及 390px 布局。侧栏按公开 Error 描述列出 fork 自身的会话并打开原调查；明确指定某条已完成 Error 出 Drill 时，请求会排入该 Error 的原会话。Drill 生成先由主 agent 提出精确的 15 字段规格，Core 持久化后才用独立模型调用生成题目和答案；失败重试会复用已保存的规格。完整手机端产品验收和真人验收仍待完成；数据库迁移尚未实施。启动器使用 `ERRGRIND_HOME`（默认 `~/.errgrind`），不会自动导入旧数据库或凭据。Session 日志按 step 记录用量（含缓存读取）；个别真实模型运行不足以估算持续命中率或成本。MCP 支持仍待实现。上游应用元数据仍保留。Host 仅投影公开 Error 历史字段；私有诊断状态仍在 Host。旧版普通综合出题只是让模型选择一条 Error，新版不把多条 Error 合成一道 Drill。
+Git 历史记录了准确的 DeepSeek Harness 基点；本 fork 遵循上游 MIT 许可。

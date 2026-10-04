@@ -1,6 +1,6 @@
 # ErrGrind fork：阶段交接（2026-09-24）
 
-> Historical handoff; current authority is [product contract](design/product-contract.md), progress is [TODO](todo.md), and predecessor documents are in the [local inventory](history/python-product-2026-09-27/inventory.md). Old paths below are historical context, not dependencies or instructions to import user data.
+> Historical handoff; current authority is [product contract](../../design/product-contract.md), progress is [TODO](../../todo.md), and predecessor documents are in the [local inventory](../python-product-2026-09-27/inventory.md). Old paths below are historical context, not dependencies or instructions to import user data.
 
 这是当前状态的交接，不是新的产品决策。新会话应先核对 Git 状态和源码；不要把旧交接中的「下一步」当成已完成事实。
 
@@ -9,13 +9,13 @@
 - 独立产品与 MCP 插件并行发展，共享 ErrGrind 的业务核心；独立产品以 DeepSeek Harness fork 为当前技术验证基础，可替换旧 React WebUI。旧 Python/Core 边界可重划，不能因此丢失 Error、Evidence、diagnosis、intervention 的来源与认识论约束。
 - 数学题 MVP。Record 与 Grill 融合为连续 Error 调查：模型写一段完整 Error 描述，用户可多轮修正并明确确认；建议用户输入题目、原思路、答案，但展示不分这三个字段。确认 Error 锚点与结束 Grill 是两个不同提交点。随后是 Teach、Drill、未来真实 Error；一次 Grill 不产生长期 Pattern。
 - 应保留用户原话、宿主转述、模型草稿、原始图片、OCR/vision、Grill 回答和干预后观察的来源区别。Drill 判分与答错派生 Error 需要独立出处。注意真实上下文成本和 cache hit，不能凭静态前缀声称命中。
-- 设计权威见 [原始 fork 决策快照](history/python-product-2026-09-27/design/decisions/2026-09-23-error-episode-and-agent-fork.md.txt)；fork 的运行事实以当前源码为准。旧 ErrGrind 数据库与 WebUI 暂不迁移或修改。
+- 设计权威见 [原始 fork 决策快照](../python-product-2026-09-27/design/decisions/2026-09-23-error-episode-and-agent-fork.md.txt)；fork 的运行事实以当前源码为准。旧 ErrGrind 数据库与 WebUI 暂不迁移或修改。
 
 ## 仓库状态
 
 - 工作仓库：`/home/lisop/errgrind-harness`，分支 `feat/errgrind-episode-foundation`，本地 HEAD 比 `origin/feat/errgrind-episode-foundation` 超前 1 个提交。该提交仅在本地；此前授权是本地提交，不要据此自行推送。`upstream` 是 DeepSeek 项目，不要推送到它。
 - 当前 fork 代码在 `packages/core/errgrind-episode/`，组合配置在 `errgrind-fork/web.patch.yml`。先读仓库根 `AGENTS.md`、`packages/AGENTS.md`；涉及 Web 时读 `packages/web/AGENTS.md`、`packages/client/AGENTS.md`。
-- 原仓库 `/home/lisop/errgrind` 的 `AGENTS.md` 有用户未提交修改，保留原样。旧交接在 `errgrind-fork/HANDOFF-2026-09-23.md`，其中 Gemini 交付后的未完成项已有部分已被后续本地提交（2026-09-23）修正，不能照抄其状态。
+- 原仓库 `/home/lisop/errgrind` 的 `AGENTS.md` 有用户未提交修改，保留原样。旧交接在 `errgrind-fork/history/handoffs/2026-09-23.md`，其中 Gemini 交付后的未完成项已有部分已被后续本地提交（2026-09-23）修正，不能照抄其状态。
 - 交接前另修改了 `/home/lisop/.codex/skills/antigravity-executor/SKILL.md`，并新建 `/home/lisop/.codex/AGENTS.md`：原生 Codex subagent 可主动承接独立、低上下文任务，优先短上下文与 Luna；agy 仍从主 agent 直接调用，保留 file-only guard 和主 agent 验收。agy skill 现要求按任务选 Flash 档位与有限超时，超时后先检查部分编辑再重试剩余范围。当前 `agy models` 列出 3.8/3.7 Flash High、Medium、Low；未测各档实际速度或额度消耗。
 
 ## 已实现及验证边界

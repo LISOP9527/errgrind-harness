@@ -1,10 +1,10 @@
 # ErrGrind fork 待办
 
-本表跟踪新版独立产品。[旧 Python/React 进度快照](history/python-product-2026-09-27/todo.md.txt)记录前驱实现进度；这里以 [产品契约](design/product-contract.md)和[真人验收计划](design/human-acceptance.zh.md)为准。完成标准是用户流程和数据边界可验证，不是删除了多少 DSH 包。
+本表是新版独立产品当前进度、已完成验证和未验证项的唯一记录；[产品契约](design/product-contract.md)只定义规则，[真人验收计划](design/human-acceptance.zh.md)只定义需要真人完成的检查，README 与跨会话 handoff 只做入口并链接到这里。[旧 Python/React 进度快照](history/python-product-2026-09-27/todo.md.txt)记录前驱实现进度。完成标准是用户流程和数据边界可验证，不是删除了多少 DSH 包。
 
 ## 先完成可用的产品闭环
 
-- [ ] 用一条真实数学错题完成图片输入、Error 描述多轮修正、Grill 有区分度的追问、不确认后继续、共同确认、Teach、独立 Drill、判分和衍生 Error；同时检查中断恢复、私有数据不进入浏览器，以及实际模型的 `sourceRef` 和缓存用量。按[真人验收计划](design/human-acceptance.zh.md)记录结果。已用真实 Error #8 材料在 Hongyun 中转上跑通真实模型验收（2026-10-01）：hongyun-astra（openai-responses，gpt-6-astra，默认）完成全链路（图片+文本录入→草稿修订→区分度探针→结论→卡片按钮确认→Teach→原题隔离 Drill→判分→衍生 Error），隐私清扫无泄漏；hongyun-opus（anthropic-messages，claude-opus-5-5）修通四个配置问题（host-only baseURL、forceAdaptiveThinking、supportsMidConvoEffort 属 catalog-withheld、无 effort 即 400 故 route 默认 xhigh 且不提供 off）后 Xhigh 与默认档均可完成真实 turn。余下未验：中断恢复、缓存用量记录、undetermined 结论路径、手机端、第二条 Error 的真人验收。
+- [ ] 用一条真实数学错题完成图片输入、Error 描述多轮修正、Grill 有区分度的追问、不确认后继续、共同确认、Teach、独立 Drill、判分和衍生 Error；同时检查中断恢复、私有数据不进入浏览器，以及实际模型的 `sourceRef` 和缓存用量。按[真人验收计划](design/human-acceptance.zh.md)记录结果。已用真实 Error #8 材料在 Hongyun 中转上跑通真实模型验收（2026-10-01）：hongyun-astra（openai-responses，gpt-6-astra，默认）完成全链路（图片+文本录入→草稿修订→区分度探针→结论→卡片按钮确认→Teach→原题隔离 Drill→判分→衍生 Error），隐私清扫无泄漏；hongyun-opus（anthropic-messages，claude-opus-5-5）修通四个配置问题（host-only baseURL、forceAdaptiveThinking、supportsMidConvoEffort 属 catalog-withheld、无 effort 即 400 故 route 默认 xhigh 且不提供 off）后 Xhigh 与默认档均可完成真实 turn。余下未验：中断恢复、缓存用量记录、undetermined 结论路径、手机端、第二条 Error 的真人验收；模型在整条序列中能否自行给出准确 `sourceRef`、跨全序列的 prompt 缓存复用、真实图片识读质量，以及 Drill 新题的语义新颖度与诊断价值（Core 的字面重复检查不能证明）。
 - [x] 新版 Error 历史入口：侧栏按公开描述显示 fork 自身的 Error Session，能打开未完成和已完成的调查；无缓存分类的旧会话仍可打开重建。已判分 Drill 和衍生 Error 关系保存在各自会话时间线中。后续真人验收再决定是否需要更丰富的筛选、搜索和删除；旧 SQLite 数据尚未导入。
 - [x] 从历史入口明确指定一条已完成的 Error 出 Drill：打开该 Error 的原会话并排入练习请求，由原会话的 Core 再次校验诊断锚点并记录练习。旧版普通综合出题是让模型代为选择目标 Error，不代表跨 Error 合成一道练习；当前不做跨 Error 综合或长期 Pattern。
 
@@ -26,6 +26,7 @@
 
 ## 验证通道状态
 
+- [x] 无密钥回放与附件检查：简单分数错题的无密钥浏览器回放覆盖 Error 描述修订与确认、Grill 追问与结论、Teach、独立 Drill 生成与判分、图片作答草稿和复核、在独立会话打开衍生 Error、幂等重试、冷读、刷新恢复及 390px 布局；真实 `LocalAttachmentStore` 测试和使用两张真实图片的隔离浏览器回放验证输入准入、原件哈希与刷新恢复。回放显式构造 `sourceRef` 等值，只验证机制，不能证明诊断质量、图片识读或真实缓存命中。
 - [ ] Session 持久化类型登记欠债：`persistence-changes --record` 相对 v4 已定稿基线报出全部 fork 期内的破坏性 diff（`errgrind-drill-context`/`errgrind-derived-error` union 变体、`title-llm-request`/`subagent/catalog` 载荷变化、`errgrind/*` 事件族），按规则需要先实现 writer version 5（新 `session-format-v4-to-v5` 迁移包、historical-formats/v4 文档、目录与快照后继），属发布级工程，未在本轮修复中展开。`errgrind/error-open` 的 `origin` 字段与 `errgrindEpisode` stateVersion 9 同属这笔欠债，登记时一并 prose。`verify-persistence-changes` 不在 doc-quick 中，doc-sync/CI 才跑。
 - [ ] Web 无密钥回放通道（`vitest.web.config.ts` + `DSH_SNAPSHOT=replay|refresh`）在 fork 基线处即整体挂起：在评审范围起点提交（2026-09-30，仅含 typecheck 修复、无任何 de-brand/G 批）上跑 `lifecycle-chrome.e2e.ts` 出现与本分支完全相同的失败——composer 的 `session/modelCatalog` 远程调用永不返回（金样里 `button "Loading models…"` 常驻）、`permissionPresets`/`agent preset` 芯片因目录未到而缺席、replay 已绑定脚本却不再发后续模型调用导致 `no turn/end within 30000ms` 与 `fixture not fully consumed`。Headless `test:snapshot`（`snapshots/session`）同机通过，说明挂起点在 Web 会话→浏览器 remote 链路而非 replay 基础设施。该问题早于本次评审的 24 个提交，属上游漂移或环境级缺陷，修复需单独排查（怀疑 remote 命名空间派发或会话接线，非文案层）。已刷金样仅保留 `lifecycle-chrome/command-menu.expected.md` 的纯文案漂移（`this conversation`→`this session`）；`live-interactions` 的 retry-exhausted/error-auth 与 `queue-actions/writer-held` 三处金样因通道挂起无法安全刷新，待通道修复后统一 refresh。另外 `support.ts` 的 `connectFreshWorkspaceZh` 已随新 zh 占位文案更新。
 

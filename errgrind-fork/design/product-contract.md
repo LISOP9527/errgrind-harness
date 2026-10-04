@@ -81,20 +81,23 @@ schema, origin, privacy, and state. Static prompt and tool schemas keep
 the request prefix stable for provider cache reuse; actual hit rate needs
 real usage telemetry.
 
-## Migration status and remaining gaps
+## Current implementation rules
 
 - The first direct or relayed text and attachment facts seed structured
-  Error-time Evidence in stateVersion 9. Initial attachment Evidence uses an
-  empty quote, since the durable image is the source. The
-  `latest-probe-answer` alias resolves to its durable source before evidence
-  grounding validation. Replies recorded as user messages while an
-  `error_clarify` question is pending are indexed as structured Evidence with
-  their source text and images; do not
-  infer that all pre-Grill chat is eligible Evidence.
-- Image Drill answers now use the `drill_answer_draft` event/tool and a
+  Error-time Evidence. Initial attachment Evidence uses an empty quote, since
+  the durable image is the source. The `latest-probe-answer` alias resolves
+  to its durable source before evidence grounding validation. Replies
+  recorded as user messages while an `error_clarify` question is pending are
+  indexed as structured Evidence with their source text and images; other
+  pre-Grill chat is not eligible Evidence. Once Teach starts, later answers
+  are excluded from Error-time Evidence and the original draft is locked.
+- Original image bytes require a durable `saveFile` receipt; upload fails if
+  that save fails, and an image in the first Error message cannot open an
+  episode without a receipt. Normalized image refs carry the exact original
+  receipt, and batch validation precedes writes.
+- Image Drill answers use the `drill_answer_draft` event/tool and a
   reviewable draft; the learner must reply `确认` or `修正：...` to complete
-  the response before judgment. Real image interpretation and mobile product
-  acceptance still need separate validation.
+  the response before judgment.
 - Drill generation is isolated from the original Error conversation. A
   spec-only `drill_prepare` call persists the exact 15-field specification
   before model I/O, retries that saved spec after failure, and logs provider,
@@ -102,14 +105,21 @@ real usage telemetry.
   generated question. The Judge receives a durable private context message
   containing the validated answer key; browser projections and search omit it.
   Distinctive source text in new-problem fields is rejected before the Draft
-  request; this lexical check cannot prove semantic novelty. A real-model
-  comparison is still needed to assess novelty and diagnostic quality.
-- Real-model use of exact `sourceRef` values and prompt cache reuse across
-  the full sequence have not yet been verified. Keyless replay constructs
-  those values explicitly and cannot establish that a model can do so.
-- An Error history sidebar now lists the fork's existing Sessions from a
-  narrow public episode view. Sessions without cached classification remain
-  openable; importing old SQLite records remains separate work. An explicit
+  request; this lexical check cannot prove semantic novelty.
+- The `errgrindEpisode` (stateVersion 9) and `errgrindDrill` (stateVersion 3)
+  projections are host-only. A stateVersion change refolds the projection
+  from the Session log; it is separate from the Session format version. The
+  Session Controller public view filters event fields, so private diagnosis
+  data and the Drill answer key stay in Host context. Drill draft failures
+  and cancellations retain a recoverable pending specification while
+  exposing only a retry status card.
+- The Web UI presents Error, Grill, Teach, and Drill cards and hides ordinary
+  assistant text; `/error-status` is disabled in Web. The eight model tools
+  are `error_draft`, `error_clarify`, `grill_probe`, `grill_conclude`,
+  `teach_step`, `drill_prepare`, `drill_judge`, and `drill_answer_draft`.
+- An Error history sidebar lists the fork's existing Sessions from a narrow
+  public episode view. Sessions without cached classification remain
+  openable; importing old SQLite records is outside this slice. An explicit
   Drill action opens one completed Error's own Session, where Core checks the
   current diagnosis before generating practice.
   The old generic option let the model choose one eligible Error, rather than
@@ -149,10 +159,9 @@ and old `design/` index policy are implementation instructions for the old
 repository. DSH's own architecture, package, documentation, and test rules
 govern their corresponding fork paths.
 
-## Verification still needed
+## Status and acceptance
 
-Run one real mathematics Error through image intake, multiple description
-revisions, a discriminating Grill, non-confirmation then confirmation,
-interruption/recovery, Teach, Drill judgment and derived Error, and mobile
-Web review. Keyless replays check mechanics but cannot establish diagnosis
-quality, image interpretation, or sustained provider cache hits.
+This contract states rules, not progress. Implementation progress,
+completed real-model acceptance, and unverified items are recorded only in
+the [product TODO](../todo.md); checks that need a human learner are in the
+[human acceptance plan](human-acceptance.md).

@@ -6,11 +6,11 @@ This is the design entry point for the primary Harness workspace. Current produc
 
 - [Product contract](product-contract.md): current mathematics investigation, evidence, confirmation, intervention, privacy, and persistence rules.
 - [Engineering principles](engineering-principles.md): reusable project and agent working rules; Harness infrastructure instructions remain applicable.
-- [Product TODO](../todo.md) and [human acceptance](human-acceptance.md): current work and unverified product quality.
+- [Product TODO](../todo.md) and [human acceptance](human-acceptance.md): the only record of current progress and unverified items, and the checks that need a human learner.
 - [Migration disposition](migration.md) and [source inventory](../history/python-product-2026-09-27/inventory.md): local ownership and complete source preservation without the older checkout.
 - [DSH branding inventory](debrand-inventory.md): user-visible DeepSeek/DSH leftovers with per-item removal paths.
-- [Mounted-plugin necessity audit](plugin-audit.md): six-field audit of the 105 mounted ErrGrind composition entries and the G1–G8 removal groups.
-- [Evaluation findings](eval-findings.md): Spec/Draft guidance evaluation, Judge verdict split analysis, old-Drill UX keep-list, Settings acceptance, and usage-accounting verification (todo 36–40).
+- [Mounted-plugin necessity audit](plugin-audit.md): six-field audit of the 105 entries mounted at audit time and the G1–G8 removal groups; after verified removals and reversions, 90 entries remain mounted.
+- [Evaluation findings](eval-findings.md): Spec/Draft guidance evaluation, Judge verdict split analysis, old-Drill UX keep-list, Settings acceptance, and usage-accounting verification.
 
 ## Research and roadmap
 

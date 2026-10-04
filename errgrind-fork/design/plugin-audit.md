@@ -3,9 +3,9 @@
 2026-10-01 audit of the ErrGrind Web composition, resolved with
 `dsh --profile web --patch errgrind-fork/web.patch.yml --dump-config` (entries at every
 nesting level, ancestors' `disabled` propagated, `!!js` conditions evaluated for Linux +
-profile `web`). Result: **105 mounted entries, 148 disabled** at audit time; after
-removal groups G1–G6 landed the same day, the mounted set was **89**; directory-picker later reverted (G6), current **90**
-(`session-query-sqlite` from G6 stayed — see the group list).
+profile `web`). Result: **105 mounted entries, 148 disabled** at audit time (the baseline
+for the tables below). G1–G5 were removed; both G6 candidates were reverted (`session-query-sqlite`
+and `directory-picker` have real consumers); G7 and G8 are retained. **90** entries remain mounted.
 
 Columns per the todo item: **flow** = which user flow needs it; **dep** = enabled
 consumers (service reads verified by grep, or a documented structural owner);

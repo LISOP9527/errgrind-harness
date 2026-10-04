@@ -2,9 +2,9 @@
 
 [English](eval-findings.md) | 中文
 
-todo 36–40 的结果：一次聚焦的 Spec/Draft 提示词评估、Judge 判定拆分分析（不改 schema——该项明确禁止自动批准）、旧 Drill UX 考古、Settings 验收、以及基于真实会话日志的用量核算。
+[产品待办](../todo.md)中五项评估与验收的结果：一次聚焦的 Spec/Draft 提示词评估、Judge 判定拆分分析（不改 schema——该项明确禁止自动批准）、旧 Drill UX 考古、Settings 验收、以及基于真实会话日志的用量核算。
 
-## Spec 与 Draft 提示词指引（todo 36）——通过
+## Spec 与 Draft 提示词指引——通过
 
 方法：在 `hongyun-astra` 上重放模型真实可见的上下文——`prompts/system.md` + `prompts/tools.json` 中 `drill_prepare` 的逐字工具契约 + 压缩的已结论 episode 摘要——然后按 `drill.ts` 逐字节一致的隔离 Draft 调用（system = `prompts/drill-draft.md`，user = `JSON.stringify(spec)`）。三个 episode：椭圆题漏乘常数项、平方展开交叉项、不等式变号。
 
@@ -18,7 +18,7 @@ todo 36–40 的结果：一次聚焦的 Spec/Draft 提示词评估、Judge 判�
 
 注意：单一路由（仅 astra）、每例单样本、episode 输入是构造的摘要而非真实 Grill 笔录，`rejectSourceLeak` 未做对抗性压力测试。
 
-## Judge 判定拆分（todo 37）——风险已记录，不改 schema
+## Judge 判定拆分——风险已记录，不改 schema
 
 当前契约：`drill_judge` 返回 `{isCorrect, feedback}`；工具提示词告知模型"机制证据不足不是数学失败、不得仅凭此衍生 Error"。Python 旧产品在同布尔里同时判断数学正确性与信号证据（"无法观察到信号判为错误"）。
 
@@ -32,7 +32,7 @@ todo 36–40 的结果：一次聚焦的 Spec/Draft 提示词评估、Judge 判�
 
 建议：**(b)**。保留原子化衍生语义的同时，让"证据不足"成为一等可记录结果，而不是一次取整决定。
 
-## 旧 Drill UX 考古（todo 38）——保留清单
+## 旧 Drill UX 考古——保留清单
 
 来自 `errgrind/cli/commands.py` 与 `errgrind/application/drill.py`：
 
@@ -41,7 +41,7 @@ todo 36–40 的结果：一次聚焦的 Spec/Draft 提示词评估、Judge 判�
 - **原子尝试记录**：旧 `record_drill_attempt` 在同一事务内写尝试与衍生 Error；fork 的 `errgrind/drill-judged` 事件在同一事件中携带 `derivedError`。原子性等价保留。
 - **Judge 溯源**：旧版在尝试上存 provider + model + prompt-sha256 + schema-sha256。fork 在事件上存 provider + model；提示词和 schema 版本化于 `prompts/tools.json`，版本溯源经仓库解析。可接受——提示词在版本控制下无需逐次 sha。
 
-## Settings 验收（todo 39）——通过，已落地一处修复
+## Settings 验收——通过，已落地一处修复
 
 - **凭据不回显**：credentials controller 只投影 `{configured, source, writable}`；`set` 只写（`packages/api/settings-controller/src/credentials.ts`，`projectCredentialInfo`）。
 - **不交叉使用**：按路由 `apiKeyEnv`；astra/opus 两把 key 是独立引用——此前的真实 AUTH 失败已证明隔离。
@@ -49,7 +49,7 @@ todo 36–40 的结果：一次聚焦的 Spec/Draft 提示词评估、Judge 判�
 - **陈旧草稿防护**：`ProviderEditor` 拒绝以旧 revision 打开的草稿写入（operations 中的 `expectedRevision`）。
 - **目录失效回退**：`defaultWorkspaceDirectory` 解析 `Documents/deepseek-harness/ErrGrind`；Documents 查询失败或被禁用会抛错 → `defaultWorkspaceFailed` toast → “选择工作区” picker。该恢复路径此前被 G6 `directory-picker` 移除打断——`remote.directoryPicker` 按名字解析该插件，picker 打开的是空菜单。该移除行已回退并更正审计文档。
 
-## 用量核算（todo 40）——通过
+## 用量核算——通过
 
 在 `session-8e1ffc5b…` 验收日志上做了逐条验证——三份运行中只有它完成了完整成功流程；下列凡依赖事件 schema 而非实际日志观察的条目均已标注。
 
