@@ -22,7 +22,7 @@
 | 5 | "+" / "/" 命令菜单 | **Permission**（sandbox+approval 暴露） | 命令注册在 `packages/interaction/permission-presets/src/index.ts:248`（`/permission` 是 web 端唯一写路径）；`ui-permission` 已禁用≠命令消失 | [禁插件]：禁用 `permission`/`permission-presets` 插件，或给命令注册加过滤 |
 | 6 | 同上 | **Compact** | `packages/compaction/command-compact/src/index.ts:101`（preset-standard 内 compaction 组） | [禁插件]：只摘 `command-compact`，保留 `compaction-basic` 自动压缩 |
 | 7 | 命令菜单 + 会话头 "..." 菜单 | **Export** / "Download session log" | `packages/session-query/session-log-export/src/index.ts:79` | [禁插件]：禁用 `session-log-export` |
-| 8 | composer | 点选命令落裸模板 `/permission <preset>`、`/feedback <text>`、`/error-confirm` | command → composer 模板注入机制（`ui-model-selection`/commands UI 层）；arg 不落已知 gap | [改 UI]：点选直接执行或弹参数表单 |
+| 8 | composer | 点选命令落裸模板 `/permission <preset>`、`/feedback <text>` | command → composer 模板注入机制（`ui-model-selection`/commands UI 层） | [改 UI]：点选直接执行或弹参数表单。~~`/error-confirm`~~ **已做** —— 命令已声明 `input: { hint: '<revision>' }`，带参行现在直达 handler 而不再落给模型；卡片按钮与手输 `/error-confirm 1` 均已验证执行 |
 | 9 | 会话头面包屑 + 侧栏 | ~~"Default workspace" 作为会话标题~~ **已做（批 2）** | `session-controller/client/sessions/service.ts:119` `workspaceTitleOf(cwd)` 回退；无 title 投影时取工作区名 | [改 UI]：`ui-workspace` `defaultWorkspace.title` locale 改为 'ErrGrind'——新工作区目录/标题均为 ErrGrind；变更前已存的会话标题仍显示旧文案 |
 | 10 | 侧栏 Error history 底部 | ~~"These older sessions have not been classified yet…"~~ **已做（批 2）** | `ui-errgrind-episode` locales `history.unclassified` | [改 UI]：改为 "Sessions not yet linked to an Error:" |
 | 11 | 每个 turn 下方 | "Worked"/"Took 39s"/"Failed" 徽章 | `ui-chat/src/client/locale.ts` `message.turnProcess.*` + `TurnProcessNodeView.tsx` | [配置] 文案可换；[改 UI] ErrGrind 可整枚隐藏 |

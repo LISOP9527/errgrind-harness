@@ -21,6 +21,10 @@ export const SIDEBAR_COLLAPSED = 56
  * LG breakpoint); a manual toggle below it re-expands over the squeezed center
  * (stores.ts narrowExpanded). */
 export const SIDEBAR_AUTO_COLLAPSE = 1024
+/** Viewport width below which the expanded sidebar must not claim a grid track:
+ * pushing 280px beside a phone-width centre leaves an unusable sliver, so the
+ * wide sidebar renders as an overlay drawer instead (AppFrame). */
+export const SIDEBAR_DRAWER_MAX = 720
 /** Right column drag clamp floor. */
 export const RIGHTBAR_MIN = 300
 /** Maximum normal right panel width as a fraction of the frame. */

@@ -1383,6 +1383,10 @@ export function apply(ctx: Context, config: Config = { statusCommand: true }): v
   ctx.commands.register({
     name: 'error-confirm',
     description: 'Confirm the reviewed final Error description and finish Grill together, for example /error-confirm 2',
+    // Without the input declaration the composer treats `/error-confirm <n>` as
+    // ordinary chat text: the argued line never reaches this handler, so the
+    // revision-bound confirmation path must advertise its free-form tail.
+    input: { hint: '<revision>' },
     handler: (invocation) => {
       const revisionText = invocation.rawInput.trim()
       if (!/^[1-9][0-9]*$/.test(revisionText)) {

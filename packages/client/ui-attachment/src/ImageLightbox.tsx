@@ -42,7 +42,10 @@ export function ImageLightbox({ src, alt, labels, onClose }: {
     window.addEventListener('keydown', onKeyDown)
     return () => {
       window.removeEventListener('keydown', onKeyDown)
-      restoreRef.current?.focus()
+      // preventScroll: the opener may sit in a squeezed column whose ancestors
+      // cannot scroll back (the shell frame clips, not scrolls); a scroll-
+      // into-view there would strand the whole frame at a nonzero scrollLeft.
+      restoreRef.current?.focus({ preventScroll: true })
     }
   }, [onClose])
 

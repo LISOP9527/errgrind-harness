@@ -238,6 +238,61 @@
   white-space: nowrap;
 }
 
+/* Phone: full-bleed sheet with the two-pane nav collapsed to a horizontal tab
+   row. At <720px the 188px rail would consume over half the panel. */
+@media (max-width: 720px) {
+  .panel {
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    flex-direction: column;
+  }
+
+  .nav {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: auto;
+    padding: 12px 12px 0;
+  }
+
+  /* The panel is self-describing here; the title would eat the tab row. */
+  .navTitle {
+    display: none;
+  }
+
+  .navList {
+    flex-direction: row;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 6px;
+  }
+
+  .navCell {
+    flex: none;
+    height: 36px;
+    padding: 7px 12px;
+    white-space: nowrap;
+  }
+
+  .navCell .navLabel {
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .header {
+    height: 44px;
+    padding: 8px 12px 4px 8px;
+  }
+
+  .options {
+    padding: 0 16px 16px;
+  }
+}
+
 /* macOS: overlays covering the window drag bands must subtract themselves
    (Electron app-regions are geometry, not stacking). */
 :global([data-platform='darwin']) .overlay {

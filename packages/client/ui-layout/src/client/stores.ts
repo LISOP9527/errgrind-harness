@@ -93,10 +93,16 @@ export function createLayoutStore(): EngineStoreHandle<LayoutState, LayoutAction
     actions: {
       selectPanel: (d, panelId: MainPanelId | null) => {
         d.panelInfo.activePanelId = panelId
+        // Every panel navigation — opening a Session, a global panel, or back
+        // to the Conversation — dismisses the narrow sidebar override, so the
+        // phone-width drawer always closes on selection.
+        d.layoutInfo.narrowExpanded = false
       },
       retainMainPanels: (d, panelIds: readonly string[]) => {
         if (d.panelInfo.activePanelId !== null && !panelIds.includes(d.panelInfo.activePanelId)) {
           d.panelInfo.activePanelId = null
+          // Falling back to the Conversation is panel navigation too.
+          d.layoutInfo.narrowExpanded = false
         }
       },
       setSidebar: (d, px: number) => {

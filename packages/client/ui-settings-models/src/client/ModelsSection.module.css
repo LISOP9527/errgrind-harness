@@ -659,6 +659,14 @@ select.input {
   }
 }
 
+/* Narrow content column (phone settings sheet): capacity fields stack instead
+   of splitting a ~150px pane into two unreadable inputs. */
+@media (max-width: 560px) {
+  .modelAdvanced {
+    grid-template-columns: 1fr;
+  }
+}
+
 .fetchDialog {
   max-width: 520px;
 

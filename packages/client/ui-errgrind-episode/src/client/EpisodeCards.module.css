@@ -7,45 +7,45 @@
   min-width: 0;
   margin: 0.75rem auto;
   padding: 1rem;
-  border: 1px solid var(--dsh-border-subtle, #d8dce3);
+  border: 1px solid var(--dsw-alias-border-l4, #d8dce3);
   border-radius: 0.9rem;
-  background: var(--dsh-surface-raised, #fff);
-  color: var(--dsh-text-primary, #20242c);
+  background: var(--dsw-alias-bg-layer-2, #fff);
+  color: var(--dsw-alias-label-primary, #20242c);
 }
 
 .questionCard {
   margin-top: 0.35rem;
-  border-inline-start: 3px solid var(--dsh-accent, #6474c8);
+  border-inline-start: 3px solid var(--dsw-alias-brand-primary, #6474c8);
 }
 
 .teachCard {
   margin-top: 0.35rem;
-  border-inline-start: 3px solid var(--dsh-accent-teach, #0d9488);
+  border-inline-start: 3px solid var(--dsw-alias-state-success-primary, #0d9488);
 }
 
 .teachKind {
   display: inline-flex;
   align-items: center;
   padding: 0.15rem 0.55rem;
-  border: 1px solid var(--dsh-border-subtle, #d8dce3);
+  border: 1px solid var(--dsw-alias-border-l4, #d8dce3);
   border-radius: 9999px;
-  background: var(--dsh-surface, #f7f8fa);
-  color: var(--dsh-text-secondary, #5c6572);
+  background: var(--dsw-alias-bg-module-platform, #f7f8fa);
+  color: var(--dsw-alias-label-secondary, #5c6572);
   font-size: 0.78rem;
   font-weight: 600;
   line-height: 1.4;
 }
 
 .teachCard[data-kind="question"] .teachKind {
-  color: var(--dsh-accent, #4257b2);
+  color: var(--dsw-alias-brand-primary, #4257b2);
 }
 
 .teachCard[data-kind="hint"] .teachKind {
-  color: var(--dsh-accent-warn, #b45309);
+  color: var(--dsw-alias-state-warn-label, #b45309);
 }
 
 .teachCard[data-kind="explanation"] .teachKind {
-  color: var(--dsh-accent-teach, #0d9488);
+  color: var(--dsw-alias-state-success-primary, #0d9488);
 }
 
 .header,
@@ -71,7 +71,7 @@
 
 .revision,
 .status {
-  color: var(--dsh-text-secondary, #5c6572);
+  color: var(--dsw-alias-label-secondary, #5c6572);
   font-size: 0.84rem;
 }
 
@@ -95,7 +95,7 @@
 .hint,
 .statusLine,
 .uncertaintyLabel {
-  color: var(--dsh-text-secondary, #5c6572);
+  color: var(--dsw-alias-label-secondary, #5c6572);
   font-size: 0.88rem;
 }
 
@@ -120,7 +120,7 @@
 }
 
 .authLink {
-  color: var(--dsh-accent, #4257b2);
+  color: var(--dsw-alias-brand-primary, #4257b2);
   overflow-wrap: anywhere;
   font-weight: 600;
 }
@@ -142,15 +142,15 @@
 }
 
 .authCodeLabel {
-  color: var(--dsh-text-secondary, #5c6572);
+  color: var(--dsw-alias-label-secondary, #5c6572);
   font-size: 0.88rem;
 }
 
 .authCode {
   padding: 0.45rem 0.6rem;
-  border: 1px solid var(--dsh-border-subtle, #d8dce3);
+  border: 1px solid var(--dsw-alias-border-l4, #d8dce3);
   border-radius: 0.45rem;
-  background: var(--dsh-surface, #f7f8fa);
+  background: var(--dsw-alias-bg-module-platform, #f7f8fa);
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -161,16 +161,16 @@
 .secondaryButton {
   min-height: 2.5rem;
   padding: 0.5rem 0.8rem;
-  border: 1px solid var(--dsh-border-subtle, #d8dce3);
+  border: 1px solid var(--dsw-alias-border-l4, #d8dce3);
   border-radius: 0.6rem;
-  background: var(--dsh-surface-raised, #fff);
-  color: var(--dsh-text-primary, #20242c);
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  color: var(--dsw-alias-label-primary, #20242c);
   font: inherit;
   cursor: pointer;
 }
 
 .secondaryButton {
-  color: var(--dsh-text-secondary, #5c6572);
+  color: var(--dsw-alias-label-secondary, #5c6572);
 }
 
 .confirmButton {
@@ -178,8 +178,8 @@
   padding: 0.65rem 1rem;
   border: 0;
   border-radius: 0.65rem;
-  background: var(--dsh-accent, #4257b2);
-  color: white;
+  background: var(--dsw-alias-button-primary-fill, #4257b2);
+  color: var(--dsw-alias-label-primary-foreground, white);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -192,7 +192,7 @@
 
 .feedback {
   flex-basis: 100%;
-  color: var(--dsh-text-secondary, #5c6572);
+  color: var(--dsw-alias-label-secondary, #5c6572);
   font-size: 0.88rem;
 }
 

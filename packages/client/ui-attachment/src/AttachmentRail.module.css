@@ -113,3 +113,12 @@
 .arrowRight {
   right: 4px;
 }
+
+/* Touch rails page by swipe; the overlay arrows only ever cover the edge
+   thumbnails, so they are withheld on coarse pointers. (Ordered after
+   .arrow/.arrowRight so the equal-specificity override wins.) */
+@media (pointer: coarse) {
+  .arrow {
+    display: none;
+  }
+}

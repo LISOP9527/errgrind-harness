@@ -19,7 +19,7 @@ import type { ReactNode } from 'react'
 import type {
   PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
-import { CENTER_MIN, clampWidth, computeColumns, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT } from './columns.ts'
+import { CENTER_MIN, clampWidth, computeColumns, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT, SIDEBAR_DRAWER_MAX } from './columns.ts'
 import { DocumentTitle } from './DocumentTitle.tsx'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
@@ -177,6 +177,11 @@ export function AppFrame({
 
   const narrow = viewport < SIDEBAR_AUTO_COLLAPSE
   const sidebarCollapsed = narrow ? !layoutInfo.narrowExpanded : layoutInfo.sidebar === 0
+  // Below the drawer breakpoint the expanded sidebar rides an overlay instead
+  // of claiming its grid track: pushing 280px beside a phone-width centre
+  // leaves an unusable sliver. The collapsed rail keeps its seat either way.
+  const drawer = viewport < SIDEBAR_DRAWER_MAX
+  const drawerOpen = drawer && narrow && !sidebarCollapsed
   const sidebarPreference = sidebarCollapsed
     ? 0
     : layoutInfo.sidebar === 0 ? SIDEBAR_DEFAULT : layoutInfo.sidebar
@@ -259,8 +264,8 @@ export function AppFrame({
   const rightbarMax = cols.rightbar === 0 ? 0 : clampWidth(rightbarPreference, RIGHTBAR_MIN, viewport * RIGHTBAR_MAX_RATIO)
   const sidebar = useMemo(() => renderSlot('sidebar', {
     collapsed: sidebarCollapsed,
-    width: cols.sidebar,
-  }), [renderSlot, sidebarCollapsed, cols.sidebar])
+    width: drawerOpen ? Math.min(cols.sidebar, viewport - 48) : cols.sidebar,
+  }), [renderSlot, sidebarCollapsed, drawerOpen, cols.sidebar, viewport])
   const main = useMemo(() => (
     <MainPanel usePanelInfo={usePanelInfo} renderSlot={renderSlot} />
   ), [usePanelInfo, renderSlot])
@@ -281,9 +286,10 @@ export function AppFrame({
         ...(document.documentElement.hasAttribute('data-windows-titlebar')
           ? { '--dsh-windows-sidebar-width': `${cols.sidebar}px` } : {}),
         gridTemplateColumns:
-          `${cols.sidebar}px minmax(${cols.rightbar === 0 ? 0 : CENTER_MIN}px, 1fr) minmax(0px, ${rightbarMax}px)`,
+          `${drawer ? collapsedWidth : cols.sidebar}px minmax(${cols.rightbar === 0 ? 0 : CENTER_MIN}px, 1fr) minmax(0px, ${rightbarMax}px`,
       }}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
+      data-sidebar-drawer={drawerOpen || undefined}
       data-rightbar-collapsed={cols.rightbar === 0 || undefined}
       data-rightbar-fullscreen={layoutInfo.rightbarFullscreen || undefined}
       data-rightbar-instant={layoutInfo.rightbarInstant || undefined}
@@ -301,8 +307,14 @@ export function AppFrame({
         usePanelInfo={usePanelInfo}
       />
       <div className={css.sidebarCol}>
-        {sidebar}
+        {drawerOpen ? null : sidebar}
       </div>
+      {drawerOpen && (
+        <>
+          <div className={css.drawerScrim} onClick={actions.toggleSidebar} />
+          <aside className={css.drawerPanel}>{sidebar}</aside>
+        </>
+      )}
       <>
         <CenterColumn>{main}</CenterColumn>
         <RightbarColumn>
@@ -317,8 +329,9 @@ export function AppFrame({
           {leading}
         </div>
       )}
-      {/* The collapsed rail is fixed-width: no resize handle while closed. */}
-      {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
+      {/* The collapsed rail is fixed-width: no resize handle while closed;
+          the drawer overlay has no track to resize either. */}
+      {!sidebarCollapsed && !drawer && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
       {layoutInfo.rightbarShown && !layoutInfo.rightbarFullscreen && normal.rightbar > 0 && (
         <DragHandle side="rightbar" left={viewport - normal.rightbar} onStart={onRightbarStart} onDrag={onRightbarDrag} onEnd={onDragEnd} />
       )}

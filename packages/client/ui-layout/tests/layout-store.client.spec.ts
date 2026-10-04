@@ -96,6 +96,15 @@ describe('main panel selection', () => {
     }
   })
 
+  it('closes the narrow sidebar override on panel selection', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setViewportWidth(390)
+    actions.toggleSidebar()
+    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(true)
+    actions.selectPanel(null)
+    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(false)
+  })
+
   it('keeps the complete snapshot when selecting the current panel again', () => {
     const { store, actions } = createLayoutStore().create()
     actions.selectPanel(panelA)

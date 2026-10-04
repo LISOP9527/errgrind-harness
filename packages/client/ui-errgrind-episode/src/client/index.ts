@@ -427,6 +427,17 @@ export function apply(ctx: ClientContext): void {
         )
         if (!result.ok) throw new Error(`Drill request failed: ${result.error.code}`)
       },
+      renameSession: async (sessionId: SessionId, title: string): Promise<void> => {
+        const result = await ctx.sessions.using(
+          sessionId,
+          { source: 'workspaceOperation' },
+          reference => reference.binding.session.rename(title),
+        )
+        if (!result.ok) throw new Error(result.error.message)
+      },
+      archiveSession: async (sessionId: SessionId): Promise<void> => {
+        await ctx.uiWorkspace.archiveSession(sessionId)
+      },
     }),
   }, ErrorHistory))
   ctx.effect(() => ctx.uiConversation.events.register(episodeDefinition), 'ui-errgrind-episode: Error card')

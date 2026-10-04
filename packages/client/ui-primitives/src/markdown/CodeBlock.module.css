@@ -69,6 +69,15 @@
   font: inherit;
 }
 
+/* Touch: the label-sized control needs a real tap box; the negative margin
+   keeps the banner geometry identical. */
+@media (pointer: coarse) {
+  .copyButton {
+    padding: 8px 10px;
+    margin: -8px -10px;
+  }
+}
+
 /* Consumers may turn the stable content node into a viewport without changing
    the default CodeBlock layout. */
 .content {

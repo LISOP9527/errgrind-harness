@@ -402,6 +402,37 @@ describe('Isolated Drill Generation', () => {
     }
   })
 
+  it('strips TeX math delimiters from the generated question before it reaches the card', async () => {
+    const { ctx, mockLlm } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-tex-delimiters-test'))
+    const agent = createTestAgent(ctx, session)
+    setupCompletedEpisode(session)
+
+    mockLlm.streamHandler = () => {
+      async function* generate() {
+        yield { type: 'text-delta' as const, index: 0, text: JSON.stringify({
+          question: '计算 \\(2/5 + 1/3\\) 并化简 $$x + 1$$',
+          referenceAnswer: '11/15',
+        }) }
+        yield { type: 'finish' as const, reason: { kind: 'stop' as const } }
+      }
+      return generate()
+    }
+
+    const result = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-tex'),
+      name: 'drill_prepare',
+      arguments: validSpecArgs,
+      agent,
+    })
+
+    expect(result.isError).toBe(false)
+    expect(result.value).toEqual({ question: '计算 2/5 + 1/3 并化简 x + 1' })
+    const drillState = ctx.sessionProjections.stateOf(session, 'errgrindDrill') as DrillState
+    expect(drillState.active?.question).toBe('计算 2/5 + 1/3 并化简 x + 1')
+  })
+
   it('handles malformed JSON from provider with clear Chinese retry error and retains pendingSpec', async () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-malformed-json-test'))

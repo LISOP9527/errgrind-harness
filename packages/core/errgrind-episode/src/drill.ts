@@ -256,6 +256,13 @@ function bounded(value: string, label: string): string {
   return text
 }
 
+/** Learner-facing question text renders on a plain-text card: drop the TeX
+ *  math delimiters a draft may emit around inline or display math, keeping the
+ *  enclosed notation readable. A lone `$` stays — it may be currency. */
+function plainMathText(text: string): string {
+  return text.replace(/\\\(|\\\)|\\\[|\\\]|\$\$/g, '')
+}
+
 /** Reject distinctive source text before the specification crosses into the isolated Draft request. */
 function rejectSourceLeak(spec: DrillSpec, sourceText: string): void {
   const forwarded = JSON.stringify(spec).toLowerCase()
@@ -671,7 +678,7 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
             throw new Error('Output does not match required schema')
           }
 
-          parsedQuestion = bounded(parsedResult.data.question, 'Drill question')
+          parsedQuestion = plainMathText(bounded(parsedResult.data.question, 'Drill question'))
           parsedReferenceAnswer = bounded(parsedResult.data.referenceAnswer, 'Reference answer')
           draftStatus = 'success'
         } catch (err) {

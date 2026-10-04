@@ -77,9 +77,11 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
       )}
       <footer className={css.footer}>
         <span className={css.statusLine}>
-          {description.probeCount > 0
-            ? t('card.grillProgress', { count: description.probeCount })
-            : description.diagnosisStatus === null ? t('card.grillActive') : ''}
+          {description.probeCount === 1
+            ? t('card.grillProgressOne')
+            : description.probeCount > 1
+              ? t('card.grillProgress', { count: description.probeCount })
+              : description.diagnosisStatus === null ? t('card.grillActive') : ''}
         </span>
         {!description.confirmed && description.diagnosisStatus !== null && (
           <form onSubmit={(event) => { void confirm(event) }}>

@@ -3,7 +3,10 @@
   display: grid;
   grid-template-rows: 100%;
   height: 100%;
-  overflow: hidden;
+  /* clip, not hidden: hidden still scrolls programmatically, and a focus
+     restore on a squeezed column can leave the whole frame stuck at a
+     nonzero scrollLeft (the lightbox close path); clip admits no scrolling. */
+  overflow: clip;
   background: var(--dsw-alias-bg-base);
 }
 
@@ -289,4 +292,44 @@
 
 .overlayLayer > * {
   pointer-events: auto;
+}
+
+/* Phone-width drawer: the expanded sidebar covers the columns instead of
+   pushing them. Scrim and panel sit below the frame overlay (20) so portalled
+   menus and dialogs still float above it. */
+.drawerScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  background: var(--dsw-alias-bg-mask-1);
+  animation: drawer-scrim-in var(--ds-transition-duration-fast, 120ms) ease-out;
+}
+
+.drawerPanel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 19;
+  width: min(280px, calc(100vw - 48px));
+  overflow: hidden;
+  background: var(--dsw-specific-sidebar-fill);
+  box-shadow: var(--dsw-elevation-prominent);
+  animation: drawer-panel-in var(--ds-transition-duration-slow, 200ms) ease-out;
+}
+
+@keyframes drawer-scrim-in {
+  from { opacity: 0; }
+}
+
+@keyframes drawer-panel-in {
+  from { transform: translateX(-24px); opacity: 0.5; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawerScrim,
+  .drawerPanel {
+    animation: none;
+  }
 }

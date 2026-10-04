@@ -12,6 +12,7 @@ Your task is to draft one novel, self-contained mathematics practice problem and
 
 2. Mathematics Problem (`question`):
    - Provide one complete, self-contained mathematics problem written in clear Chinese and standard mathematical notation.
+   - Write the problem as plain text on one plain-text chat card: use Unicode notation (x², √x, ≠, ≤, ÷, π, (a+b)/2) and never TeX/LaTeX commands or delimiters (\(, \[, $, \frac, \sqrt).
    - Design the problem from the new setting and essential trigger in this specification; no earlier problem is available in this request.
    - Align strictly with the DrillSpec: domain, taskType, setting, taskGoal, and essentialTrigger.
    - Ensure that `desiredBehavior` naturally matters to reliably completing the task, making it an essential node rather than an arbitrary requirement; do not artificially exclude other mathematically sound methods or require rote recital of fixed steps.

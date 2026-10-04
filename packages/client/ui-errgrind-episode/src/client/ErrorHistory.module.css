@@ -85,20 +85,13 @@
 
 .openButton,
 .practiceButton,
-.unknownButton,
-.railButton {
+.railButton,
+.iconAction,
+.actionButton {
   border: 0;
   color: inherit;
   font: inherit;
   cursor: pointer;
-}
-
-.unknownButton {
-  padding: 0.65rem;
-  border-radius: 0.65rem;
-  background: color-mix(in srgb, currentColor 5%, transparent);
-  text-align: left;
-  overflow-wrap: anywhere;
 }
 
 .openButton {
@@ -108,6 +101,80 @@
   padding: 0.2rem;
   background: transparent;
   text-align: left;
+}
+
+.cardTitle {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+/* Row actions sit left; the rename editor reuses the same row. */
+.actions,
+.renameRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.iconAction {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  color: color-mix(in srgb, currentColor 78%, transparent);
+}
+
+.iconAction:hover:not(:disabled) {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: inherit;
+}
+
+.iconAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.iconAction svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.renameRow {
+  gap: 0.35rem;
+}
+
+.renameInput {
+  flex: 1;
+  min-width: 0;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  color: inherit;
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.actionButton {
+  flex: none;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  font-size: 0.78rem;
+}
+
+.actionButton:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .description {
@@ -129,7 +196,7 @@
   min-height: 2rem;
   padding: 0.35rem 0.55rem;
   border-radius: 0.45rem;
-  background: color-mix(in srgb, var(--accent, #8aa4ff) 18%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary, #8aa4ff) 18%, transparent);
   text-align: left;
   font-size: 0.78rem;
 }
@@ -166,9 +233,11 @@
 
 .openButton:focus-visible,
 .practiceButton:focus-visible,
-.unknownButton:focus-visible,
 .railButton:focus-visible,
+.iconAction:focus-visible,
+.actionButton:focus-visible,
+.renameInput:focus-visible,
 .searchLabel input:focus-visible {
-  outline: 2px solid var(--accent, #8aa4ff);
+  outline: 2px solid var(--dsw-alias-brand-primary, #8aa4ff);
   outline-offset: 2px;
 }

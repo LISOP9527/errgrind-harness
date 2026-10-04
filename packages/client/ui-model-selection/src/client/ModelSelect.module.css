@@ -75,6 +75,15 @@
   display: var(--dsh-composer-model-text-display, block);
 }
 
+/* Narrow composer row (the .row container): the effort stub ellipsizes to a
+   useless "M.." before the row reaches icon-only width, so it drops out
+   earlier and leaves the model name readable. */
+@container (max-width: 430px) {
+  .triggerEffort {
+    display: none;
+  }
+}
+
 .chevron {
   flex: 0 0 auto;
   color: var(--dsw-alias-label-caption);

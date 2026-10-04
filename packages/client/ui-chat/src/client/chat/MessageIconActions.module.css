@@ -91,6 +91,16 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+/* Touch: grow the tap box to ~40px while the row keeps its 28px cadence —
+   the negative margin pulls the extra pixels back out of the layout. */
+@media (pointer: coarse) {
+  .action {
+    width: calc(40px + var(--dsh-content-font-delta, 0px));
+    height: calc(40px + var(--dsh-content-font-delta, 0px));
+    margin: -6px;
+  }
+}
+
 /* Unavailable stays focusable and hoverable so Tooltip can explain why. */
 .action[data-unavailable] {
   cursor: default;
