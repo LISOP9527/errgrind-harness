@@ -193,10 +193,13 @@ describe('SidebarRoot shell', () => {
     expect(screen.getByRole('button', { name: 'Open sidebar' })).toBeTruthy()
   })
 
-  it('keeps only the expand control in the collapsed rail below the drawer breakpoint', () => {
+  it('mounts only a floating expand control below the drawer breakpoint', () => {
     const b = mountShell({ collapsed: true, drawer: true })
+    // The zero-width column has no rail at all: one button, no brand mark,
+    // no rail rows, no region or foot seats.
+    expect(screen.getAllByRole('button')).toHaveLength(1)
     expect(screen.getByRole('button', { name: 'Open sidebar' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'New session' })).toBeNull()
+    expect(screen.queryByTestId('custom-brand-mark')).toBeNull()
     expect(screen.queryByTestId('region')).toBeNull()
     expect(screen.queryByTestId('settings-seat')).toBeNull()
     expect(screen.queryByTestId('footer-action-seat')).toBeNull()

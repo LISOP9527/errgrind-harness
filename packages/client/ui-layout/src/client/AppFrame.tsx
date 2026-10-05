@@ -177,9 +177,11 @@ export function AppFrame({
 
   const narrow = viewport < SIDEBAR_AUTO_COLLAPSE
   const sidebarCollapsed = narrow ? !layoutInfo.narrowExpanded : layoutInfo.sidebar === 0
-  // Below the drawer breakpoint the expanded sidebar rides an overlay instead
-  // of claiming its grid track: pushing 280px beside a phone-width centre
-  // leaves an unusable sliver. The collapsed rail keeps its seat either way.
+  // Below the drawer breakpoint the sidebar claims no grid track at all: the
+  // expanded sidebar rides an overlay drawer (pushing 280px beside a
+  // phone-width centre leaves an unusable sliver), and the collapsed state
+  // leaves only ui-sidebar's floating expand control — even a standing rail
+  // column is unaffordable there.
   const drawer = viewport < SIDEBAR_DRAWER_MAX
   const drawerOpen = drawer && narrow && !sidebarCollapsed
   const sidebarPreference = sidebarCollapsed
@@ -262,11 +264,14 @@ export function AppFrame({
   // whole and was corrected two frames later — visible jitter. cols keeps only
   // the discrete decisions (track present, collapse state) and the drag base.
   const rightbarMax = cols.rightbar === 0 ? 0 : clampWidth(rightbarPreference, RIGHTBAR_MIN, viewport * RIGHTBAR_MAX_RATIO)
+  // In drawer mode the sidebar track is zeroed outright: open rides
+  // .drawerPanel, closed overlays nothing but the floating toggle.
+  const sidebarTrack = drawer ? 0 : cols.sidebar
   const sidebar = useMemo(() => renderSlot('sidebar', {
     collapsed: sidebarCollapsed,
-    width: drawerOpen ? Math.min(cols.sidebar, viewport - 48) : cols.sidebar,
+    width: drawerOpen ? Math.min(cols.sidebar, viewport - 48) : sidebarTrack,
     drawer,
-  }), [renderSlot, sidebarCollapsed, drawerOpen, drawer, cols.sidebar, viewport])
+  }), [renderSlot, sidebarCollapsed, drawerOpen, drawer, cols.sidebar, sidebarTrack, viewport])
   const main = useMemo(() => (
     <MainPanel usePanelInfo={usePanelInfo} renderSlot={renderSlot} />
   ), [usePanelInfo, renderSlot])
@@ -287,10 +292,10 @@ export function AppFrame({
         ...(document.documentElement.hasAttribute('data-windows-titlebar')
           ? { '--dsh-windows-sidebar-width': `${cols.sidebar}px` } : {}),
         gridTemplateColumns:
-          `${drawer ? collapsedWidth : cols.sidebar}px minmax(${cols.rightbar === 0 ? 0 : CENTER_MIN}px, 1fr) minmax(0px, ${rightbarMax}px`,
+          `${sidebarTrack}px minmax(${cols.rightbar === 0 ? 0 : CENTER_MIN}px, 1fr) minmax(0px, ${rightbarMax}px)`,
       }}
       data-sidebar-collapsed={sidebarCollapsed || undefined}
-      data-sidebar-drawer={drawerOpen || undefined}
+      data-sidebar-drawer={drawer || undefined}
       data-rightbar-collapsed={cols.rightbar === 0 || undefined}
       data-rightbar-fullscreen={layoutInfo.rightbarFullscreen || undefined}
       data-rightbar-instant={layoutInfo.rightbarInstant || undefined}

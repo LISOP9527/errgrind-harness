@@ -368,6 +368,35 @@
   color: var(--dsw-alias-label-primary);
 }
 
+/* Below the drawer breakpoint the column's track is zero-width: the root
+   sheds its fill and padding so nothing but the floating toggle paints. */
+.railOnly {
+  padding: 0;
+  background: transparent;
+}
+
+/* The drawer-mode rail substitute: one floating expand control over the
+   content's top-left corner. z 15 sits above column content, below the
+   frame's scrim/drawer (18/19) and overlay layer (20) — same band as
+   ui-layout's .leadingSeat. Fixed escapes the zero-width column box the way
+   the windows-titlebar controls do. */
+.railOnlyToggle {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 15;
+  width: 36px;
+  height: 36px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 12px;
+  background: var(--dsw-alias-button-elevated-fill);
+  color: var(--dsw-alias-label-primary);
+}
+
+.railOnlyToggle:hover {
+  background: var(--dsw-alias-button-floating-hover);
+}
+
 .buildVersion {
   flex: none;
   display: inline-flex;

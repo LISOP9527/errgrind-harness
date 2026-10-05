@@ -25,7 +25,7 @@ This package provides the Web GUI's three-column AppFrame, edge-column widths, a
 <a id="use-this-package"></a>
 ## Use this package
 
-The root slot composes the sidebar, main content, and right column. The sidebar spans 264–420px, defaults to 280px, and retains a 56px rail when collapsed; below 1024px it collapses automatically, and opening the right panel collapses a manually expanded sidebar. Below 720px the expanded sidebar opens as an overlay drawer over the columns — a scrim tap or panel selection closes it — and the collapsed rail keeps only its expand control. The right panel first opens at 45% of the viewport, then retains the user's pixel preference, capped at 70%. To protect 400px for the center, the frame first reduces the right panel to 300px, then reports insufficient room so its occupant closes it, and only then compresses the center further. Dragging has no transition delay; the right handle is absent while closed or fullscreen.
+The root slot composes the sidebar, main content, and right column. The sidebar spans 264–420px, defaults to 280px, and retains a 56px rail when collapsed; below 1024px it collapses automatically, and opening the right panel collapses a manually expanded sidebar. Below 720px the sidebar claims no grid track at all: the expanded sidebar opens as an overlay drawer over the columns — a scrim tap or panel selection closes it — and the collapsed column leaves only a floating expand control at the frame's top-left. The right panel first opens at 45% of the viewport, then retains the user's pixel preference, capped at 70%. To protect 400px for the center, the frame first reduces the right panel to 300px, then reports insufficient room so its occupant closes it, and only then compresses the center further. Dragging has no transition delay; the right handle is absent while closed or fullscreen.
 
 Global panels occupy the root-scoped `main` keyed slot; `conversation` is the reserved key for the Conversation. `ctx.layout.selectPanel(id)` selects a registered panel, and `null` selects the Conversation without changing the current Session. No global panel is registered by the shipped composition.
 
@@ -85,7 +85,7 @@ None; this package neither assembles nor sends a provider request.
 These limits define the current layout behavior. They are current package constraints, not a general window-manager comparison or a task backlog.
 
 - **Panel geometry is transient** — reload restores the sidebar default and the right panel hidden; each dragged width is one frame-wide preference, not a per-Session fact.
-- **Extremely narrow windows** — after the right panel closes, the center may still fall below 400px; the left 56px rail remains.
+- **Extremely narrow windows** — after the right panel closes, the center may still fall below 400px; the left 56px rail remains (below 720px it gives way to a floating expand control).
 - **Track and panel travel on one shared curve only while animating** — during a discrete open/close the frame sets `data-animating` and its track transition and the occupant's slide read the same duration and easing variables; an occupant that used its own would detach the panel's edge from the conversation's while squeezing. Drags and instant presentation switches run transition-free, so the curve does not cover them.
 - **No scroll anchoring during squeeze reflow** — layout changes may move the reader's viewport.
 

@@ -15,6 +15,10 @@
  * scrollbar at all: the shell tracks the pointer and rebinds ui-theme's
  * scrollbar indirection away while it is elsewhere, so a list the user is not
  * pointing at carries no bar.
+ *
+ * Below the drawer breakpoint (ui-layout zeroes the sidebar track) the
+ * collapsed column mounts nothing but a floating expand control — a
+ * phone-width frame cannot spare a standing rail.
  */
 import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
@@ -112,9 +116,9 @@ export function SidebarRoot({
   // (that is what --dsh-windows-menu-start reserves), so a right-side bubble
   // lands under their text. Below the caption is the only clear side.
   const captionTooltipSide = windowsTitlebar ? 'bottom' : 'right'
-  // Below the drawer breakpoint the collapsed rail keeps only the toggle: a
-  // phone-width frame cannot spare a standing icon column. Expanded content
-  // (the overlay drawer, or the settling crossfade) is unaffected.
+  // Below the drawer breakpoint the collapsed column is zero-width: the only
+  // mounted control is a floating expand toggle over the content. Expanded
+  // content (the overlay drawer, or the settling crossfade) is unaffected.
   const railOnly = drawer && !wide
 
   // Freeze the content at its expanded width while it fades out (collapsed
@@ -201,7 +205,8 @@ export function SidebarRoot({
     <div
       ref={column}
       className={clsx(
-        css.root, !wide && css.collapsed, !wide && everWide.current && css.railIn,
+        css.root, !wide && css.collapsed, railOnly && css.railOnly,
+        !wide && everWide.current && css.railIn,
         collapsed && wide && css.fading, !pointerInside && css.quietBars,
       )}
       style={wide ? { width: collapsed ? lastWideWidth.current : width } : undefined}
@@ -211,53 +216,65 @@ export function SidebarRoot({
       }}
       onPointerLeave={() => { armLinger() }}
     >
-      {/* macOS hiddenInset titlebar: the strip shares the row with the
-          traffic lights and keeps the toggle at the sidebar's top-right. */}
-      {darwinDesktop && <div className={css.topStrip}>{toggle}</div>}
-      <div className={css.logoRow}>
-        {/* Expanded, the brand doubles as a New Session shortcut — except on
+      {railOnly ? (
+        /* The zero-width column mounts only this floating expand control,
+           anchored to the viewport's top-left by .railOnlyToggle. */
+        <Tooltip label={t('toggle.open')} delayMs={500} side="right">
+          <button
+            type="button"
+            className={clsx(css.iconButton, css.railOnlyToggle)}
+            aria-label={t('toggle.open')}
+            onClick={() => { toggleSidebar() }}
+          >
+            <IconPanelLeftOutlineRegular size={18} />
+          </button>
+        </Tooltip>
+      ) : (
+        <>
+          {/* macOS hiddenInset titlebar: the strip shares the row with the
+              traffic lights and keeps the toggle at the sidebar's top-right. */}
+          {darwinDesktop && <div className={css.topStrip}>{toggle}</div>}
+          <div className={css.logoRow}>
+            {/* Expanded, the brand doubles as a New Session shortcut — except on
             macOS, where it stays part of the logo row's window-drag surface
             (a button would subtract itself through the global no-drag rule);
             the collapsed rail's logo is the expand toggle below instead. */}
-        {wide && (() => {
-          const identity = (
-            <span className={css.brandIdentity} aria-hidden="true">
-              <span className={css.brandMark}>
-                {renderSlot('sidebar.brand.mark', { size: 24 }, { fallback: <FishLogo size={24} /> })}
-              </span>
-              <span className={css.brandName}>
-                {renderSlot('sidebar.brand.name', {}, {
-                  fallback: buildVersion === undefined
-                    ? <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>
-                    : (
-                      <span className={css.localBuildBrand}>
-                        <span className={css.localBuildTitle}>{t('brand.localBuild')}</span>
-                        <span className={css.buildVersion}>{buildVersion}</span>
-                      </span>
-                    ),
-                })}
-              </span>
-            </span>
-          )
-          return darwinDesktop
-            ? <span className={clsx(css.brand, css.wide)}>{identity}</span>
-            : (
-              <button
-                type="button"
-                className={clsx(css.brand, css.wide)}
-                aria-label={t('session.new.label')}
-                onClick={() => { startSession() }}
-              >
-                {identity}
-              </button>
-            )
-        })()}
-        {!darwinDesktop && toggle}
-      </div>
+            {wide && (() => {
+              const identity = (
+                <span className={css.brandIdentity} aria-hidden="true">
+                  <span className={css.brandMark}>
+                    {renderSlot('sidebar.brand.mark', { size: 24 }, { fallback: <FishLogo size={24} /> })}
+                  </span>
+                  <span className={css.brandName}>
+                    {renderSlot('sidebar.brand.name', {}, {
+                      fallback: buildVersion === undefined
+                        ? <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>
+                        : (
+                          <span className={css.localBuildBrand}>
+                            <span className={css.localBuildTitle}>{t('brand.localBuild')}</span>
+                            <span className={css.buildVersion}>{buildVersion}</span>
+                          </span>
+                        ),
+                    })}
+                  </span>
+                </span>
+              )
+              return darwinDesktop
+                ? <span className={clsx(css.brand, css.wide)}>{identity}</span>
+                : (
+                  <button
+                    type="button"
+                    className={clsx(css.brand, css.wide)}
+                    aria-label={t('session.new.label')}
+                    onClick={() => { startSession() }}
+                  >
+                    {identity}
+                  </button>
+                )
+            })()}
+            {!darwinDesktop && toggle}
+          </div>
 
-      {/* Everything below the logo row drops out of the drawer-mode rail. */}
-      {railOnly ? null : (
-        <>
           {/* Expanded, the button carries its own label — tooltip only on the rail. */}
           <Tooltip label={t('session.new.label')} delayMs={500} disabled={wide} side={captionTooltipSide}>
             <button

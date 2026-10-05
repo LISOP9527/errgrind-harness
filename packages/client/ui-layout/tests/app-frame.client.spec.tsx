@@ -204,7 +204,7 @@ describe('AppFrame', () => {
   it('renders owner props for the default sidebar and prospective right panel', () => {
     const { frame, rightOwner, sidebarOwner, slotCalls } = mountFrame()
     expect(tracks(frame)).toEqual([280, 0])
-    expect(sidebarOwner()).toEqual({ collapsed: false, width: 280 })
+    expect(sidebarOwner()).toEqual({ collapsed: false, width: 280, drawer: false })
     expect(rightOwner()).toEqual({ width: 864, viewportWidth: 1920, canShow: true })
     expect(slotCalls.find(c => c.key === 'main')).toEqual({ key: 'main', props: {}, options: { entryKey: 'conversation' } })
   })
@@ -245,7 +245,7 @@ describe('AppFrame', () => {
     const { frame, instance, sidebarOwner, getByTestId, queryByTestId } = mountFrame()
     act(() => { instance.actions.toggleSidebar() })
     expect(tracks(frame)).toEqual([56, 0])
-    expect(sidebarOwner()).toEqual({ collapsed: true, width: 56 })
+    expect(sidebarOwner()).toEqual({ collapsed: true, width: 56, drawer: false })
     expect(getByTestId('sidebar-content')).toBeTruthy()
     expect(frame.querySelector('[data-side="sidebar"]')).toBeNull()
     // The rail keeps the window chrome housed: no shell.leading seat.
@@ -262,7 +262,7 @@ describe('AppFrame', () => {
     expect(queryByTestId('shell.leading-content')).toBeNull()
     act(() => { instance.actions.toggleSidebar() })
     expect(tracks(frame)).toEqual([0, 0])
-    expect(sidebarOwner()).toEqual({ collapsed: true, width: 0 })
+    expect(sidebarOwner()).toEqual({ collapsed: true, width: 0, drawer: false })
     expect(frame.querySelector('[data-shell-leading]')).not.toBeNull()
     expect(queryByTestId('shell.leading-content')).toBeTruthy()
     act(() => { instance.actions.toggleSidebar() })
@@ -318,7 +318,7 @@ describe('AppFrame normal width concessions', () => {
     expect(frame.querySelector('[data-side="rightbar"]')).toBeNull()
     expect(instance.getSnapshot().layoutInfo).toMatchObject({ rightbarShown: true, rightbar: 864 })
     act(() => { instance.actions.closeRightbar() })
-    resize(455)
+    resize(800)
     expect(tracks(frame)).toEqual([56, 0])
     resize(1920)
     expect(tracks(frame)).toEqual([420, 0])
@@ -374,6 +374,25 @@ describe('AppFrame normal width concessions', () => {
     act(() => { instance.actions.toggleSidebar() })
     expect(tracks(frame)[0]).toBe(280)
     expect(instance.getSnapshot().layoutInfo.sidebar).toBe(0)
+  })
+
+  it('claims no sidebar track below the drawer breakpoint in either state', () => {
+    frameWidth = 480
+    const { frame, instance, sidebarOwner } = mountFrame()
+    // Narrow mounts auto-collapsed: below 720 the column is zero-width so
+    // the occupant can leave only a floating expand control — no rail seat.
+    expect(tracks(frame)).toEqual([0, 0])
+    expect(sidebarOwner()).toEqual({ collapsed: true, width: 0, drawer: true })
+    expect(frame.querySelector('aside')).toBeNull()
+    act(() => { instance.actions.toggleSidebar() })
+    // Expanded still claims no track: the occupant rides the overlay drawer
+    // capped below the viewport (the 48px content margin).
+    expect(tracks(frame)).toEqual([0, 0])
+    expect(sidebarOwner()).toEqual({ collapsed: false, width: 280, drawer: true })
+    expect(frame.querySelector('aside')).not.toBeNull()
+    act(() => { instance.actions.toggleSidebar() })
+    expect(sidebarOwner()).toEqual({ collapsed: true, width: 0, drawer: true })
+    expect(frame.querySelector('aside')).toBeNull()
   })
 })
 
@@ -506,11 +525,11 @@ describe('AppFrame right panel presentation', () => {
   })
 
   it('retains fullscreen without a track when normal columns cannot fit', () => {
-    frameWidth = 700
+    frameWidth = 740
     const { frame, instance, rightOwner } = mountFrame()
     act(() => { instance.actions.openRightbar(false, true) })
     expect(tracks(frame)).toEqual([56, 0])
-    expect(rightOwner()).toEqual({ width: 0, viewportWidth: 700, canShow: false })
+    expect(rightOwner()).toEqual({ width: 0, viewportWidth: 740, canShow: false })
     expect(instance.getSnapshot().layoutInfo.rightbarShown).toBe(true)
     expect(frame.querySelector('[data-side="rightbar"]')).toBeNull()
   })

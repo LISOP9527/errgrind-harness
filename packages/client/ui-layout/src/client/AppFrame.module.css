@@ -294,6 +294,14 @@
   pointer-events: auto;
 }
 
+/* Phone-width drawer: the sidebar track is zero in both states, so the
+   column's fill and border must not paint a standing edge either — collapsed
+   leaves only ui-sidebar's floating expand control; open rides .drawerPanel. */
+.frame[data-sidebar-drawer] .sidebarCol {
+  background: transparent;
+  border-right: none;
+}
+
 /* Phone-width drawer: the expanded sidebar covers the columns instead of
    pushing them. Scrim and panel sit below the frame overlay (20) so portalled
    menus and dialogs still float above it. */
