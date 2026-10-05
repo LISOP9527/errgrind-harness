@@ -1,6 +1,8 @@
-import { useState, type FormEvent } from 'react'
-import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { NS, type ErrGrindKey } from './locales.ts'
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+import { NS } from './locales.ts'
 import css from './EpisodeCards.module.css'
 
 /** Safe result channel for the revision-bound confirmation command. */
@@ -32,15 +34,53 @@ export type DrillJudgmentProps = PropsRuntime<'conversation.chat.node', 'errgrin
 export type DerivedErrorProps = PropsRuntime<'conversation.chat.node', 'errgrind-derived-error'> & PropsLocale<typeof NS>
 export type DrillDraftCardProps = PropsRuntime<'conversation.chat.node', 'errgrind-drill-draft-card'> & PropsLocale<typeof NS>
 
+/**
+ * Localized code-fence and footnote chrome for ErrGrind card prose. The keys
+ * live in the shared common vocabulary, which every namespace's `t` reaches
+ * through its fallback chain.
+ */
+function markdownLabels(t: TranslateNS<typeof NS>): MarkdownLabels {
+  return {
+    code: {
+      copyLabel: t('copy'),
+      copiedLabel: t('copied'),
+      toolbarLabels: {
+        codeLabel: t('codeBlock.title'),
+        wrapLabel: t('codeBlock.wrap'),
+        unwrapLabel: t('codeBlock.unwrap'),
+      },
+    },
+    footnotes: t('markdown.footnotes'),
+  }
+}
+
+/**
+ * Author-facing question or notice: a quiet bordered block with a plain-word
+ * label. Authoring prompts keep the frame; model output below flows inline.
+ */
+function PromptBlock({ label, hint, children }: {
+  label: string
+  hint?: string | undefined
+  children: ReactNode
+}) {
+  return (
+    <div className={css.promptBlock}>
+      <span className={css.cardLabel}>{label}</span>
+      {children}
+      {hint !== undefined && <p className={css.hint}>{hint}</p>}
+    </div>
+  )
+}
+
 /** Render the current full Error description and its public investigation state. */
 export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
   const [pending, setPending] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const labels = useMemo(() => markdownLabels(t), [t])
   const description = node.data
 
   async function confirm(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
-    if (pending || description.confirmed) return
     setPending(true)
     setFeedback('')
     try {
@@ -66,10 +106,9 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
     <article className={css.episodeCard} aria-label={t('card.title')}>
       <header className={css.header}>
         <h3 className={css.title}>{t('card.title')}</h3>
-        <span className={css.revision}>{t('card.revision', { revision: description.revision })}</span>
         <span className={css.status} aria-live="polite">{status}</span>
       </header>
-      <div className={css.description}>{description.description}</div>
+      <MarkdownText text={description.description} labels={labels} />
       {!description.confirmed && (
         <p className={css.hint}>
           {description.diagnosisStatus === null ? t('card.reviseHint') : t('card.pendingProposalHint')}
@@ -101,11 +140,11 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
                 ? t('card.conclusion.supported')
                 : t('card.conclusion.undetermined')}
           </span>
-          <p className={css.summary}>{description.summary}</p>
+          <MarkdownText text={description.summary} labels={labels} />
           {description.remainingUncertainty !== null && (
             <>
               <span className={css.uncertaintyLabel}>{t('card.remainingUncertainty')}</span>
-              <p className={css.uncertainty}>{description.remainingUncertainty}</p>
+              <MarkdownText text={description.remainingUncertainty} labels={labels} />
             </>
           )}
         </section>
@@ -116,70 +155,51 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
 
 /** Render one public Grill prompt in its chronological position. */
 export function GrillQuestionCard({ node, t }: GrillQuestionProps) {
+  const labels = useMemo(() => markdownLabels(t), [t])
   return (
-    <article className={css.questionCard} aria-label={t('question.label')}>
-      <h3 className={css.title}>{t('question.label')}</h3>
-      <p className={css.question}>{node.data.question}</p>
-    </article>
+    <PromptBlock label={t('question.label')}>
+      <MarkdownText text={node.data.question} labels={labels} />
+    </PromptBlock>
   )
 }
 
 /** Render one durable intake clarification at its chronological position. */
 export function IntakeClarificationCard({ node, t }: IntakeClarificationProps) {
+  const labels = useMemo(() => markdownLabels(t), [t])
   return (
-    <article className={css.questionCard} aria-label={t('clarification.label')}>
-      <h3 className={css.title}>{t('clarification.label')}</h3>
-      <p className={css.question}>{node.data.text}</p>
-    </article>
+    <PromptBlock label={t('clarification.label')}>
+      <MarkdownText text={node.data.text} labels={labels} />
+    </PromptBlock>
   )
 }
 
-const kindLabelKeyMap: Record<'question' | 'hint' | 'explanation', ErrGrindKey> = {
-  question: 'teach.kind.question',
-  hint: 'teach.kind.hint',
-  explanation: 'teach.kind.explanation',
-}
-
-/** Render one public Teach step in its chronological position. */
+/** Render one public Teach step as ordinary agent prose — no card chrome. */
 export function TeachStepCard({ node, t }: TeachStepProps) {
-  const { kind, text } = node.data
-  const kindLabel = t(kindLabelKeyMap[kind])
+  const labels = useMemo(() => markdownLabels(t), [t])
   return (
-    <article
-      className={css.teachCard}
-      data-kind={kind}
-      aria-label={t('teach.label', { kind: kindLabel })}
-    >
-      <header className={css.header}>
-        <h3 className={css.title}>{t('teach.title')}</h3>
-        <span className={css.teachKind}>{kindLabel}</span>
-      </header>
-      <p className={css.teachText}>{text}</p>
-    </article>
+    <div className={css.flow}>
+      <MarkdownText text={node.data.text} labels={labels} />
+    </div>
   )
 }
 
 /** Show a new practice question without the private specification or answer. */
 export function DrillQuestionCard({ node, t }: DrillQuestionProps) {
+  const labels = useMemo(() => markdownLabels(t), [t])
   return (
-    <article className={css.questionCard} aria-label={t('drill.question')}>
-      <h3 className={css.title}>{t('drill.question')}</h3>
-      <p className={css.question}>{node.data.question}</p>
-    </article>
+    <PromptBlock label={t('drill.question')}>
+      <MarkdownText text={node.data.question} labels={labels} />
+    </PromptBlock>
   )
 }
 
 /** Show a transcribed image answer for explicit learner review before judging. */
 export function DrillAnswerDraftCard({ node, t }: DrillAnswerDraftProps) {
+  const labels = useMemo(() => markdownLabels(t), [t])
   return (
-    <article className={css.questionCard} aria-label={t('drill.answerDraft')}>
-      <header className={css.header}>
-        <h3 className={css.title}>{t('drill.answerDraft')}</h3>
-        <span className={css.revision}>{t('drill.answerDraftRevision', { revision: node.data.revision })}</span>
-      </header>
-      <p className={css.question}>{node.data.text}</p>
-      <p className={css.hint}>{t('drill.answerDraftReview')}</p>
-    </article>
+    <PromptBlock label={t('drill.answerDraft')} hint={t('drill.answerDraftReview')}>
+      <MarkdownText text={node.data.text} labels={labels} />
+    </PromptBlock>
   )
 }
 
@@ -187,8 +207,8 @@ export function DrillAnswerDraftCard({ node, t }: DrillAnswerDraftProps) {
 export function DrillJudgmentCard({ node, t, openDerivedError }: DrillJudgmentProps) {
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
+  const labels = useMemo(() => markdownLabels(t), [t])
   async function open(): Promise<void> {
-    if (pending) return
     setPending(true)
     setFailed(false)
     try {
@@ -200,31 +220,31 @@ export function DrillJudgmentCard({ node, t, openDerivedError }: DrillJudgmentPr
     }
   }
   return (
-    <article className={css.teachCard} aria-label={t('drill.judgment')}>
-      <h3 className={css.title}>{t('drill.judgment')}</h3>
-      <p className={css.status}>
+    <div className={css.flow}>
+      <p className={css.verdict} data-correct={node.data.isCorrect || undefined}>
         {node.data.isCorrect ? t('drill.correct') : t('drill.incorrect')}
       </p>
-      <p className={css.teachText}>{node.data.feedback}</p>
+      <MarkdownText text={node.data.feedback} labels={labels} />
       {!node.data.isCorrect && (
         <button className={css.confirmButton} type="button" disabled={pending} onClick={() => { void open() }}>
           {pending ? t('drill.openingDerived') : t('drill.openDerived')}
         </button>
       )}
       {failed && <p role="alert">{t('drill.openFailed')}</p>}
-    </article>
+    </div>
   )
 }
 
 /** Make the Drill origin visible without presenting copied context as a new user message. */
 export function DerivedErrorCard({ node, t }: DerivedErrorProps) {
+  const labels = useMemo(() => markdownLabels(t), [t])
   return (
-    <article className={css.episodeCard} aria-label={t('derived.title')}>
-      <h3 className={css.title}>{t('derived.title')}</h3>
-      <p className={css.hint}>{t('derived.origin')}</p>
-      <p className={css.description}>{t('derived.question')}: {node.data.question}</p>
-      <p className={css.description}>{t('derived.answer')}: {node.data.userResponse}</p>
-    </article>
+    <PromptBlock label={t('derived.title')} hint={t('derived.origin')}>
+      <MarkdownText
+        text={`**${t('derived.question')}**\n\n${node.data.question}\n\n**${t('derived.answer')}**\n\n${node.data.userResponse}`}
+        labels={labels}
+      />
+    </PromptBlock>
   )
 }
 

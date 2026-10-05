@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@errgrind/ui-errgrind-episode` shows an Error history in the sidebar and renders public Error, Grill, Teach, and Drill cards in the conversation. A learner can reopen an Error or request a Drill from one completed Error. The Error card shows the complete description, revision, confirmation status, safe probe progress, and conclusion; its confirmation action calls `/error-confirm <revision>` for the displayed revision. The Models settings footer provides ErrGrind's ChatGPT Codex device sign-in controls.
+`@errgrind/ui-errgrind-episode` shows an Error history in the sidebar and renders public Error, Grill, Teach, and Drill content in the conversation. A learner can reopen an Error or request a Drill from one completed Error. Model-authored content (Teach steps, verdict feedback, questions and conclusions) renders as ordinary assistant Markdown; only prompts awaiting learner input keep a light frame. The Error card shows the complete description, confirmation status, safe probe progress, and conclusion; its confirmation action calls `/error-confirm <revision>` for the displayed revision. The Models settings footer provides ErrGrind's ChatGPT Codex device sign-in controls.
 
 ## Table of Contents
 
@@ -43,8 +43,7 @@ None; the package never assembles or sends provider requests.
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **No old database import** — History lists Sessions from the fork's own store; the old SQLite Error library has not been imported.
-- **Confirmation follows the displayed revision** — The Host rejects a stale revision; the user must review the updated card before confirming again.
+- **Confirmation follows the visible card state** — The Host rejects a stale revision number; the user must review the updated card before confirming again.
 
 <a id="dev-note"></a>
 ### Dev Note

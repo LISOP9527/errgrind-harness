@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现公开的 Error、Grill、Teach 和 Drill 卡片。学习者可以重新打开一条 Error，或针对一条已完成的 Error 请求 Drill。Error 卡片显示完整描述、修订号、确认状态、安全的追问进度和结论；确认操作会针对当前显示版本调用 `/error-confirm <revision>`。Models 设置页底部提供 ErrGrind 专用的 ChatGPT Codex 设备码登录。
+`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现公开的 Error、Grill、Teach 和 Drill 内容。学习者可以重新打开一条 Error，或针对一条已完成的 Error 请求 Drill。模型产出的内容（Teach 步骤、判分反馈、提问与结论）按普通 assistant Markdown 直接渲染，只有等待学习者输入的提示保留轻量边框。Error 卡片显示完整描述、确认状态、安全的追问进度和结论；确认操作会针对当前显示版本调用 `/error-confirm <revision>`。Models 设置页底部提供 ErrGrind 专用的 ChatGPT Codex 设备码登录。
 
 ## 目录
 
@@ -44,7 +44,6 @@ Client 从公开 Session 事件组装卡片。历史只读取狭义的 `errgrind
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **尚未导入旧数据库** — 历史只列出 fork 自身存储中的 Session；旧 SQLite Error 库尚未导入。
 - **确认绑定到当前显示版本** — Host 会拒绝过期修订号；用户必须先查看更新后的卡片，再次确认。
 
 <a id="dev-note"></a>

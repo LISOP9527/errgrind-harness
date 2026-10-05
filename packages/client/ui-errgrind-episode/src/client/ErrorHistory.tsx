@@ -26,6 +26,11 @@ export type ErrorHistoryProps = PropsRuntime<'sidebar.workspaces'>
   & PropsLocale<typeof NS>
   & ErrorHistoryInjected
 
+/** One-line history preview: drop TeX math delimiters so raw \( and $$ stay readable in a single clipped line. */
+function previewText(text: string): string {
+  return text.replace(/\\\(|\\\)|\\\[|\\\]|\$\$/g, '')
+}
+
 /** Replaces the general Workspace browser with the learner's Error history. */
 export function ErrorHistory({
   wide,
@@ -214,7 +219,7 @@ export function ErrorHistory({
             <article className={css.card} key={sessionId} data-error-session-id={sessionId}>
               <button className={css.openButton} type="button" onClick={() => { openSession(sessionId) }}>
                 <span className={css.cardTitle}>{title}</span>
-                {description !== title && <span className={css.description}>{description}</span>}
+                {description !== title && <span className={css.description}>{previewText(description)}</span>}
                 <span className={css.status}>{statusLabel(episode.status)} · {timeLabel(updatedAt)}</span>
               </button>
               {cardActions(sessionId, title)}

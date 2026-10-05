@@ -1,6 +1,5 @@
 .episodeCard,
-.questionCard,
-.teachCard,
+.promptBlock,
 .authCard {
   box-sizing: border-box;
   width: min(100%, 52rem);
@@ -13,38 +12,35 @@
   color: var(--dsw-alias-label-primary, #20242c);
 }
 
-.questionCard {
+.promptBlock {
   margin-top: 0.35rem;
-  border-inline-start: 3px solid var(--dsw-alias-brand-primary, #6474c8);
+  border-inline-start: 3px solid var(--dsw-alias-border-l4, #d8dce3);
 }
 
-.teachCard {
-  margin-top: 0.35rem;
-  border-inline-start: 3px solid var(--dsw-alias-state-success-primary, #0d9488);
+/* Model-authored output flows like an ordinary assistant message. */
+.flow {
+  box-sizing: border-box;
+  width: min(100%, 52rem);
+  min-width: 0;
+  margin: 0.75rem auto;
+  color: var(--dsw-alias-label-primary, #20242c);
 }
 
-.teachKind {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.55rem;
-  border: 1px solid var(--dsw-alias-border-l4, #d8dce3);
-  border-radius: 9999px;
-  background: var(--dsw-alias-bg-module-platform, #f7f8fa);
+.cardLabel {
+  display: inline-block;
+  margin-bottom: 0.35rem;
   color: var(--dsw-alias-label-secondary, #5c6572);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  line-height: 1.4;
 }
 
-.teachCard[data-kind="question"] .teachKind {
-  color: var(--dsw-alias-brand-primary, #4257b2);
-}
-
-.teachCard[data-kind="hint"] .teachKind {
+.verdict {
+  margin: 0 0 0.35rem;
   color: var(--dsw-alias-state-warn-label, #b45309);
+  font-weight: 650;
 }
 
-.teachCard[data-kind="explanation"] .teachKind {
+.verdict[data-correct] {
   color: var(--dsw-alias-state-success-primary, #0d9488);
 }
 
@@ -69,17 +65,12 @@
   font-weight: 650;
 }
 
-.revision,
 .status {
   color: var(--dsw-alias-label-secondary, #5c6572);
   font-size: 0.84rem;
 }
 
 .description,
-.question,
-.teachText,
-.summary,
-.uncertainty,
 .hint {
   min-width: 0;
   overflow-wrap: anywhere;
@@ -196,24 +187,6 @@
   font-size: 0.88rem;
 }
 
-.question {
-  margin: 0.45rem 0 0;
-  font-size: 1rem;
-}
-
-.teachText {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.summary {
-  margin: 0.5rem 0 0;
-}
-
-.uncertainty {
-  margin: 0.5rem 0 0;
-}
-
 .uncertaintyLabel {
   display: block;
   margin-top: 0.75rem;
@@ -221,8 +194,7 @@
 
 @media (max-width: 480px) {
   .episodeCard,
-  .questionCard,
-  .teachCard {
+  .promptBlock {
     margin-inline: 0;
     padding: 0.85rem;
     border-radius: 0.75rem;

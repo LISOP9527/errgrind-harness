@@ -402,7 +402,7 @@ describe('Isolated Drill Generation', () => {
     }
   })
 
-  it('strips TeX math delimiters from the generated question before it reaches the card', async () => {
+  it('keeps TeX math delimiters in the generated question verbatim for the Markdown card', async () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-tex-delimiters-test'))
     const agent = createTestAgent(ctx, session)
@@ -428,9 +428,9 @@ describe('Isolated Drill Generation', () => {
     })
 
     expect(result.isError).toBe(false)
-    expect(result.value).toEqual({ question: '计算 2/5 + 1/3 并化简 x + 1' })
+    expect(result.value).toEqual({ question: '计算 \\(2/5 + 1/3\\) 并化简 $$x + 1$$' })
     const drillState = ctx.sessionProjections.stateOf(session, 'errgrindDrill') as DrillState
-    expect(drillState.active?.question).toBe('计算 2/5 + 1/3 并化简 x + 1')
+    expect(drillState.active?.question).toBe('计算 \\(2/5 + 1/3\\) 并化简 $$x + 1$$')
   })
 
   it('handles malformed JSON from provider with clear Chinese retry error and retains pendingSpec', async () => {

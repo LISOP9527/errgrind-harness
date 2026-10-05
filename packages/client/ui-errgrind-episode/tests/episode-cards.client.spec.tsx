@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import {
   ConversationEventRegistry,
@@ -38,6 +38,7 @@ import {
   DrillQuestionCard,
   ErrorEpisodeCard,
   GrillQuestionCard,
+  IntakeClarificationCard,
   TeachStepCard,
 } from '../src/client/EpisodeCards.tsx'
 import {
@@ -470,6 +471,199 @@ describe('Existing conversation cards assembly and presentation', () => {
     const { unmount: unmountDerived } = render(<DerivedErrorCard node={derivedNode} t={tEn} {...chatNodeOwner} />)
     expect(screen.getByText(/6x \+ 4/)).toBeTruthy()
     unmountDerived()
+
+    const clarificationNode = createChatNode('errgrind-intake-clarification', {
+      text: 'The answer key said 6x + 12.',
+      turn: 1,
+    })
+    const { unmount: unmountClarification } = render(<IntakeClarificationCard node={clarificationNode} t={tEn} {...chatNodeOwner} />)
+    expect(screen.getByText('The answer key said 6x + 12.')).toBeTruthy()
+    unmountClarification()
+  })
+})
+
+function errorCardNode(overrides: Partial<ChatNodeDataMap['errgrind-error-card']> = {}) {
+  return createChatNode('errgrind-error-card', {
+    revision: 1,
+    description: 'Misapplied distributive property',
+    confirmed: false,
+    probeCount: 0,
+    diagnosisStatus: null,
+    summary: null,
+    remainingUncertainty: null,
+    ...overrides,
+  })
+}
+
+describe('ErrorEpisodeCard states', () => {
+  it('shows the proposal, uncertainty, and confirm control while unconfirmed', async () => {
+    const confirmRevision = vi.fn().mockResolvedValue('confirmed' as const)
+    render(
+      <ErrorEpisodeCard
+        node={errorCardNode({
+          probeCount: 1,
+          diagnosisStatus: 'supported',
+          summary: 'The learner distributed only to the first term.',
+          remainingUncertainty: 'Whether the same slip recurs with fractions.',
+        })}
+        t={tEn}
+        confirmRevision={confirmRevision}
+        {...chatNodeOwner}
+      />,
+    )
+
+    expect(screen.getByText(en['card.pending'])).toBeTruthy()
+    expect(screen.getByText(en['card.pendingProposalHint'])).toBeTruthy()
+    expect(screen.getByText(en['card.grillProgressOne'])).toBeTruthy()
+    expect(screen.getByText(en['card.proposal'])).toBeTruthy()
+    expect(screen.getByText('The learner distributed only to the first term.')).toBeTruthy()
+    expect(screen.getByText(en['card.remainingUncertainty'])).toBeTruthy()
+    expect(screen.getByText('Whether the same slip recurs with fractions.')).toBeTruthy()
+
+    fireEvent.submit(screen.getByRole('button', { name: en['card.confirm'] }).closest('form')!)
+    await waitFor(() => { expect(screen.getByText(en['card.confirmedNotice'])).toBeTruthy() })
+    expect(confirmRevision).toHaveBeenCalledWith(1)
+  })
+
+  it('marks an unproposed card as still being diagnosed with no progress count', () => {
+    render(
+      <ErrorEpisodeCard node={errorCardNode()} t={tEn} confirmRevision={vi.fn()} {...chatNodeOwner} />,
+    )
+    expect(screen.getAllByText(en['card.grillActive'])).not.toHaveLength(0)
+    expect(screen.getByText(en['card.reviseHint'])).toBeTruthy()
+  })
+
+  it('renders the confirmed card with conclusion label and no confirm form', () => {
+    render(
+      <ErrorEpisodeCard
+        node={errorCardNode({
+          confirmed: true,
+          probeCount: 3,
+          diagnosisStatus: 'supported',
+          summary: 'Confirmed diagnosis text.',
+        })}
+        t={tEn}
+        confirmRevision={vi.fn()}
+        {...chatNodeOwner}
+      />,
+    )
+
+    expect(screen.getByText(en['card.confirmed'])).toBeTruthy()
+    expect(screen.getByText(en['card.conclusion.supported'])).toBeTruthy()
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.queryByText(en['card.reviseHint'])).toBeNull()
+  })
+
+  it('labels an undetermined confirmed conclusion', () => {
+    render(
+      <ErrorEpisodeCard
+        node={errorCardNode({ confirmed: true, diagnosisStatus: 'undetermined', summary: 'Partial.' })}
+        t={tEn}
+        confirmRevision={vi.fn()}
+        {...chatNodeOwner}
+      />,
+    )
+    expect(screen.getByText(en['card.conclusion.undetermined'])).toBeTruthy()
+  })
+
+  it('reports a stale confirmation attempt', async () => {
+    const confirmRevision = vi.fn().mockResolvedValue('stale' as const)
+    render(
+      <ErrorEpisodeCard
+        node={errorCardNode({ diagnosisStatus: 'supported' })}
+        t={tEn}
+        confirmRevision={confirmRevision}
+        {...chatNodeOwner}
+      />,
+    )
+    fireEvent.submit(screen.getByRole('button', { name: en['card.confirm'] }).closest('form')!)
+    await waitFor(() => { expect(screen.getByText(en['card.stale'])).toBeTruthy() })
+  })
+
+  it('reports a failed confirmation attempt from an error result and from a rejection', async () => {
+    const confirmRevision = vi.fn().mockResolvedValue('error' as const)
+    const { unmount } = render(
+      <ErrorEpisodeCard
+        node={errorCardNode({ diagnosisStatus: 'supported' })}
+        t={tEn}
+        confirmRevision={confirmRevision}
+        {...chatNodeOwner}
+      />,
+    )
+    fireEvent.submit(screen.getByRole('button', { name: en['card.confirm'] }).closest('form')!)
+    await waitFor(() => { expect(screen.getByText(en['card.confirmFailed'])).toBeTruthy() })
+    unmount()
+
+    const rejecting = vi.fn().mockRejectedValue(new Error('offline'))
+    render(
+      <ErrorEpisodeCard
+        node={errorCardNode({ diagnosisStatus: 'supported' })}
+        t={tEn}
+        confirmRevision={rejecting}
+        {...chatNodeOwner}
+      />,
+    )
+    fireEvent.submit(screen.getByRole('button', { name: en['card.confirm'] }).closest('form')!)
+    await waitFor(() => { expect(screen.getByText(en['card.confirmFailed'])).toBeTruthy() })
+  })
+
+  it('disables the button and shows progress while confirmation is in flight', async () => {
+    let settle: (value: 'confirmed') => void = () => {}
+    const confirmRevision = vi.fn().mockImplementation(() => new Promise<'confirmed'>((resolve) => { settle = resolve }))
+    render(
+      <ErrorEpisodeCard
+        node={errorCardNode({ diagnosisStatus: 'supported' })}
+        t={tEn}
+        confirmRevision={confirmRevision}
+        {...chatNodeOwner}
+      />,
+    )
+    fireEvent.submit(screen.getByRole('button', { name: en['card.confirm'] }).closest('form')!)
+    const busy = await screen.findByRole('button', { name: en['card.confirming'] })
+    expect(busy).toHaveProperty('disabled', true)
+    settle('confirmed')
+    await waitFor(() => { expect(screen.getByText(en['card.confirmedNotice'])).toBeTruthy() })
+  })
+})
+
+describe('DrillJudgmentCard derived-error action', () => {
+  it('opens the derived error on click for an incorrect verdict', async () => {
+    const openDerivedError = vi.fn().mockResolvedValue(true)
+    const node = createChatNode('errgrind-drill-judgment', {
+      preparationId: 'prep-7',
+      isCorrect: false,
+      feedback: 'You combined like terms incorrectly.',
+    })
+    render(<DrillJudgmentCard node={node} t={tEn} openDerivedError={openDerivedError} {...chatNodeOwner} />)
+
+    expect(screen.getByText(en['drill.incorrect'])).toBeTruthy()
+    expect(screen.getByText('You combined like terms incorrectly.')).toBeTruthy()
+
+    let settle: (value: boolean) => void = () => {}
+    openDerivedError.mockImplementation(() => new Promise<boolean>((resolve) => { settle = resolve }))
+    fireEvent.click(screen.getByRole('button', { name: en['drill.openDerived'] }))
+    const busy = await screen.findByRole('button', { name: en['drill.openingDerived'] })
+    expect(busy).toHaveProperty('disabled', true)
+    settle(true)
+    await waitFor(() => { expect(openDerivedError).toHaveBeenCalledWith('prep-7') })
+  })
+
+  it('shows an alert when opening fails and when the call rejects', async () => {
+    const openDerivedError = vi.fn().mockResolvedValue(false)
+    const node = createChatNode('errgrind-drill-judgment', {
+      preparationId: 'prep-8',
+      isCorrect: false,
+      feedback: 'Incorrect.',
+    })
+    const { unmount } = render(<DrillJudgmentCard node={node} t={tEn} openDerivedError={openDerivedError} {...chatNodeOwner} />)
+    fireEvent.click(screen.getByRole('button', { name: en['drill.openDerived'] }))
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe(en['drill.openFailed']) })
+    unmount()
+
+    const rejecting = vi.fn().mockRejectedValue(new Error('gone'))
+    render(<DrillJudgmentCard node={node} t={tEn} openDerivedError={rejecting} {...chatNodeOwner} />)
+    fireEvent.click(screen.getByRole('button', { name: en['drill.openDerived'] }))
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe(en['drill.openFailed']) })
   })
 })
 
