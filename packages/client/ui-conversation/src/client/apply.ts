@@ -3,7 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type { ISessions, SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
 import { IconPaperclipOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import { createSnapshotStore, type BoundActions } from '@deepseek-ai/dsh-client-store'
+import { createSnapshotStore, type BoundActions, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 // Type-only service and declaration merges used by this assembly.
@@ -14,7 +14,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { UiConversation } from './conversation/assembly.ts'
 import type { ViewTab } from './contract/views.ts'
 import type {
-  ComposerBarInjected, ConversationInjected, ConversationSessionHeaderInjected,
+  ComposerBarInjected, ConversationInjected, ConversationMainInjected, ConversationSessionHeaderInjected,
   ConversationSessionInjected, DraftFileUploads,
 } from './contract/slots.ts'
 import type { InputNotice } from './contract/input.ts'
@@ -111,6 +111,8 @@ interface WorkspaceNavigation {
     workspaceId: Parameters<ConversationInjected['selectWorkspace']>[0],
     beforeOpen: (sessionId: SessionId) => void,
   ): Promise<void>
+  /** Boot restore phase; `restoring` covers the window after both remote lists arrive while the initial selection's RPCs run. */
+  readonly initialNavigation: ObservableSnapshot<'waiting' | 'restoring' | 'done'>
 }
 
 /** Action registration used by the composer without importing its command-UI consumer. */
@@ -264,6 +266,9 @@ export function apply(ctx: Context, config: Config = Config({})): void {
     children: {
       'conversation.header': { kind: 'single', scope: 'session-maybe' },
     },
+    inject: (): ConversationMainInjected => ({
+      hooks: { initialNavigation: workspaceNavigation.initialNavigation },
+    }),
   }, ConversationRoot)
 
   const registerConversationContent = () => slots.registerFactory({

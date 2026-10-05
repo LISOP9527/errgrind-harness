@@ -9,7 +9,10 @@ import css from './ConversationRoot.module.css'
  * @returns the unchanged root, Header, content, and width-control subtree.
  */
 export function ConversationMainPanel(props: ConversationSlotProps) {
-  const { sessionId, useSession, useSessions, useConversation, useWorkspaces, renderSlot, renderFactorySlot } = props
+  const {
+    sessionId, useSession, useSessions, useConversation, useWorkspaces,
+    useInitialNavigation, renderSlot, renderFactorySlot,
+  } = props
   const session = useSession(s => s)
   const conversation = useConversation(s => s)
   // Same predicate the restore waits on (watchNavigation → reconcile): the
@@ -18,6 +21,7 @@ export function ConversationMainPanel(props: ConversationSlotProps) {
   // accurate state — not a hang it should escape.
   const sessionListPending = useSessions(s => s.phase !== 'ready')
   const workspaceListPending = useWorkspaces(s => s.phase !== 'ready')
+  const restoring = useInitialNavigation(s => s === 'restoring')
   const shellPhase = session === undefined || conversation === undefined
     ? 'blank'
     : conversationPhase(session, conversation)
@@ -44,10 +48,13 @@ export function ConversationMainPanel(props: ConversationSlotProps) {
   )
   // Cold-boot session restoration (ui-workspace watchNavigation →
   // restoreSelection) cannot start until both remote lists arrive, so no
-  // selection can exist yet. Holding the phase at settling renders the boot
-  // splash instead of the interactive hero — a workspace picker and composer
-  // that the pending restore is about to replace.
-  const bootPending = sessionId === undefined && (sessionListPending || workspaceListPending)
+  // selection can exist yet; `restoring` then covers the restore's own RPC
+  // window until the selection resolves. Holding the phase at settling
+  // renders the boot splash instead of the interactive hero — a workspace
+  // picker and composer that the pending restore is about to replace. A
+  // failed restore falls back to `waiting` with ready lists: the hero is
+  // the deliberate recovery path, not another splash.
+  const bootPending = sessionId === undefined && (sessionListPending || workspaceListPending || restoring)
   const hero = !bootPending && (
     sessionId === undefined
     || (shellPhase === 'blank' && (openState === 'open' || summaryBlank === true))

@@ -9,7 +9,7 @@ import type {
   SessionTarget,
   SessionListState,
 } from '@deepseek-ai/dsh-api-session-controller/client'
-import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
+import { createSnapshotStore, type ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
 import type {
   IWorkspaces, WorkspaceId, WorkspaceSnapshot, WorkspaceView,
@@ -27,8 +27,24 @@ interface MainSelection {
   readonly subagentAddress?: SubagentAddress
 }
 
+/**
+ * Initial navigation phase: `waiting` before both remote list baselines
+ * needed for startup restoration have arrived (and again while a failed
+ * restore awaits its next list-driven retry), `restoring` while the
+ * restore's Session RPCs are in flight, `done` once the first selection
+ * settled — including when a user navigation superseded the restore.
+ */
+export type InitialNavigationPhase = 'waiting' | 'restoring' | 'done'
+
 /** Workspace archive and directory operations consumed by Client UI domains. */
 export interface UiWorkspace {
+  /**
+   * Initial navigation phase for boot-time UI gating: `restoring` covers
+   * the window after both remote baselines are ready while the restore's
+   * RPCs run; `waiting` covers pre-arrival and a failed restore pending its
+   * next retry; `done` marks startup navigation settled.
+   */
+  readonly initialNavigation: ObservableSnapshot<InitialNavigationPhase>
   /**
    * Select a Session and show its Conversation as one UI navigation action.
    * @param target - known Session identity or durable direct-parent subagent address to display.
@@ -130,6 +146,8 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   private readonly selection = createSnapshotStore<MainSelection>(
     {}, { persist: { name: 'dsh.sessions.current' } },
   )
+  private readonly navigationPhase = createSnapshotStore<InitialNavigationPhase>('waiting')
+  readonly initialNavigation: ObservableSnapshot<InitialNavigationPhase> = this.navigationPhase
   private mainReference: SessionReference | undefined
 
   /**
@@ -282,24 +300,23 @@ class UiWorkspaceService extends Service implements UiWorkspace {
   }
 
   private watchNavigation(): () => void {
-    let initial: 'waiting' | 'connecting' | 'done' = 'waiting'
     const reconcile = (): void => {
       if (this.lifetime.signal.aborted) return
       if (this.clearArchivedCurrent()) return
-      if (initial !== 'waiting') return
+      if (this.navigationPhase.getSnapshot() !== 'waiting') return
       const workspace = this.workspaces.list.getSnapshot()
       const sessions = this.sessions.list.getSnapshot()
       if (workspace.phase !== 'ready' || sessions.phase !== 'ready') return
       if (this.mainReference !== undefined) {
-        initial = 'done'
+        this.navigationPhase.set('done')
         return
       }
-      initial = 'connecting'
+      this.navigationPhase.set('restoring')
       void this.restoreSelection(workspace, sessions).then(
-        () => { initial = 'done' },
+        () => { this.navigationPhase.set('done') },
         (reason: unknown) => {
           if (this.lifetime.signal.aborted) return
-          initial = 'waiting'
+          this.navigationPhase.set('waiting')
           console.warn('initial Session restoration failed:', reason)
         },
       )

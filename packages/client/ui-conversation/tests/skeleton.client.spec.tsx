@@ -143,6 +143,11 @@ function mount(
     composerBlock?: { reason: string }
     /** Cold boot before the first list pulls land: both stores pending. */
     listsPending?: boolean
+    /**
+     * ui-workspace's initial navigation phase: `restoring` covers the
+     * post-arrival restore window; `waiting` also marks a failed restore.
+     */
+    initialNavigation?: 'waiting' | 'restoring' | 'done'
     /** Mutable view ledger used by registration-order regressions. */
     viewTabs?: ViewTab[]
   } = {},
@@ -174,6 +179,9 @@ function mount(
   })
   const workspaces = createSnapshotStore<WorkspaceSnapshot>(
     workspaceState(workspaceRows, options.listsPending === true),
+  )
+  const initialNavigation = createSnapshotStore<'waiting' | 'restoring' | 'done'>(
+    options.initialNavigation ?? 'done',
   )
   const session = createSnapshotStore<SessionSnapshot>(snapshot)
   const useSession = bindSnapshotSelector(session)
@@ -376,7 +384,12 @@ function mount(
     useInput,
     inputActions,
   }
-  const props: ConversationSlotProps = { ...runtimeProps, renderSlot, renderFactorySlot }
+  const props: ConversationSlotProps = {
+    ...runtimeProps,
+    useInitialNavigation: bindSnapshotSelector(initialNavigation),
+    renderSlot,
+    renderFactorySlot,
+  }
   const view = render(<ConversationMainPanel {...props} />)
   return {
     view, store, wiring, sink, retargetWorkspace, session, conversation, slotCalls, lineageOwners, seatOwners, open,
@@ -628,6 +641,25 @@ describe('ConversationRoot resident composer', () => {
     const root = b.view.container.querySelector('[data-phase]')
     expect(root?.getAttribute('data-phase')).toBe('hero')
     expect(b.view.container.querySelector('[data-boot-splash]')).toBeNull()
+    expect(b.view.getByRole('button', { name: '选择工作区' })).toBeTruthy()
+  })
+
+  it('cold boot: the restore window after the lists arrive still holds the splash', () => {
+    const b = mount(sessionSnapshotOf(), [], undefined, {
+      sessionId: undefined, initialNavigation: 'restoring',
+    })
+    const root = b.view.container.querySelector('[data-phase]')
+    expect(root?.getAttribute('data-phase')).toBe('settling')
+    expect(b.view.container.querySelector('[data-boot-splash]')).not.toBeNull()
+    expect(b.view.queryByRole('button', { name: '选择工作区' })).toBeNull()
+  })
+
+  it('cold boot: a failed restore returns to waiting — the interactive hero is the recovery path', () => {
+    const b = mount(sessionSnapshotOf(), [], undefined, {
+      sessionId: undefined, initialNavigation: 'waiting',
+    })
+    const root = b.view.container.querySelector('[data-phase]')
+    expect(root?.getAttribute('data-phase')).toBe('hero')
     expect(b.view.getByRole('button', { name: '选择工作区' })).toBeTruthy()
   })
 

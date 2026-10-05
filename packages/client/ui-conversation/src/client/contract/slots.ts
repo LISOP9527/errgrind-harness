@@ -357,6 +357,19 @@ export interface ConversationSessionHeaderInjected {
   selectView: (view: string) => void
 }
 
+/** Boot-time sources injected into the main Conversation shell. */
+export interface ConversationMainInjected {
+  readonly hooks: {
+    /**
+     * ui-workspace's initial navigation phase: `restoring` covers the
+     * restore RPC window after both remote lists are ready and before the
+     * initial selection resolves; `waiting` covers pre-arrival (the list
+     * hooks report that separately) and a failed restore pending its retry.
+     */
+    readonly initialNavigation: ObservableSnapshot<'waiting' | 'restoring' | 'done'>
+  }
+}
+
 /** Owner share of the resident composer bar. */
 export interface ComposerBarOwnerProps {
   /** Hero uses centered placement; composer uses the active bottom placement. */
@@ -453,6 +466,7 @@ export type ConversationSlotProps =
   PropsRuntime<'main.conversation'>
   & PropsRenderSlots<'conversation.header'>
   & PropsRenderFactories
+  & InjectFace<ConversationMainInjected>
 
 /** Inputs shared by main and embedded Conversation content occurrences. */
 export interface ConversationContentInputProps {

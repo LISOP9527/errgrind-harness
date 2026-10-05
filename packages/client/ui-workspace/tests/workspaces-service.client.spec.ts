@@ -361,6 +361,47 @@ describe('UiWorkspaceService', () => {
     expect(b.notify).toHaveBeenCalledExactlyOnceWith({ kind: 'defaultWorkspaceFailed' })
   })
 
+  it('reports the initial navigation phase across the restore window', async () => {
+    const created = Promise.withResolvers<SessionId>()
+    const b = bench({
+      workspaces: workspaceState([workspace('a')]),
+      sessions: sessionState([], 'pending'),
+      configureSessions: (sessions) => { sessions.create.mockReturnValueOnce(created.promise) },
+    })
+    const phases: string[] = []
+    b.uiWorkspace.initialNavigation.subscribe(
+      () => phases.push(b.uiWorkspace.initialNavigation.getSnapshot()),
+    )
+    // A pending Session baseline cannot start restoration.
+    expect(b.uiWorkspace.initialNavigation.getSnapshot()).toBe('waiting')
+    b.sessions.list.set(sessionState())
+    expect(b.uiWorkspace.initialNavigation.getSnapshot()).toBe('restoring')
+    created.resolve(sid('late'))
+    await vi.waitFor(() => {
+      expect(b.uiWorkspace.initialNavigation.getSnapshot()).toBe('done')
+    })
+    expect(phases).toEqual(['restoring', 'done'])
+    expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(sid('late'), { source: 'mainView' })
+  })
+
+  it('returns the initial navigation phase to waiting after a failed restore', async () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const created = Promise.withResolvers<SessionId>()
+    const b = bench({
+      workspaces: workspaceState([workspace('a')]),
+      sessions: sessionState(),
+      configureSessions: (sessions) => { sessions.create.mockReturnValueOnce(created.promise) },
+    })
+    await vi.waitFor(() => {
+      expect(b.uiWorkspace.initialNavigation.getSnapshot()).toBe('restoring')
+    })
+    created.reject(new Error('session failed'))
+    await vi.waitFor(() => {
+      expect(b.uiWorkspace.initialNavigation.getSnapshot()).toBe('waiting')
+      expect(warning).toHaveBeenCalledExactlyOnceWith('initial Session restoration failed:', expect.any(Error))
+    })
+  })
+
   it.each(['session', 'panel', 'disposal'] as const)('cancels startup directory preparation after %s navigation', async (kind) => {
     const pending = Promise.withResolvers<WorkspaceView>()
     const b = bench({ workspaces: workspaceState(), sessions: sessionState(), configureWorkspaces: (workspaces) => {
