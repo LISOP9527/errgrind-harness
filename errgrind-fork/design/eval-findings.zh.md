@@ -37,7 +37,7 @@
 来自 `errgrind/cli/commands.py` 与 `errgrind/application/drill.py`：
 
 - **`/drills` 历史面**（题目 + 目标 Pattern 五字段 + "不代表已确认的长期 Pattern" 声明 + prompt/schema SHA-256）：fork 目前没有 drill 历史面。列入保留清单——episode 卡片的历史段是天然落点。
-- **判定-only 弹窗**：旧 drill 弹窗只显示 正确/错误；feedback 存入 `drill_attempts` 但不展示。fork 在笔录卡片中持久渲染 verdict + feedback——有意的分歧，保留（feedback 正是"证据不足"细微差别所在）。
+- **判定-only 弹窗**：旧 drill 弹窗只显示 正确/错误；feedback 存入 `drill_attempts` 但不展示。fork 在笔录中持久渲染 verdict + feedback——有意的分歧，保留（feedback 正是"证据不足"细微差别所在）。
 - **原子尝试记录**：旧 `record_drill_attempt` 在同一事务内写尝试与衍生 Error；fork 的 `errgrind/drill-judged` 事件在同一事件中携带 `derivedError`。原子性等价保留。
 - **Judge 溯源**：旧版在尝试上存 provider + model + prompt-sha256 + schema-sha256。fork 在事件上存 provider + model；提示词和 schema 版本化于 `prompts/tools.json`，版本溯源经仓库解析。可接受——提示词在版本控制下无需逐次 sha。
 

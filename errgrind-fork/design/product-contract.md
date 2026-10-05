@@ -32,10 +32,12 @@ drafts one complete, user-readable Error description and may ask factual
 clarifications or diagnostic probes in the same continuous Grill. The draft
 is revisioned and remains editable while Grill is active. `grill_conclude`
 proposes a diagnosis tied to the current revision; it does not finish Grill.
-Only the learner's `/error-confirm <revision>` of that proposed final
-description commits the diagnosis and ends Grill. If they do not confirm,
-Grill remains open; later clarification, probe, or revision invalidates the
-proposal. Confirmation accepts the description, not the model's causal claim.
+Only the learner's confirmation of that proposed final description commits
+the diagnosis and ends Grill. The Error card's confirm control is the single
+confirmation path; a typed `/error-confirm` submits as ordinary chat. If they
+do not confirm, Grill remains open; later clarification, probe, or revision
+invalidates the proposal. Confirmation accepts the description, not the
+model's causal claim.
 
 The proposal can be `supported` when an actual user answer to a probe grounds
 the preferred mechanism, or `undetermined` with explicit uncertainty. Grill
@@ -113,14 +115,19 @@ real usage telemetry.
   data and the Drill answer key stay in Host context. Drill draft failures
   and cancellations retain a recoverable pending specification while
   exposing only a retry status card.
-- The Web UI presents Error, Grill, Teach, and Drill cards and hides ordinary
-  assistant text; `/error-status` is disabled in Web. The eight model tools
-  are `error_draft`, `error_clarify`, `grill_probe`, `grill_conclude`,
-  `teach_step`, `drill_prepare`, `drill_judge`, and `drill_answer_draft`.
-- An Error history sidebar lists the fork's existing Sessions from a narrow
-  public episode view. Sessions without cached classification remain
-  openable; importing old SQLite records is outside this slice. An explicit
-  Drill action opens one completed Error's own Session, where Core checks the
+- The Web UI presents the episode's public content inside the conversation:
+  the Error card keeps its action shell (title, status, confirmation
+  control), prompts awaiting learner input keep a light frame, and
+  model-authored content renders as ordinary assistant Markdown; free
+  assistant text stays hidden, and `/error-status` is disabled in Web. The
+  eight model tools are `error_draft`, `error_clarify`, `grill_probe`,
+  `grill_conclude`, `teach_step`, `drill_prepare`, `drill_judge`, and
+  `drill_answer_draft`.
+- An Error history sidebar lists the fork's Sessions from a narrow public
+  episode view. Sessions without cached classification remain openable. The
+  old SQLite records entered the fork store through a one-off external
+  importer; the product ships no repeatable import path. An explicit Drill
+  action opens one completed Error's own Session, where Core checks the
   current diagnosis before generating practice.
   The old generic option let the model choose one eligible Error, rather than
   synthesizing one question across Errors. This fork does not implement a

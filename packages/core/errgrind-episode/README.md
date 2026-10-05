@@ -75,7 +75,7 @@ Tool descriptions and schemas are static, preserving request prefix stability wh
 - **Web image and recovery coverage** — Keyless browser tests cover image upload, original receipts, cold Session reconstruction, and image restoration after page reload. A separate Host restart test covers recovery with a synthetic image. These checks do not exercise a real model's image interpretation.
 - **Product flow and mobile acceptance** — Keyless browser replay uses scripted model outputs for a simple fraction Error and covers description revision, Grill, Teach, wrong-answer Drill, opening the derived Error in a separate Session, idempotent retry, cold read, reload, and a 390px layout (2/2 targeted tests passed). Image answers now have a review-and-confirm correction path before judgment; full mobile product acceptance and live-model full-chain validation remain deferred.
 - **Cache behavior needs more data** — One isolated real Codex intake run reported 11,520 `cacheReadTokens` on its second model call. This does not establish sustained hit rate or cost across the workflow.
-- **Python legacy migration deferred** — Error #8 and SQLite historical records remain read-only reference data; database migration is not implemented.
+- **No repeatable old-database import** — the old SQLite Error library was migrated once into the fork store by an out-of-repo importer; the product ships no import feature, and old sources remain read-only reference data.
 
 <a id="dev-note"></a>
 ### Dev Note
@@ -83,6 +83,6 @@ Tool descriptions and schemas are static, preserving request prefix stability wh
 <details>
 <summary>Working context for maintainers — click to expand</summary>
 
-`origin` records whether the first Error input reached the session directly (`direct_user`) or through a host relay (`host_relay`). Folding still reads the retired field name written by pre-rename logs; an absent or invalid value falls back to `direct_user`.
+`origin` records whether the first Error input reached the session directly (`direct_user`) or through a host relay (`host_relay`). Folding still reads the retired field name written by pre-rename logs; an absent or invalid value falls back to `direct_user`. The same read-compat pattern covers `probeId`: an empty string stored for untied evidence by earlier writes reads as absent, and the write boundary normalizes `''` to a missing field.
 
 </details>

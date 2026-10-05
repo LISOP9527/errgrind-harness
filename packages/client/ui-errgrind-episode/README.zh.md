@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现公开的 Error、Grill、Teach 和 Drill 内容。学习者可以重新打开、重命名、归档或恢复一条 Error，并可针对已完成的 Error 请求 Drill。模型产出的内容（Teach 步骤、判分、提问与结论）按普通 assistant Markdown 渲染，仅等待输入的提示保留轻量边框。Error 卡片显示描述、确认状态、安全的追问进度和结论；确认操作调用 `/error-confirm <revision>`。Models 页底部提供 ErrGrind 的 Codex 设备码登录。
+`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现公开的 Error、Grill、Teach 和 Drill 内容。学习者可以重新打开、重命名、归档或恢复一条 Error，并可针对已完成的 Error 请求 Drill。模型产出的内容（Teach 步骤、判分、提问与结论）按普通 assistant Markdown 渲染，仅等待输入的提示保留轻量边框。Error 卡片显示描述、确认状态、安全的追问进度和结论；确认操作调用 `/error-confirm <revision>`。空白 Error 没有可用 provider 时，composer dock 会显示模型引导卡片。
 
 ## 目录
 
@@ -24,7 +24,7 @@ kind: "package-reference"
 <a id="composition"></a>
 ## 组成
 
-本包是浏览器插件。Web profile 挂载 `@errgrind/ui-errgrind-episode`；Client 入口注册 Conversation 事件定义、本地化 Chat 节点、确认按钮、`sidebar.workspaces` 中的 Error 历史面板，以及 `settings.models.footer` 中的 Codex 登录卡片。历史面板遮蔽通用 Workspace 浏览器，但保留其导航服务。它依赖 Session Controller、Locale、Conversation、Chat、Sidebar、Workspace 和 Models 设置客户端包。入口还为 Conversation 的三个通用输入文案注册中英文覆盖，使这些产品文案只应用于挂载此 ErrGrind 插件的 profile。
+本包是浏览器插件。Web profile 挂载 `@errgrind/ui-errgrind-episode`；Client 入口注册 Conversation 事件定义、本地化 Chat 节点、确认按钮、`sidebar.workspaces` 中的 Error 历史面板、ErrGrind 品牌标识，以及 `conversation.input.dock` 中的模型引导卡片（空白 Error 没有可用 provider 时显示）。历史面板遮蔽通用 Workspace 浏览器，但保留其导航服务。它依赖 Session Controller、Locale、Conversation、Chat、Sidebar、Workspace 和 Models 设置客户端包。入口还为 Conversation 的三个通用输入文案注册中英文覆盖，使这些产品文案只应用于挂载此 ErrGrind 插件的 profile。
 
 <a id="privacy-boundary"></a>
 ## 隐私边界

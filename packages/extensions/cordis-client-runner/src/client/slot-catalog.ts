@@ -268,7 +268,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'useProjection: UseProjection',
       'useTrajectory: UseTrajectory',
     ],
-    keyDomain: 'fixed by the owner\'s key table { [Kind in ChatNodeKind]: { node: ChatNode<Kind> } }, already taken: assistant-step, command, command-input, compaction, context, errgrind-error-card, errgrind-grill-question, errgrind-intake-clarification, manual-compaction, model-retry, steering, system-prompt, tool-call, turn-error, turn-max-tokens, turn-process, turn-tail, turn-trigger, unknown, user, workflow-run',
+    keyDomain: 'fixed by the owner\'s key table { [Kind in ChatNodeKind]: { node: ChatNode<Kind> } }, already taken: assistant-step, command, command-input, compaction, context, errgrind-derived-error, errgrind-drill-answer-draft, errgrind-drill-draft-card, errgrind-drill-judgment, errgrind-drill-question, errgrind-error-card, errgrind-grill-question, errgrind-intake-clarification, errgrind-teach-step, manual-compaction, model-retry, steering, system-prompt, tool-call, turn-error, turn-max-tokens, turn-process, turn-tail, turn-trigger, unknown, user, workflow-run',
     hookContext: 'ChatNodeHookContext',
     slotInject: 'ChatNodeInjected',
     declaredBy: 'an entry in \'conversation.view\' (client-ui-chat), so it exists while that entry is mounted',
@@ -291,6 +291,12 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       '@errgrind/ui-errgrind-episode ErrorEpisodeCard key \'errgrind-error-card\'',
       '@errgrind/ui-errgrind-episode GrillQuestionCard key \'errgrind-grill-question\'',
       '@errgrind/ui-errgrind-episode IntakeClarificationCard key \'errgrind-intake-clarification\'',
+      '@errgrind/ui-errgrind-episode TeachStepCard key \'errgrind-teach-step\'',
+      '@errgrind/ui-errgrind-episode DrillQuestionCard key \'errgrind-drill-question\'',
+      '@errgrind/ui-errgrind-episode DrillAnswerDraftCard key \'errgrind-drill-answer-draft\'',
+      '@errgrind/ui-errgrind-episode DrillJudgmentCard key \'errgrind-drill-judgment\'',
+      '@errgrind/ui-errgrind-episode DerivedErrorCard key \'errgrind-derived-error\'',
+      '@errgrind/ui-errgrind-episode DrillDraftCard key \'errgrind-drill-draft-card\'',
       'client-ui-goal GoalCommandInputView key \'command-input\'',
       'client-ui-tool ToolCallTree key \'tool-call\'',
       'client-ui-workflow-run WorkflowRunPanel key \'workflow-run\'',
@@ -632,8 +638,10 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     hookContext: '',
     slotInject: '',
     declaredBy: 'factory \'conversation.content\' (client-ui-conversation), so it exists while that definition is registered',
-    occupants: [],
-    replaceRisk: 'none',
+    occupants: [
+      '@errgrind/ui-errgrind-episode ErrGrindHeroBrandMark',
+    ],
+    replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.hero.brand.mark\', () => ctx.slots.register(\n      { name: \'conversation.hero.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
     source: 'packages/client/ui-conversation/src/client/contract/slots.ts:191',
   },
@@ -841,6 +849,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     occupants: [
       'client-ui-conversation QueueDock id \'queue\'',
       'client-ui-conversation TodoDock id \'todo\'',
+      '@errgrind/ui-errgrind-episode ModelOnboarding id \'errgrind-model-onboarding\'',
       'client-ui-goal GoalDock id \'goal\'',
     ],
     replaceRisk: 'none',
@@ -2816,7 +2825,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     doc: 'The whole left column. OCCUPIED by ui-sidebar\'s SidebarRoot, which\ndeclares the workspace and settings seats inside it — registering here\nreplaces the navigation column outright rather than adding to it, and\nthe seats it declares disappear with it. To add something to the\nsidebar, register into one of those inner seats instead.\n\nThe occupant receives the frame\'s live column state (collapsed, width)\nand is expected to render the compact control rail while collapsed.',
     registerOptions: [],
     ownerProps: [
-      '/** Sidebar owner share: live column state from the frame\'s concession solve. */\nexport interface SidebarOwnerProps {\n  /** True when the sidebar is closed (the column renders the compact control rail). */\n  collapsed: boolean\n  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */\n  width: number\n}',
+      '/** Sidebar owner share: live column state from the frame\'s concession solve. */\nexport interface SidebarOwnerProps {\n  /** True when the sidebar is closed (the column renders the compact control rail). */\n  collapsed: boolean\n  /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */\n  width: number\n  /**\n   * Below the drawer breakpoint (SIDEBAR_DRAWER_MAX): the expanded sidebar\n   * opens as an overlay drawer, and the collapsed rail reduces to its expand\n   * control — a phone-width frame cannot spare a standing icon column.\n   */\n  drawer: boolean\n}',
     ],
     ownerPropsReferences: [],
     standardProps: [
@@ -2865,6 +2874,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
     occupants: [
       'client-ui-brand-official OfficialBrandMark',
+      '@errgrind/ui-errgrind-episode ErrGrindBrandMark',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.brand.mark\', () => ctx.slots.register(\n      { name: \'sidebar.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -2896,6 +2906,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
     occupants: [
       'client-ui-brand-official OfficialBrandName',
+      '@errgrind/ui-errgrind-episode ErrGrindBrandName',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'sidebar.brand.name\', () => ctx.slots.register(\n      { name: \'sidebar.brand.name\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
@@ -3632,6 +3643,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
     occupants: [
+      '@errgrind/ui-errgrind-episode ErrorHistory',
       'client-ui-workspace WorkspaceBrowser',
     ],
     replaceRisk: 'shadows-shipped-ui',

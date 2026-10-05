@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@errgrind/ui-errgrind-episode` shows an Error history in the sidebar and renders public Error, Grill, Teach, and Drill content in the conversation. Learners can reopen, rename, archive, or restore an Error and request a Drill from a completed one. Model-authored content (Teach steps, verdicts, questions, conclusions) renders as ordinary assistant Markdown; prompts awaiting input keep a light frame. The Error card shows the description, confirmation status, safe probe progress, and conclusion; confirmation calls `/error-confirm <revision>`. The Models footer provides ErrGrind's Codex sign-in.
+`@errgrind/ui-errgrind-episode` shows an Error history in the sidebar and renders public Error, Grill, Teach, and Drill content in the conversation. Learners can reopen, rename, archive, or restore an Error and request a Drill from a completed one. Model-authored content (Teach steps, verdicts, questions, conclusions) renders as ordinary assistant Markdown; prompts awaiting input keep a light frame. The Error card shows the description, confirmation status, safe probe progress, and conclusion; confirmation calls `/error-confirm <revision>`. A model-onboarding card in the composer dock appears while a blank Error has no selectable provider.
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@ English | [中文](README.zh.md)
 <a id="composition"></a>
 ## Composition
 
-The package is a browser-only plugin. A Web profile mounts `@errgrind/ui-errgrind-episode`; its Client entry registers Conversation event Definitions, localized Chat nodes, the confirmation button, an Error history panel in `sidebar.workspaces`, and the Codex sign-in card in `settings.models.footer`. The history panel shadows the generic Workspace browser without removing its navigation service. It depends on the Session Controller, Locale, Conversation, Chat, Sidebar, Workspace, and Models settings client packages. The entry also registers Chinese and English overrides for the three general Conversation composer labels, scoped to profiles that mount this ErrGrind plugin.
+The package is a browser-only plugin. A Web profile mounts `@errgrind/ui-errgrind-episode`; its Client entry registers Conversation event Definitions, localized Chat nodes, the confirmation button, an Error history panel in `sidebar.workspaces`, ErrGrind brand marks, and a model-onboarding card in `conversation.input.dock` shown while a blank Error has no selectable provider. The history panel shadows the generic Workspace browser without removing its navigation service. It depends on the Session Controller, Locale, Conversation, Chat, Sidebar, Workspace, and Models settings client packages. The entry also registers Chinese and English overrides for the three general Conversation composer labels, scoped to profiles that mount this ErrGrind plugin.
 
 <a id="privacy-boundary"></a>
 ## Privacy boundary
