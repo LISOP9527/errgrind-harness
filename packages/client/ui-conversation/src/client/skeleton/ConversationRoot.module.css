@@ -537,3 +537,14 @@ button.crumb:hover {
 .embeddedBody[data-content-phase='settling'] .composerSeat {
   visibility: hidden;
 }
+
+/* Cold boot, no selection yet and the remote lists still arriving: the brand
+   mark + spinner sit where the hero will land, so the startup auto-selection
+   no longer flashes the interactive hero it is about to replace. */
+.bootSplash {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: auto;
+  color: var(--dsw-alias-label-secondary);
+}

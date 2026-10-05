@@ -97,7 +97,7 @@ const HERO_SWIM_DOWN_PATH =
  * @param props.hovering - driven by the hitbox parent's pointer state.
  * @returns the fish svg element.
  */
-function HeroFish({ hovering }: { hovering: boolean }) {
+export function HeroFish({ hovering }: { hovering: boolean }) {
   return (
     <svg
       className={css.fish}

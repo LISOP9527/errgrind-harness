@@ -111,8 +111,11 @@ function workspace(id = 'w1'): WorkspaceView {
   }
 }
 
-const workspaceState = (items: readonly WorkspaceView[]): WorkspaceSnapshot => ({
-  items, archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: 'ready', error: null,
+const workspaceState = (
+  items: readonly WorkspaceView[],
+  pending = false,
+): WorkspaceSnapshot => ({
+  items, archivedSessionIds: [], pinnedSessionIds: [], state: 'idle', phase: pending ? 'pending' : 'ready', error: null,
 })
 
 function sessionSnapshotOf(overrides: Partial<SessionSnapshot> = {}): SessionSnapshot {
@@ -138,6 +141,8 @@ function mount(
     nestedSubagent?: boolean
     /** A composer block another plugin raised for this session. */
     composerBlock?: { reason: string }
+    /** Cold boot before the first list pulls land: both stores pending. */
+    listsPending?: boolean
     /** Mutable view ledger used by registration-order regressions. */
     viewTabs?: ViewTab[]
   } = {},
@@ -165,9 +170,11 @@ function mount(
       ...listed && options.nestedSubagent === true && { [parent]: parentRow },
       ...listed && { [SID]: childRow },
     },
-    phase: 'ready', projectionsBySession: {},
+    phase: options.listsPending === true ? 'pending' : 'ready', projectionsBySession: {},
   })
-  const workspaces = createSnapshotStore<WorkspaceSnapshot>(workspaceState(workspaceRows))
+  const workspaces = createSnapshotStore<WorkspaceSnapshot>(
+    workspaceState(workspaceRows, options.listsPending === true),
+  )
   const session = createSnapshotStore<SessionSnapshot>(snapshot)
   const useSession = bindSnapshotSelector(session)
   const conversation = createSnapshotStore<ConversationSnapshot>(EMPTY_CONVERSATION_SNAPSHOT)
@@ -604,6 +611,24 @@ describe('ConversationRoot resident composer', () => {
     )
     const root = b.view.container.querySelector('[data-phase]')
     expect(root?.getAttribute('data-phase')).toBe('settling')
+  })
+
+  it('cold boot: remote lists still pending renders the splash, not the interactive hero', () => {
+    const b = mount(sessionSnapshotOf(), [], undefined, { sessionId: undefined, listsPending: true })
+    const root = b.view.container.querySelector('[data-phase]')
+    expect(root?.getAttribute('data-phase')).toBe('settling')
+    expect(b.view.container.querySelector('[data-boot-splash]')).not.toBeNull()
+    // The workspace chip is only rendered while `hero` — a pending boot must
+    // not dangle it before the restore replaces the surface.
+    expect(b.view.queryByRole('button', { name: '选择工作区' })).toBeNull()
+  })
+
+  it('cold boot: once the lists arrive the no-selection hero renders normally', () => {
+    const b = mount(sessionSnapshotOf(), [], undefined, { sessionId: undefined })
+    const root = b.view.container.querySelector('[data-phase]')
+    expect(root?.getAttribute('data-phase')).toBe('hero')
+    expect(b.view.container.querySelector('[data-boot-splash]')).toBeNull()
+    expect(b.view.getByRole('button', { name: '选择工作区' })).toBeTruthy()
   })
 
   it('startup auto-selection: a summary-proven blank session opens straight into the hero', () => {

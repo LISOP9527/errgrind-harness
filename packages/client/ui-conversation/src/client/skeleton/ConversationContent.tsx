@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type { ConversationContentProps, ConversationViewsProps, InputZone } from '../contract/slots.ts'
-import { HeroShell, WorkspaceChip, workspaceLabel } from './EmptyHero.tsx'
+import { StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
+import { HeroFish, HeroShell, WorkspaceChip, workspaceLabel } from './EmptyHero.tsx'
 import css from './ConversationRoot.module.css'
 
 function ConversationSessionView({ renderSlot }: ConversationViewsProps) {
@@ -187,7 +188,19 @@ export function ConversationContent(props: ConversationContentProps) {
       data-content-phase={phase}
     >
       <div className={css.scrollBody} data-conversation-scroll="">
-        {sessionId === undefined ? null : <Views />}
+        {sessionId === undefined
+          ? phase === 'settling'
+            // Cold-boot restore: brand mark + spinner where the hero will land.
+            ? (
+              <div className={css.bootSplash} role="status" aria-label={t('hero.loading')} data-boot-splash="">
+                {renderSlot('conversation.hero.brand.mark', { size: 34 }, {
+                  fallback: <HeroFish hovering={false} />,
+                })}
+                <StateDot state="ongoing" />
+              </div>
+            )
+            : null
+          : <Views />}
         {composerSeat}
       </div>
       <WidthControls container={body} phase={phase} />

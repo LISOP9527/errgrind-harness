@@ -9,9 +9,15 @@ import css from './ConversationRoot.module.css'
  * @returns the unchanged root, Header, content, and width-control subtree.
  */
 export function ConversationMainPanel(props: ConversationSlotProps) {
-  const { sessionId, useSession, useSessions, useConversation, renderSlot, renderFactorySlot } = props
+  const { sessionId, useSession, useSessions, useConversation, useWorkspaces, renderSlot, renderFactorySlot } = props
   const session = useSession(s => s)
   const conversation = useConversation(s => s)
+  // Same predicate the restore waits on (watchNavigation → reconcile): the
+  // lists' arrival `phase`, monotone pending → ready on the first successful
+  // pull. A failed pull leaves restore pending too, so the splash is the
+  // accurate state — not a hang it should escape.
+  const sessionListPending = useSessions(s => s.phase !== 'ready')
+  const workspaceListPending = useWorkspaces(s => s.phase !== 'ready')
   const shellPhase = session === undefined || conversation === undefined
     ? 'blank'
     : conversationPhase(session, conversation)
@@ -36,9 +42,17 @@ export function ConversationMainPanel(props: ConversationSlotProps) {
     (shellPhase === 'blank' && openState === 'loading' && summaryBlank !== true)
     || parentAvailabilityPending
   )
-  const hero = sessionId === undefined
+  // Cold-boot session restoration (ui-workspace watchNavigation →
+  // restoreSelection) cannot start until both remote lists arrive, so no
+  // selection can exist yet. Holding the phase at settling renders the boot
+  // splash instead of the interactive hero — a workspace picker and composer
+  // that the pending restore is about to replace.
+  const bootPending = sessionId === undefined && (sessionListPending || workspaceListPending)
+  const hero = !bootPending && (
+    sessionId === undefined
     || (shellPhase === 'blank' && (openState === 'open' || summaryBlank === true))
-  const phase = settling ? 'settling' : hero ? 'hero' : 'active'
+  )
+  const phase = settling || bootPending ? 'settling' : hero ? 'hero' : 'active'
 
   return (
     <div className={css.root} data-phase={phase}>
