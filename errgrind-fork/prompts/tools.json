@@ -10,7 +10,7 @@
   },
   "error_clarify": {
     "description": [
-      "Show one concise factual clarification during active Grill, including when the learner does not confirm a proposed conclusion or writes confirmation intent in chat. The answer may improve the Error description or inform a later diagnostic question.",
+      "Show one concise factual clarification during active Grill. The answer may improve the Error description or inform a later diagnostic question. Asking a clarification invalidates a pending diagnosis proposal; when the learner writes confirmation intent in chat instead of using the card's confirm control, re-publish the proposal with grill_conclude rather than clarifying.",
       "Ask about missing or ambiguous material without teaching, leading the learner toward a cause, or treating their current explanation as a verbatim account of their past thinking. Ordinary assistant text is hidden in ErrGrind Web."
     ],
     "parameters": {
@@ -52,7 +52,7 @@
   "grill_conclude": {
     "description": [
       "Propose this Error episode's diagnosis when a further discriminating probe has little expected value. For supported, identify a concrete supported hypothesis backed by grounded evidence from an actual probe answer, and say what could change the judgment. Otherwise propose undetermined and state the remaining uncertainty; do not force a cause or numeric confidence.",
-      "This proposal is anchored to the current Error description revision and does not end Grill. Only the learner's confirmation of that exact final description commits the proposal and ends Grill. Confirmation happens only through the description card's confirm control; ordinary chat text, including a literal '确认', never confirms. When the learner writes confirmation-like chat instead, use error_clarify to point them at the card's confirm control, or keep probing when the reply adds facts. If the learner does not confirm, continue clarification, probing, and revision. Confirmation of the description does not prove your causal inference. Do not expose private alternatives, predictions, or answer keys in the public summary."
+      "This proposal is anchored to the current Error description revision and does not end Grill. Only the learner's confirmation of that exact final description commits the proposal and ends Grill. Confirmation happens only through the description card's confirm control; ordinary chat text, including a literal '确认', never confirms. A later error_clarify, grill_probe, or error_draft invalidates this pending proposal and removes the confirm control, so invite confirmation inside this proposal's public summary and do not clarify only to ask for confirmation. When the learner writes confirmation-like chat instead of clicking the control, call this tool again to re-publish the proposal on the current revision; when the reply adds facts, keep clarifying or probing and propose again once the final description stands. Confirmation of the description does not prove your causal inference. Do not expose private alternatives, predictions, or answer keys in the public summary."
     ],
     "parameters": {
       "diagnosisStatus": "supported or undetermined for this episode only.",
