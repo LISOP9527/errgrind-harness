@@ -235,6 +235,7 @@ describe('connection node half', () => {
     'https://preview.devinapps.com',
     'preview.devinapps.com/path',
     ' preview.devinapps.com',
+    '*.preview.devinapps.com',
   ])('rejects a non-hostname localAuthorities entry before acquiring Host resources: %j', async (entry) => {
     const ctx = new Context()
     await expect(apply(ctx, { localAuthorities: [entry] })).rejects.toThrow(/localAuthorities/)

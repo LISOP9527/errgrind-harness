@@ -130,7 +130,8 @@ export interface ConnectionInstallOptions {
   /**
    * Hostnames the deployment declares as the operator's local surface (each
    * matches itself and its subdomains). A page under one is privileged like
-   * a loopback page; omit for plain loopback classification.
+   * a loopback page; omit for plain loopback classification. Entries are
+   * validated and lowercased at install, same as the injected global.
    */
   readonly localAuthorities?: readonly string[]
 }
@@ -216,6 +217,9 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
   const pageLocation = options.location
   const transport = options.transport
   const recovery = options.recovery ?? {}
+  // Option callers must meet the same contract as the injected global:
+  // validate and canonicalize here so only lowercase bare hostnames match.
+  const localAuthorities = resolveLocalAuthorities(options.localAuthorities)
   const rpc = transport?.rpc ?? createWebConnectionRpc(transport?.fetch, transport?.openStream)
   let generationSource: ConnectionGenerationSource | undefined
   let owner: ConnectionOwner | undefined
@@ -258,7 +262,7 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
     isLoopback: transport?.ownsHost === true
       || pageLocation === undefined
       || isLoopbackHostname(pageLocation.hostname)
-      || isLocalAuthorityHostname(pageLocation.hostname, options.localAuthorities ?? []),
+      || isLocalAuthorityHostname(pageLocation.hostname, localAuthorities),
     generation: {
       getSnapshot: () => generation,
       subscribe: (listener) => {

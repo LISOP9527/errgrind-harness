@@ -15,8 +15,11 @@
  * entry is refused: page-location ports elide under the scheme's default,
  * so a port grant could never bind predictably, and the declared semantic
  * is the operator's own surface, not a socket. URL parts beyond the
- * authority, stripped whitespace, and non-canonical host spellings fail
- * loudly here rather than silently matching or being ignored.
+ * authority, stripped whitespace, wildcard labels (`*` survives the WHATWG
+ * parse unchanged yet no `location.hostname` ever carries it, so a
+ * wildcard-looking grant would silently match nothing), and non-canonical
+ * host spellings fail loudly here rather than silently matching or being
+ * ignored.
  * @param entry - the configured value, verbatim.
  */
 export function assertLocalAuthority(entry: string): void {
@@ -28,7 +31,8 @@ export function assertLocalAuthority(entry: string): void {
   } catch {
     entryUrl = undefined
   }
-  if (entryUrl !== undefined && entryUrl.hostname === entry.toLowerCase() && entryUrl.port === '') return
+  if (entryUrl !== undefined && !entry.includes('*')
+    && entryUrl.hostname === entry.toLowerCase() && entryUrl.port === '') return
   throw new Error(`client-connection: localAuthorities entry ${JSON.stringify(entry)} is not a bare canonical hostname`)
 }
 

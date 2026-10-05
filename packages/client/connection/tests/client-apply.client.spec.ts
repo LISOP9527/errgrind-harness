@@ -6,6 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   apply,
+  installConnection,
   type ClientConnectionRpc,
   type ClientTransportHooks,
   type ConnectionGenerationSource,
@@ -160,12 +161,33 @@ describe('connection client apply', () => {
   it.each([
     'preview.devinapps.com',
     ['preview.devinapps.com:443'],
+    ['*.preview.devinapps.com'],
     [42],
   ])('fails the page boot on a malformed local-authorities bootstrap: %j', (value) => {
     ;(globalThis as Win).__DSH_LOCAL_AUTHORITIES__ = value
     const ctx = new Context()
     expect(() => { apply(ctx) }).toThrow()
     expect(ctx.get('connection')).toBeUndefined()
+  })
+
+  it('validates and canonicalizes option-side local authorities at install', () => {
+    const ctx = new Context()
+    installConnection(ctx, {
+      location: { hostname: 'a.preview.devinapps.com' },
+      localAuthorities: ['PREVIEW.DEVINAPPS.COM'],
+    })
+    const handle = ctx.get('connection') as ConnectionHandle | undefined
+    expect(handle?.isLoopback).toBe(true)
+
+    const plain = new Context()
+    installConnection(plain, { location: { hostname: '192.0.2.20' } })
+    expect((plain.get('connection') as ConnectionHandle | undefined)?.isLoopback).toBe(false)
+
+    const rejected = new Context()
+    expect(() => {
+      installConnection(rejected, { localAuthorities: ['*.preview.devinapps.com'] })
+    }).toThrow(/localAuthorities/)
+    expect(rejected.get('connection')).toBeUndefined()
   })
 
   it('requires one generation source and ignores a stale source disposer', async () => {

@@ -135,7 +135,7 @@ export const en = {
   'history.emptySearch': 'No matching Errors.',
   'history.unclassified': 'Sessions not yet linked to an Error:',
   'history.practice': 'Practice from this Error',
-  'history.practiceSending': 'Opening and sending Drill request…',
+  'history.practiceSending': 'Opening and sending practice request…',
   'history.practiceQueued': 'Opened this Error and queued a practice request.',
   'history.practiceFailed': 'The Error opened, but the practice request could not be sent. Request a practice in this Error.',
   'history.rename': 'Rename',
