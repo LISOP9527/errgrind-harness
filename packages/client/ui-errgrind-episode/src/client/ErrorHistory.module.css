@@ -76,6 +76,10 @@
 
 .card {
   display: grid;
+  /* Auto tracks size to max-content; the rename editor (input + Save + Cancel)
+     is wider than the card, which stretched the track and overflowed every
+     row — including the title/description buttons that lay out against it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.35rem;
   padding: 0.55rem;
   border: 1px solid color-mix(in srgb, currentColor 12%, transparent);

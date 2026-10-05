@@ -141,11 +141,9 @@
   z-index: 8;
   height: 0;
   display: flex;
-  justify-content: flex-end;
-  padding-right: max(
-    calc(var(--dsh-composer-side-clearance) + 16px),
-    calc((100% - var(--dsh-chat-content-width)) / 2)
-  );
+  /* Bottom-center, the generic chat placement: a right-edge anchor lands the
+     control on top of user bubbles, which end at the content's inline end. */
+  justify-content: center;
   pointer-events: none;
 }
 

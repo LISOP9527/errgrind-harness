@@ -169,6 +169,14 @@
   --dsh-frame-leading-clearance: 160px;
 }
 
+/* Below the drawer breakpoint the collapsed sidebar mounts only the floating
+   expand toggle (ui-sidebar .railOnlyToggle: left 10px, 36px wide → the band
+   ends at 46px, then 8px of air). Main panels whose content reaches the
+   top-left corner pad by this, same as the darwin band above. */
+.frame[data-sidebar-drawer][data-sidebar-collapsed] {
+  --dsh-frame-leading-clearance: 54px;
+}
+
 /* Fullscreen hides the traffic lights (preload mirrors the window state onto
    html[data-fullscreen]): the seat takes their band and the clearance keeps
    only the controls (12 + 28 + 8 + 28 + 8). The 12px start matches the

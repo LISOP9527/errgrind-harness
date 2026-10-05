@@ -252,6 +252,7 @@
         errgrind/drill-judged: [preparationId, isCorrect, feedback]
       allowedProjectionKeys:
         - modelSelection
+        - title
         - errgrindEpisode
       redactDataKeys:
         - errgrindOriginal
