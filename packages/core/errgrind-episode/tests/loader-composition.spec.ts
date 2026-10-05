@@ -587,6 +587,15 @@ describe('ErrGrind episode real Loader composition', () => {
             contradicts: [],
             probeId: 'P1',
           },
+          {
+            id: 'E6',
+            sourceRef: 'initial-input',
+            quote: '我把两个不等比值当成相等',
+            interpretation: '模型对未绑定来源提交空 probeId',
+            supports: ['H1'],
+            contradicts: [],
+            probeId: '',
+          },
         ],
       },
       signal: new AbortController().signal,
@@ -594,6 +603,28 @@ describe('ErrGrind episode real Loader composition', () => {
     expect(probe2Call.isError).toBe(false)
     expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.evidence
       .find(item => item.id === 'E1')?.sourceRef).toBe(`user-event:${answerEvent.seq}`)
+    // An empty probeId was the old persisted form of "not tied to a probe";
+    // the tool boundary normalizes it away instead of writing it back out.
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.evidence
+      .find(item => item.id === 'E6')).not.toHaveProperty('probeId')
+
+    // Checkpoints persisted before the normalization still carry probeId: ""
+    // on unbound evidence; viewCheckpoint must keep serving the row.
+    const currentState = ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
+    if (currentState === null || currentState === undefined) throw new Error('expected the Error episode projection')
+    const legacyVal = JSON.parse(JSON.stringify(currentState)) as { diagnosis: { evidence: { probeId?: string }[] } }
+    const legacyUnbound = legacyVal.diagnosis.evidence.find(item => item.probeId === undefined)
+    if (legacyUnbound === undefined) throw new Error('expected unbound evidence')
+    legacyUnbound.probeId = ''
+    const legacyRow = {
+      errgrindEpisode: {
+        ver: 9,
+        seq: SessionSeq(session.snapshotEvents().at(-1)?.seq ?? 0),
+        val: legacyVal,
+      },
+    }
+    expect(ctx.sessionProjections.viewCheckpoint(legacyRow).errgrindEpisode)
+      .toMatchObject({ status: 'grill' })
 
     // Check status during active probe
     const statusWithProbe = await ctx.commands.execute(agent, '/error-status', [], new AbortController().signal)
@@ -716,11 +747,22 @@ describe('ErrGrind episode real Loader composition', () => {
             contradicts: [],
             probeId: 'P1',
           },
+          {
+            id: 'E5',
+            sourceRef: 'initial-input',
+            quote: '我把两个不等比值当成相等',
+            interpretation: '结论阶段同样收到空 probeId',
+            supports: ['H1'],
+            contradicts: [],
+            probeId: '',
+          },
         ],
       },
       signal: new AbortController().signal,
     })
     expect(concludeCall.isError).toBe(false)
+    expect(ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis.evidence
+      .find(item => item.id === 'E5')).not.toHaveProperty('probeId')
 
     const diag = ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.diagnosis
     expect(diag?.status).toBe('active')

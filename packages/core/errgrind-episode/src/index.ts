@@ -97,7 +97,9 @@ const diagnosticEvidenceSchema = zod.object({
   interpretation: zod.string().min(1),
   supports: zod.array(zod.string().regex(HYPOTHESIS_ID_PATTERN)),
   contradicts: zod.array(zod.string().regex(HYPOTHESIS_ID_PATTERN)),
-  probeId: zod.string().regex(PROBE_ID_PATTERN).optional(),
+  // Earlier folds persisted "" for "not tied to a probe" (the tool schema
+  // accepted it); read the stored form as absent.
+  probeId: zod.preprocess(v => v === '' ? undefined : v, zod.string().regex(PROBE_ID_PATTERN).optional()),
 }).strict()
 
 const diagnosticLedgerSchema = zod.object({
@@ -1147,7 +1149,7 @@ export function apply(ctx: Context, config: Config = { statusCommand: true }): v
         interpretation: e.interpretation,
         supports: e.supports,
         contradicts: e.contradicts,
-        ...(e.probeId !== undefined ? { probeId: e.probeId } : {}),
+        ...(e.probeId !== undefined && e.probeId !== '' ? { probeId: e.probeId } : {}),
       }))
 
       const probe: DiagnosticProbe = {
@@ -1286,7 +1288,7 @@ export function apply(ctx: Context, config: Config = { statusCommand: true }): v
         interpretation: e.interpretation,
         supports: e.supports,
         contradicts: e.contradicts,
-        ...(e.probeId !== undefined ? { probeId: e.probeId } : {}),
+        ...(e.probeId !== undefined && e.probeId !== '' ? { probeId: e.probeId } : {}),
       }))
       const groundedEvidence = resolveEvidenceAliases(newEvidence, episode.evidenceSources, episode.diagnosisRound)
       assertLatestProbeReplyObserved(
