@@ -405,10 +405,13 @@
 # /permission row is hidden from command discovery — hiddenCommands filters
 # `list` only, so `execute` still resolves the name and a typed `/permission`
 # submits as ordinary chat; removing the wider presets is what closes the
-# preset-switch path.
+# preset-switch path. /error-confirm is hidden the same way: the revision
+# card's confirm button executes the command directly, while a typed
+# `/error-confirm` submits as ordinary chat — the card stays the single
+# visible confirm path.
 - id: commands
   config:
-    hiddenCommands: [permission]
+    hiddenCommands: [permission, error-confirm]
 
 - id: ui-message-feedback
   disabled: true
