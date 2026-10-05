@@ -96,11 +96,24 @@ describe('main panel selection', () => {
     }
   })
 
-  it('closes the narrow sidebar override on panel selection', () => {
+  it('closes the narrow sidebar override on panel selection in drawer mode', () => {
     const { store, actions } = createLayoutStore().create()
     actions.setViewportWidth(390)
     actions.toggleSidebar()
     expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(true)
+    actions.selectPanel(null)
+    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(false)
+  })
+
+  it('keeps the override on panel selection between drawer and auto-collapse widths', () => {
+    const { store, actions } = createLayoutStore().create()
+    actions.setViewportWidth(800)
+    actions.toggleSidebar()
+    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(true)
+    actions.selectPanel(null)
+    // The expanded sidebar is a real track here, not the overlay drawer.
+    expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(true)
+    actions.setViewportWidth(390)
     actions.selectPanel(null)
     expect(store.getSnapshot().layoutInfo.narrowExpanded).toBe(false)
   })

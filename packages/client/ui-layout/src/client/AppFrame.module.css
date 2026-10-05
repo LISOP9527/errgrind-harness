@@ -319,6 +319,8 @@
   bottom: 0;
   left: 0;
   z-index: 19;
+  /* 280px is SIDEBAR_DRAWER_WIDTH (columns.ts): AppFrame feeds the occupant
+     the same clamp so a wider stored preference cannot overflow the panel. */
   width: min(280px, calc(100vw - 48px));
   overflow: hidden;
   background: var(--dsw-specific-sidebar-fill);

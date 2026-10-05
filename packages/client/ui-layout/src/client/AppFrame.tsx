@@ -19,7 +19,7 @@ import type { ReactNode } from 'react'
 import type {
   PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
 } from '@deepseek-ai/dsh-client-ui-slots'
-import { CENTER_MIN, clampWidth, computeColumns, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT, SIDEBAR_DRAWER_MAX } from './columns.ts'
+import { CENTER_MIN, clampWidth, computeColumns, RIGHTBAR_DEFAULT_RATIO, RIGHTBAR_MAX_RATIO, RIGHTBAR_MIN, SIDEBAR_AUTO_COLLAPSE, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT, SIDEBAR_DRAWER_MAX, SIDEBAR_DRAWER_WIDTH } from './columns.ts'
 import { DocumentTitle } from './DocumentTitle.tsx'
 import type { createLayoutStore } from './stores.ts'
 import css from './AppFrame.module.css'
@@ -246,6 +246,13 @@ export function AppFrame({
       clearTimeout(timer)
     }
   }, [animating])
+  // Escape dismisses the overlay drawer like the scrim tap does.
+  useEffect(() => {
+    if (!drawerOpen) return
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') actions.toggleSidebar() }
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', onKey) }
+  }, [drawerOpen, actions])
   const onDragEnd = useCallback(() => { setDragging(false) }, [])
   const onSidebarStart = useCallback(() => { sidebarBase.current = colsRef.current.sidebar; setDragging(true) }, [])
   const onSidebarDrag = useCallback((dx: number) => {
@@ -269,7 +276,7 @@ export function AppFrame({
   const sidebarTrack = drawer ? 0 : cols.sidebar
   const sidebar = useMemo(() => renderSlot('sidebar', {
     collapsed: sidebarCollapsed,
-    width: drawerOpen ? Math.min(cols.sidebar, viewport - 48) : sidebarTrack,
+    width: drawerOpen ? Math.min(SIDEBAR_DRAWER_WIDTH, viewport - 48) : sidebarTrack,
     drawer,
   }), [renderSlot, sidebarCollapsed, drawerOpen, drawer, cols.sidebar, sidebarTrack, viewport])
   const main = useMemo(() => (
@@ -290,7 +297,7 @@ export function AppFrame({
       className={css.frame}
       style={{
         ...(document.documentElement.hasAttribute('data-windows-titlebar')
-          ? { '--dsh-windows-sidebar-width': `${cols.sidebar}px` } : {}),
+          ? { '--dsh-windows-sidebar-width': `${sidebarTrack}px` } : {}),
         gridTemplateColumns:
           `${sidebarTrack}px minmax(${cols.rightbar === 0 ? 0 : CENTER_MIN}px, 1fr) minmax(0px, ${rightbarMax}px)`,
       }}

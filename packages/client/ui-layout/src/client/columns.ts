@@ -25,6 +25,9 @@ export const SIDEBAR_AUTO_COLLAPSE = 1024
  * pushing 280px beside a phone-width centre leaves an unusable sliver, so the
  * wide sidebar renders as an overlay drawer instead (AppFrame). */
 export const SIDEBAR_DRAWER_MAX = 720
+/** Drawer overlay panel width; .drawerPanel (AppFrame.module.css) clamps to
+ * the same value against the viewport — keep the two in sync. */
+export const SIDEBAR_DRAWER_WIDTH = 280
 /** Right column drag clamp floor. */
 export const RIGHTBAR_MIN = 300
 /** Maximum normal right panel width as a fraction of the frame. */
