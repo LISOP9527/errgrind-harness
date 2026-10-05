@@ -99,6 +99,13 @@
   config:
     expandButton: false
 
+# Model switching lives on the composer chip (the conversation.input.model
+# seat over the same ModelDirectoryResolver); the /model command-menu row is
+# a second pointer path to the same directory that ErrGrind drops.
+- id: ui-model-selection
+  config:
+    commandMenu: false
+
 - id: deepseek-account
   disabled: true
 

@@ -117,6 +117,12 @@ export interface SidebarOwnerProps {
   collapsed: boolean
   /** Rendered column width in px (SIDEBAR_COLLAPSED when collapsed). */
   width: number
+  /**
+   * Below the drawer breakpoint (SIDEBAR_DRAWER_MAX): the expanded sidebar
+   * opens as an overlay drawer, and the collapsed rail reduces to its expand
+   * control — a phone-width frame cannot spare a standing icon column.
+   */
+  drawer: boolean
 }
 
 /** Right column owner share: resolved normal geometry and opening eligibility. */

@@ -265,7 +265,8 @@ export function AppFrame({
   const sidebar = useMemo(() => renderSlot('sidebar', {
     collapsed: sidebarCollapsed,
     width: drawerOpen ? Math.min(cols.sidebar, viewport - 48) : cols.sidebar,
-  }), [renderSlot, sidebarCollapsed, drawerOpen, cols.sidebar, viewport])
+    drawer,
+  }), [renderSlot, sidebarCollapsed, drawerOpen, drawer, cols.sidebar, viewport])
   const main = useMemo(() => (
     <MainPanel usePanelInfo={usePanelInfo} renderSlot={renderSlot} />
   ), [usePanelInfo, renderSlot])

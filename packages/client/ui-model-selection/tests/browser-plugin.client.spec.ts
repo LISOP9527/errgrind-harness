@@ -9,7 +9,7 @@
  * Scope disposal drops the directory (HMR safety).
  */
 import { Context } from '@deepseek-ai/cordis'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createScope } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
@@ -20,6 +20,7 @@ import type { CommandContribution, PopupSelectSpec, SelectOption } from '@deepse
 import type { ModelSelectInjected } from '../src/client/slots.ts'
 import { apply, inject } from '../src/client/index.ts'
 import { zh } from '../src/client/locales.ts'
+import { MODEL_COMMAND_MENU_GLOBAL } from '../src/command-menu.ts'
 
 const sid = (k: string): SessionId => k as SessionId
 
@@ -194,6 +195,10 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
 const projection = (id: string) => ({ sessionId: sid(id) })
 
 describe('ui-model-selection dual entry', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   it('carries writer contention to the model seat and localizes the command failure', async () => {
     const b = await bench()
     b.mint('owned')
@@ -213,6 +218,13 @@ describe('ui-model-selection dual entry', () => {
     expect(b.seat().inject).toBeTypeOf('function')
     // Copy rides the standard locale seat.
     expect(b.seat().locale).toBe('model')
+  })
+
+  it('drops the /model contribution but keeps the seat when the deployment hides the command menu', async () => {
+    vi.stubGlobal(MODEL_COMMAND_MENU_GLOBAL, { commandMenu: false })
+    const b = await bench()
+    expect(b.contribution()).toBeUndefined()
+    expect(b.seat().inject).toBeTypeOf('function')
   })
 
   it('localizes built-in descriptions and preserves external provider descriptions', async () => {

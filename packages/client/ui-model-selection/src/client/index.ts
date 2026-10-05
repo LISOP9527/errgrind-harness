@@ -28,6 +28,7 @@ import { ModelDirectoryResolver } from './service.ts'
 import type { ModelSelectInjected } from './slots.ts'
 import { ModelSelect } from './ModelSelect.tsx'
 import { en, zh, type ModelKey } from './locales.ts'
+import { Config, MODEL_COMMAND_MENU_GLOBAL } from '../command-menu.ts'
 
 export { ModelDirectory } from './directory.ts'
 export type { ModelDirectoryState } from './directory.ts'
@@ -136,8 +137,13 @@ export function apply(ctx: ClientContext): void {
   // a locale change reaches the next publish.
   ctx.plugin(ModelDirectoryResolver, { blockReason: () => t('blocked.composer') })
 
+  // The deployment may drop the command-menu row while keeping the composer
+  // seat: the Host publishes the choice as a page global, defaulted on.
+  const page = globalThis as Partial<Record<typeof MODEL_COMMAND_MENU_GLOBAL, unknown>>
+  const { commandMenu } = Config(page[MODEL_COMMAND_MENU_GLOBAL] ?? {})
+
   // Entry 1: the /model popupSelect over the shared directory.
-  ctx.inject(['commandUi', 'modelDirectories'], (scope: ClientContext) => {
+  if (commandMenu) ctx.inject(['commandUi', 'modelDirectories'], (scope: ClientContext) => {
     const command = scope.get('commandUi') as CommandUiContract
     const models = scope.modelDirectories
     const sessions = scope.sessions
