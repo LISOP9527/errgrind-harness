@@ -438,6 +438,9 @@ export function apply(ctx: ClientContext): void {
       archiveSession: async (sessionId: SessionId): Promise<void> => {
         await ctx.uiWorkspace.archiveSession(sessionId)
       },
+      unarchiveSession: async (sessionId: SessionId): Promise<void> => {
+        await ctx.uiWorkspace.unarchiveSession(sessionId)
+      },
     }),
   }, ErrorHistory))
   ctx.effect(() => ctx.uiConversation.events.register(episodeDefinition), 'ui-errgrind-episode: Error card')

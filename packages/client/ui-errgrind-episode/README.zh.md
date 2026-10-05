@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现公开的 Error、Grill、Teach 和 Drill 内容。学习者可以重新打开一条 Error，或针对一条已完成的 Error 请求 Drill。模型产出的内容（Teach 步骤、判分反馈、提问与结论）按普通 assistant Markdown 直接渲染，只有等待学习者输入的提示保留轻量边框。Error 卡片显示完整描述、确认状态、安全的追问进度和结论；确认操作会针对当前显示版本调用 `/error-confirm <revision>`。Models 设置页底部提供 ErrGrind 专用的 ChatGPT Codex 设备码登录。
+`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现公开的 Error、Grill、Teach 和 Drill 内容。学习者可以重新打开、重命名、归档或恢复一条 Error，并可针对已完成的 Error 请求 Drill。模型产出的内容（Teach 步骤、判分、提问与结论）按普通 assistant Markdown 渲染，仅等待输入的提示保留轻量边框。Error 卡片显示描述、确认状态、安全的追问进度和结论；确认操作调用 `/error-confirm <revision>`。Models 页底部提供 ErrGrind 的 Codex 设备码登录。
 
 ## 目录
 

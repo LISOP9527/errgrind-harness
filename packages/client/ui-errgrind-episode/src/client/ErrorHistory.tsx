@@ -6,7 +6,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ErrorListEntry } from '@errgrind/episode'
 import {
-  IconArchiveOutlineRegular, IconEditOutlineRegular, relativeTime,
+  IconArchiveOutlineRegular, IconEditOutlineRegular, IconUnarchiveOutlineRegular, relativeTime,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { NS } from './locales.ts'
 import css from './ErrorHistory.module.css'
@@ -20,6 +20,8 @@ export interface ErrorHistoryInjected {
   readonly renameSession: (sessionId: SessionId, title: string) => Promise<void>
   /** Archive the Session (the row then leaves this list). */
   readonly archiveSession: (sessionId: SessionId) => Promise<void>
+  /** Restore an archived Session to this list. */
+  readonly unarchiveSession: (sessionId: SessionId) => Promise<void>
 }
 
 export type ErrorHistoryProps = PropsRuntime<'sidebar.workspaces'>
@@ -41,6 +43,7 @@ export function ErrorHistory({
   practiceFromError,
   renameSession,
   archiveSession,
+  unarchiveSession,
   t,
 }: ErrorHistoryProps) {
   const list = useSessions(state => state)
@@ -51,6 +54,7 @@ export function ErrorHistory({
   const [editingSession, setEditingSession] = useState<SessionId | null>(null)
   const [draft, setDraft] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
   const needle = query.trim().toLocaleLowerCase()
   const errors = useMemo(() => list.ids.flatMap((id) => {
     const session = list.byId[id]
@@ -67,6 +71,16 @@ export function ErrorHistory({
     if (session === undefined || session.blank || archived.has(id)
       || session.projectionValues?.errgrindEpisode !== undefined) return []
     if (needle && !session.displayTitle.toLocaleLowerCase().includes(needle)) return []
+    return [{ sessionId: id, title: session.displayTitle, updatedAt: session.updatedAt }]
+  }), [list, needle, archived])
+  // Archived Errors stay reachable here because this panel replaces the
+  // Workspace browser, which carries the only other unarchive affordance.
+  const archivedEntries = useMemo(() => list.ids.flatMap((id) => {
+    const session = list.byId[id]
+    if (session === undefined || session.blank || !archived.has(id)) return []
+    const episode = session.projectionValues?.errgrindEpisode
+    const description = episode?.description?.trim() || session.displayTitle
+    if (needle && !`${description} ${session.displayTitle}`.toLocaleLowerCase().includes(needle)) return []
     return [{ sessionId: id, title: session.displayTitle, updatedAt: session.updatedAt }]
   }), [list, needle, archived])
 
@@ -212,6 +226,16 @@ export function ErrorHistory({
         />
       </label>
       {notice !== null && <p className={css.notice} role="status">{notice}</p>}
+      {archivedEntries.length > 0 && (
+        <button
+          className={css.archivedToggle}
+          type="button"
+          aria-expanded={showArchived}
+          onClick={() => { setShowArchived(value => !value) }}
+        >
+          {t(showArchived ? 'history.hideArchived' : 'history.showArchived')} ({archivedEntries.length})
+        </button>
+      )}
       <div className={css.list}>
         {errors.length === 0 && unclassified.length === 0
           ? <p className={css.empty}>{needle ? t('history.emptySearch') : t('history.empty')}</p>
@@ -252,6 +276,36 @@ export function ErrorHistory({
               <span className={css.status}>{timeLabel(updatedAt)}</span>
             </button>
             {cardActions(sessionId, title)}
+          </article>
+        ))}
+        {showArchived && archivedEntries.length > 0 && (
+          <p className={css.empty}>{t('history.archivedSection')}</p>
+        )}
+        {showArchived && archivedEntries.map(({ sessionId, title, updatedAt }) => (
+          <article className={css.card} key={sessionId}>
+            <div className={css.archivedBody}>
+              <span className={css.cardTitle}>{title}</span>
+              <span className={css.status}>{t('history.status.archived')} · {timeLabel(updatedAt)}</span>
+            </div>
+            <div className={css.actions}>
+              <button
+                className={css.iconAction}
+                type="button"
+                aria-label={t('history.unarchive')}
+                title={t('history.unarchive')}
+                disabled={busySession === sessionId}
+                onClick={() => {
+                  void runCardAction(
+                    sessionId,
+                    () => unarchiveSession(sessionId),
+                    t('history.unarchived'),
+                    t('history.unarchiveFailed'),
+                  )
+                }}
+              >
+                <IconUnarchiveOutlineRegular />
+              </button>
+            </div>
           </article>
         ))}
       </div>

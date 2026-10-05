@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import { ErrorHistory, type ErrorHistoryProps } from '../src/client/ErrorHistory.tsx'
 import { en, type ErrGrindKey } from '../src/client/locales.ts'
@@ -40,6 +40,7 @@ function props(): ErrorHistoryProps {
     practiceFromError: vi.fn().mockResolvedValue(undefined),
     renameSession: vi.fn().mockResolvedValue(undefined),
     archiveSession: vi.fn().mockResolvedValue(undefined),
+    unarchiveSession: vi.fn().mockResolvedValue(undefined),
     t: translate,
   } as unknown as ErrorHistoryProps
 }
@@ -78,6 +79,51 @@ describe('ErrGrind Error history', () => {
     render(<ErrorHistory {...input} />)
     expect(screen.queryByText('原来把分母相加')).toBeNull()
     expect(screen.getByText('忘记检查定义域')).toBeTruthy()
+  })
+
+  it('restores an archived Error through the archived section', async () => {
+    const input = props()
+    input.useWorkspaces = <T,>(selector: (state: WorkspaceState) => T): T =>
+      selector(workspaces([first, unrelated]))
+    render(<ErrorHistory {...input} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Show archived/ }))
+    const archivedCard = screen.getByText('first').closest('article')
+    expect(archivedCard).not.toBeNull()
+    expect(archivedCard?.textContent).toContain('Archived')
+    expect(within(archivedCard as HTMLElement).queryByRole('button', { name: /first/ })).toBeNull()
+    // An archived Session without a cached Error classification stays listed by title.
+    expect(screen.getByText('unrelated')).toBeTruthy()
+
+    fireEvent.click(within(archivedCard as HTMLElement).getByRole('button', { name: 'Unarchive' }))
+    await waitFor(() => { expect(input.unarchiveSession).toHaveBeenCalledWith(first) })
+    await waitFor(() => { expect(screen.getByText('Session unarchived.')).toBeTruthy() })
+
+    fireEvent.click(screen.getByRole('button', { name: /^Hide archived/ }))
+    expect(screen.queryByText('Archived')).toBeNull()
+  })
+
+  it('surfaces an unarchive failure without dropping the row', async () => {
+    const input = props()
+    input.useWorkspaces = <T,>(selector: (state: WorkspaceState) => T): T =>
+      selector(workspaces([first]))
+    const failing = { ...input, unarchiveSession: vi.fn().mockRejectedValue(new Error('nope')) }
+    render(<ErrorHistory {...failing} />)
+    fireEvent.click(screen.getByRole('button', { name: /^Show archived/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Unarchive' }))
+    await waitFor(() => {
+      expect(screen.getByText('Could not unarchive this session. Please try again.')).toBeTruthy()
+    })
+    expect(screen.getByText('first')).toBeTruthy()
+  })
+
+  it('narrows the archived section to the search text', () => {
+    const input = props()
+    input.useWorkspaces = <T,>(selector: (state: WorkspaceState) => T): T =>
+      selector(workspaces([first]))
+    render(<ErrorHistory {...input} />)
+    fireEvent.change(screen.getByRole('searchbox'), { target: { value: '定义域' } })
+    expect(screen.queryByRole('button', { name: /^Show archived/ })).toBeNull()
   })
 
   it('filters public descriptions without searching private Session content', () => {

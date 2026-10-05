@@ -74,6 +74,29 @@
   padding: 0.15rem 0.55rem 0.75rem;
 }
 
+.archivedToggle {
+  align-self: flex-start;
+  margin: 0 0.85rem 0.55rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  font: inherit;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.archivedToggle:hover {
+  color: inherit;
+}
+
+.archivedBody {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.2rem;
+}
+
 .card {
   display: grid;
   /* Auto tracks size to max-content; the rename editor (input + Save + Cancel)
@@ -241,6 +264,7 @@
 .iconAction:focus-visible,
 .actionButton:focus-visible,
 .renameInput:focus-visible,
+.archivedToggle:focus-visible,
 .searchLabel input:focus-visible {
   outline: 2px solid var(--dsw-alias-brand-primary, #8aa4ff);
   outline-offset: 2px;
