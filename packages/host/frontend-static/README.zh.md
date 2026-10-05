@@ -45,6 +45,8 @@ kind: "package-reference"
 
 根路径与配置的 index 响应会在读取 HTML 前调用 `ctx.connection.authorizeIndex`。有效进程 token 会得到 303 重定向与持久浏览器 cookie；已有有效 cookie 时直接提供 index；其他 index 请求得到 Connection 所有的 401 响应。非 index 文件仍是公开静态资源。Token、cookie、过期时间与签名记录语义都归 Connection 所有。
 
+成功的响应同时携带缓存期限：位于子目录且基名以 Vite 风格内容指纹结尾（`name-<hash>.<ext>`，hash 不少于 8 字符）的文件按 `cache-control: public, max-age=31536000, immutable` 提供，指纹使其 URL 具备内容寻址性质；渲染出的 index 为 `no-store`，注入的全局量与认证结果不会滞留过期版本；其余按名称稳定的文件（favicon、manifest 及根级条目）为 `no-cache`，浏览器每次复用前必须重新校验。
+
 ### 可观察的失败
 
 遍历返回 403 而不是错误页。dist 根目录内不存在或不是文件的目标返回空 404，因此失效链接或拼错的 pathname 是显式失败，而不是静默的 SPA 回退。第二次占据席位会抛错，而席位无人占据时 webserver 返回 404——本插件的 fiber 被 dispose（资源释放）后，浏览器看到的就是该响应。
@@ -69,7 +71,7 @@ kind: "package-reference"
 
 | 文件 | 职责 |
 |---|---|
-| [`src/index.ts`](src/index.ts) | `serveStatic` 与 `apply`：回退占据、遍历拒绝、index 渲染、MIME 表 |
+| [`src/index.ts`](src/index.ts) | `serveStatic` 与 `apply`：回退占据、遍历拒绝、index 渲染、MIME 表、缓存期限 |
 
 </details>
 

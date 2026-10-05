@@ -45,6 +45,8 @@ The served HTML carries one document base, `<base href="./">`, ahead of every in
 
 Root and configured-index responses call `ctx.connection.authorizeIndex` before reading HTML. A valid process token receives a 303 redirect plus the persistent browser cookie; an existing valid cookie serves the index; every other index request receives the Connection-owned 401 response. Non-index files remain public static assets. Connection owns the token, cookie, expiry, and signing-record semantics.
 
+Successful responses also carry a cache lifetime: a file under a subdirectory whose basename ends in a Vite-style content hash (`name-<hash>.<ext>` with an 8+ character hash) is served `cache-control: public, max-age=31536000, immutable`, since the fingerprint makes its URL content-addressed; the rendered index is `no-store` so injected globals and authentication results never go stale; every name-stable file (favicon, manifest, and root-level entries) is `no-cache`, instructing the browser to revalidate before reuse.
+
 ### Observable failures
 
 Traversal returns 403 rather than an error page. An absent or non-file target inside the dist root returns an empty 404, so a stale link or a mistyped pathname is an explicit failure rather than a silent SPA fallback. Claiming the seat twice throws, and while the seat is unclaimed the webserver answers 404 — which is what a browser sees if this plugin's fiber is disposed.
@@ -69,7 +71,7 @@ The package is one function plugin around `serveStatic`: `apply` resolves the di
 
 | File | Role |
 |---|---|
-| [`src/index.ts`](src/index.ts) | `serveStatic` and `apply`: fallback claim, traversal rejection, index rendering, MIME table |
+| [`src/index.ts`](src/index.ts) | `serveStatic` and `apply`: fallback claim, traversal rejection, index rendering, MIME table, cache lifetimes |
 
 </details>
 

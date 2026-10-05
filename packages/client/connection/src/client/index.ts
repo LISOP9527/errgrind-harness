@@ -10,6 +10,7 @@ import {
 } from './connection.ts'
 import { createWebConnectionRpc, type RpcFetch, type RpcStreamOpen } from './rpc.ts'
 import { isLoopbackHostname } from '../loopback-hostname.ts'
+import { isLocalAuthorityHostname, resolveLocalAuthorities } from '../local-authority.ts'
 import type { ClientConnectionRpc } from '../rpc.ts'
 import { resolveConnectionConfig } from '../recovery-config.ts'
 
@@ -106,10 +107,11 @@ export interface ClientTransportHooks {
   streamBaseUrl?: string
 }
 
-/** Page global carrying {@link ClientTransportHooks}; absent in the served web app. */
+/** Page globals carrying the transport and Host-injected configuration; absent in shell-owned compositions. */
 interface ClientTransportGlobal {
   __DSH_TRANSPORT__?: ClientTransportHooks
   __DSH_CONNECTION_RECOVERY__?: unknown
+  __DSH_LOCAL_AUTHORITIES__?: unknown
 }
 
 /** Browser location fields used to classify loopback authority. */
@@ -125,6 +127,12 @@ export interface ConnectionInstallOptions {
   readonly recovery?: ConnectionRecoveryConfig
   /** Page location; omit for a non-browser composition. */
   readonly location?: ConnectionLocation
+  /**
+   * Hostnames the deployment declares as the operator's local surface (each
+   * matches itself and its subdomains). A page under one is privileged like
+   * a loopback page; omit for plain loopback classification.
+   */
+  readonly localAuthorities?: readonly string[]
 }
 
 /**
@@ -134,7 +142,9 @@ export interface ConnectionInstallOptions {
 export interface ConnectionHandle {
   /**
    * Whether the privileged surface is reachable: the page authority is
-   * loopback, the transport declares the page owns the Host
+   * loopback or a declared local authority
+   * ({@link ConnectionInstallOptions.localAuthorities}), the transport
+   * declares the page owns the Host
    * ({@link ClientTransportHooks.ownsHost}), or the context is not a browser.
    */
   readonly isLoopback: boolean
@@ -245,7 +255,10 @@ export function installConnection(ctx: Context, options: ConnectionInstallOption
     publishState(undefined)
   }
   const handle: ConnectionHandle = {
-    isLoopback: transport?.ownsHost === true || pageLocation === undefined || isLoopbackHostname(pageLocation.hostname),
+    isLoopback: transport?.ownsHost === true
+      || pageLocation === undefined
+      || isLoopbackHostname(pageLocation.hostname)
+      || isLocalAuthorityHostname(pageLocation.hostname, options.localAuthorities ?? []),
     generation: {
       getSnapshot: () => generation,
       subscribe: (listener) => {
@@ -322,5 +335,6 @@ export function apply(ctx: Context): void {
     ...(transport === undefined ? {} : { transport }),
     recovery: resolveConnectionConfig(globals.__DSH_CONNECTION_RECOVERY__),
     ...(pageLocation === undefined ? {} : { location: pageLocation }),
+    localAuthorities: resolveLocalAuthorities(globals.__DSH_LOCAL_AUTHORITIES__),
   })
 }

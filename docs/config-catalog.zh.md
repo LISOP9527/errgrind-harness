@@ -465,10 +465,23 @@ export interface ConnectionConfig {
    * bind. An entry that is not a bare, canonical authority fails plugin load.
    */
   trustedHosts?: string[]
+  /**
+   * Page hostnames the deployment treats as the operator's local surface:
+   * each entry is a bare canonical hostname matching that host and every
+   * subdomain of it, and a page under one reaches the same privileged
+   * Client state a loopback page would (Host persistence, document
+   * controls). Inject into each served page through
+   * `__DSH_LOCAL_AUTHORITIES__`; unlike `trustedHosts` this grants no
+   * request-level trust — the /api fence still binds on the request's own
+   * Host. An entry that is not a bare canonical hostname fails plugin load.
+   */
+  localAuthorities?: string[]
   /** Absolute browser-session lifetime in days. Default: 30. */
   cookieMaxAgeDays?: number
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
   maxRequestBodyBytes?: number
+  /** Product-facing name in the unauthenticated response. Default: 'dsh web'. */
+  productLabel?: string
 }
 
 /** Timing for generation readiness and automatic reconnection. */
@@ -489,7 +502,7 @@ export interface ConnectionRecoveryConfig {
 }
 ```
 
-来源： [`packages/client/connection/src/index.ts:92`](../packages/client/connection/src/index.ts)
+来源： [`packages/client/connection/src/index.ts:93`](../packages/client/connection/src/index.ts)
 
 <a id="deepseek-aidsh-client-hmr"></a>
 
@@ -506,6 +519,20 @@ export interface Config {
 ```
 
 来源： [`packages/client/hmr/src/index.ts:30`](../packages/client/hmr/src/index.ts)
+
+<a id="deepseek-aidsh-client-ui-model-selection"></a>
+
+## `@deepseek-ai/dsh-client-ui-model-selection`
+
+```ts config-catalog
+/** Command-menu options after schema defaults are applied. */
+export interface Config {
+  /** Contribute the /model command-menu row; the composer seat keeps selection either way. */
+  commandMenu: boolean
+}
+```
+
+来源： [`packages/client/ui-model-selection/src/command-menu.ts:6`](../packages/client/ui-model-selection/src/command-menu.ts)
 
 <a id="deepseek-aidsh-client-ui-plugin-manager"></a>
 
@@ -541,6 +568,24 @@ export interface Config {
 
 来源： [`packages/client/ui-settings-account/src/contact-config.ts:5`](../packages/client/ui-settings-account/src/contact-config.ts)
 
+<a id="deepseek-aidsh-client-ui-settings-general"></a>
+
+## `@deepseek-ai/dsh-client-ui-settings-general`
+
+```ts config-catalog
+/** Runtime preferences projected to the browser. */
+export interface Config {
+  /** Last acknowledged welcome notice version. */
+  welcomeNoticeVersion: Volatile<string | undefined>
+  /** Settings contribution ids the deployment never renders. */
+  hiddenSettingsItems: string[]
+}
+```
+
+Depends on: `Volatile` (`@deepseek-ai/cordis`)
+
+来源： [`packages/client/ui-settings-general/src/index.ts:11`](../packages/client/ui-settings-general/src/index.ts)
+
 <a id="deepseek-aidsh-client-ui-settings-models"></a>
 
 ## `@deepseek-ai/dsh-client-ui-settings-models`
@@ -552,6 +597,8 @@ export interface Config {
   credentialOnboarding: boolean
   /** Show the versioned product welcome notice. */
   welcomeNotice: boolean
+  /** Offer the add-provider card; deployments that ship fixed routes set false. */
+  providerAddition: boolean
 }
 ```
 
@@ -589,6 +636,24 @@ export interface Config {
 
 来源： [`packages/client/ui-sidebar-documentpreview/src/config.ts:5`](../packages/client/ui-sidebar-documentpreview/src/config.ts)
 
+<a id="deepseek-aidsh-client-ui-sidebar-right"></a>
+
+## `@deepseek-ai/dsh-client-ui-sidebar-right`
+
+```ts config-catalog
+/**
+ * Deployment choice projected to the browser: `expandButton` controls the
+ * conversation-header affordance that expands the dock. The dock services
+ * stay mounted (ui-chat requires them); only the affordance is gated.
+ */
+export interface Config {
+  /** Render the conversation-corner dock expand button. */
+  expandButton: boolean
+}
+```
+
+来源： [`packages/client/ui-sidebar-right/src/dock-config.ts:13`](../packages/client/ui-sidebar-right/src/dock-config.ts)
+
 <a id="deepseek-aidsh-client-ui-theme"></a>
 
 ## `@deepseek-ai/dsh-client-ui-theme`
@@ -609,6 +674,23 @@ export type ThemePreference = typeof THEME_PREFERENCES[number]
 Depends on: `Volatile` (`@deepseek-ai/cordis`)
 
 来源： [`packages/client/ui-theme/src/index.ts:22`](../packages/client/ui-theme/src/index.ts)
+
+<a id="deepseek-aidsh-commands"></a>
+
+## `@deepseek-ai/dsh-commands`
+
+```ts config-catalog
+/** The {@link CommandRuntime} config. */
+export interface Config {
+  /**
+   * Command names omitted from {@link CommandRuntime.list} discovery.
+   * Resolution and execution of hidden names are unaffected. Default: none.
+   */
+  hiddenCommands?: string[]
+}
+```
+
+来源： [`packages/interaction/commands/src/index.ts:260`](../packages/interaction/commands/src/index.ts)
 
 <a id="deepseek-aidsh-compaction-basic"></a>
 
@@ -4174,7 +4256,6 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-jobs`（[`packages/client/ui-jobs/src/index.ts`](../packages/client/ui-jobs/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-layout`（[`packages/client/ui-layout/src/index.ts`](../packages/client/ui-layout/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-message-feedback`（[`packages/client/ui-message-feedback/src/index.ts`](../packages/client/ui-message-feedback/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-model-selection`（[`packages/client/ui-model-selection/src/index.ts`](../packages/client/ui-model-selection/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-open-in-app`（[`packages/client/ui-open-in-app/src/index.ts`](../packages/client/ui-open-in-app/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-permission-presets`（[`packages/client/ui-permission-presets/src/index.ts`](../packages/client/ui-permission-presets/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-plan`（[`packages/client/ui-plan/src/index.ts`](../packages/client/ui-plan/src/index.ts)）
@@ -4184,7 +4265,6 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-session`（[`packages/client/ui-session/src/index.ts`](../packages/client/ui-session/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings`（[`packages/client/ui-settings/src/index.ts`](../packages/client/ui-settings/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-agent-loop`（[`packages/client/ui-settings-agent-loop/src/index.ts`](../packages/client/ui-settings-agent-loop/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-settings-general`（[`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugin-inventory`（[`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugins`（[`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-shell`（[`packages/client/ui-settings-shell/src/index.ts`](../packages/client/ui-settings-shell/src/index.ts)）
@@ -4193,7 +4273,6 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-sidebar`（[`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-browser`（[`packages/client/ui-sidebar-browser/src/index.ts`](../packages/client/ui-sidebar-browser/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-files`（[`packages/client/ui-sidebar-files/src/index.ts`](../packages/client/ui-sidebar-files/src/index.ts)）
-- `@deepseek-ai/dsh-client-ui-sidebar-right`（[`packages/client/ui-sidebar-right/src/index.ts`](../packages/client/ui-sidebar-right/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar-terminal`（[`packages/client/ui-sidebar-terminal/src/index.ts`](../packages/client/ui-sidebar-terminal/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-skill`（[`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-subagent`（[`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts)）
@@ -4205,7 +4284,6 @@ export interface Config {
 - `@deepseek-ai/dsh-command-compact` — 需要 `commands` · `compact`（[`packages/compaction/command-compact/src/index.ts`](../packages/compaction/command-compact/src/index.ts)）
 - `@deepseek-ai/dsh-command-feedback` — 需要 `commands`（[`packages/feedback/command-feedback/src/index.ts`](../packages/feedback/command-feedback/src/index.ts)）
 - `@deepseek-ai/dsh-command-goal` — 需要 `commands` · `goals`（[`packages/goal/command-goal/src/index.ts`](../packages/goal/command-goal/src/index.ts)）
-- `@deepseek-ai/dsh-commands`（[`packages/interaction/commands/src/index.ts`](../packages/interaction/commands/src/index.ts)）
 - `@deepseek-ai/dsh-compaction-image-offload`，需要 `agents` 和 `sessions`（[`packages/compaction/compaction-image-offload/src/index.ts`](../packages/compaction/compaction-image-offload/src/index.ts)）
 - `@deepseek-ai/dsh-computer-use`（[`packages/computer-use/computer-use/src/index.ts`](../packages/computer-use/computer-use/src/index.ts)）
 - `@deepseek-ai/dsh-config-editor` — requires `loader` · `profileContext`（[`packages/boot/config-editor/src/index.ts`](../packages/boot/config-editor/src/index.ts)）

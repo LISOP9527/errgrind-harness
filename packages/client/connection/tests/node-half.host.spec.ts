@@ -199,12 +199,15 @@ describe('connection node half', () => {
     try {
       const rows: IndexInjection[] = []
       ctx.emit('webserver/index-inject', rows)
-      expect(rows).toEqual([{
-        kind: 'global', name: '__DSH_CONNECTION_RECOVERY__', value: {
-          backoffBaseMs: 500, backoffFactor: 2, backoffMaxMs: 10_000,
-          generationReadyWarnMs: 3_000, generationReadyTimeoutMs: 25_000,
+      expect(rows).toEqual([
+        {
+          kind: 'global', name: '__DSH_CONNECTION_RECOVERY__', value: {
+            backoffBaseMs: 500, backoffFactor: 2, backoffMaxMs: 10_000,
+            generationReadyWarnMs: 3_000, generationReadyTimeoutMs: 25_000,
+          },
         },
-      }])
+        { kind: 'global', name: '__DSH_LOCAL_AUTHORITIES__', value: [] },
+      ])
       await dispose()
       const after: IndexInjection[] = []
       ctx.emit('webserver/index-inject', after)
@@ -212,6 +215,30 @@ describe('connection node half', () => {
     } finally {
       await dispose()
     }
+  })
+
+  it('injects declared local page authorities for the served client', async () => {
+    const { ctx, dispose } = await mounted({ localAuthorities: ['preview.devinapps.com'] })
+    try {
+      const rows: IndexInjection[] = []
+      ctx.emit('webserver/index-inject', rows)
+      expect(rows).toContainEqual({
+        kind: 'global', name: '__DSH_LOCAL_AUTHORITIES__', value: ['preview.devinapps.com'],
+      })
+    } finally {
+      await dispose()
+    }
+  })
+
+  it.each([
+    'preview.devinapps.com:443',
+    'https://preview.devinapps.com',
+    'preview.devinapps.com/path',
+    ' preview.devinapps.com',
+  ])('rejects a non-hostname localAuthorities entry before acquiring Host resources: %j', async (entry) => {
+    const ctx = new Context()
+    await expect(apply(ctx, { localAuthorities: [entry] })).rejects.toThrow(/localAuthorities/)
+    expect(ctx.get('connection')).toBeUndefined()
   })
 
   it.each([

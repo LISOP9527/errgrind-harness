@@ -71,6 +71,26 @@
 - id: connection
   config:
     productLabel: ErrGrind
+    # ErrGrind surfaces through the Devin preview tunnel under
+    # <port>--<session>.preview.devinapps.com. The proxy rewrites the request
+    # Host to loopback, so the /api fence already passes; declaring the zone
+    # here restores the loopback-equivalent client surface (host persistence,
+    # settings) for every preview subdomain the tunnel may mint.
+    localAuthorities:
+      - preview.devinapps.com
+
+# A patch row replaces the targeted row's whole `config`; the base row's
+# `inject: [webStartup]` stays in place, so these `!!js` bindings resolve
+# exactly as upstream while the compression level is retuned.
+- id: webserver
+  config:
+    host: !!js ctx.webStartup.host ?? '127.0.0.1'
+    port: !!js ctx.webStartup.port ?? 3080
+    compression: gzip
+    # The base patch tunes for LAN speed; ErrGrind's serving path is a remote
+    # tunnel where body bytes dominate, so trade server CPU for smaller pages.
+    compressionLevel: 6
+    compressionThresholdBytes: 1024
 
 - id: ui-settings-models
   config:

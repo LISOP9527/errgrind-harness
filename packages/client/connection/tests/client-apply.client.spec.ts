@@ -17,11 +17,13 @@ import {
 type Win = {
   location?: { hostname: string; origin?: string }
   __DSH_TRANSPORT__?: ClientTransportHooks
+  __DSH_LOCAL_AUTHORITIES__?: unknown
 }
 
 afterEach(() => {
   delete (globalThis as Win).location
   delete (globalThis as Win).__DSH_TRANSPORT__
+  delete (globalThis as Win).__DSH_LOCAL_AUTHORITIES__
   vi.unstubAllGlobals()
   vi.useRealTimers()
 })
@@ -132,6 +134,38 @@ describe('connection client apply', () => {
   it('reports non-loopback page authority through the connection handle', async () => {
     ;(globalThis as Win).location = { hostname: '192.0.2.20' }
     expect((await mount()).isLoopback).toBe(false)
+  })
+
+  it.each([
+    'preview.devinapps.com',
+    '3080--abc123.preview.devinapps.com',
+    'deep.nested.preview.devinapps.com',
+  ])('reports a declared local page authority as loopback-equivalent: %s', async (hostname) => {
+    ;(globalThis as Win).location = { hostname }
+    ;(globalThis as Win).__DSH_LOCAL_AUTHORITIES__ = ['preview.devinapps.com']
+    expect((await mount()).isLoopback).toBe(true)
+  })
+
+  it.each([
+    'devinapps.com',
+    'xpreview.devinapps.com',
+    'preview.devinapps.com.evil.test',
+    '192.0.2.20',
+  ])('keeps pages outside the declared zone non-loopback: %s', async (hostname) => {
+    ;(globalThis as Win).location = { hostname }
+    ;(globalThis as Win).__DSH_LOCAL_AUTHORITIES__ = ['preview.devinapps.com']
+    expect((await mount()).isLoopback).toBe(false)
+  })
+
+  it.each([
+    'preview.devinapps.com',
+    ['preview.devinapps.com:443'],
+    [42],
+  ])('fails the page boot on a malformed local-authorities bootstrap: %j', (value) => {
+    ;(globalThis as Win).__DSH_LOCAL_AUTHORITIES__ = value
+    const ctx = new Context()
+    expect(() => { apply(ctx) }).toThrow()
+    expect(ctx.get('connection')).toBeUndefined()
   })
 
   it('requires one generation source and ignores a stale source disposer', async () => {

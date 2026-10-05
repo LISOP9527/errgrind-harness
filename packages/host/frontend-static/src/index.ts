@@ -59,6 +59,31 @@ const STATIC_MISS_CODES: ReadonlySet<string | undefined> = new Set([
 ])
 
 /**
+ * Content-hashed emitted filename (`name-<hash>.ext`): Vite fingerprints
+ * every emitted chunk with an 8+ character base64url hash, so the same URL
+ * never carries different bytes. Sourcemaps count as one hashed name too
+ * (`index-<hash>.js.map`).
+ */
+const HASHED_ASSET = /-[\w-]{8,}\.[^/\\]+$/
+
+/**
+ * Cache lifetime for a dist asset. Hashed emitted files sit under
+ * subdirectories (`assets/`, `preview/`, ...) while every root file is a
+ * name-stable entry (index, favicon, manifest) whose contents may change
+ * at the same URL, so immutability requires both the subdirectory shape
+ * and the hashed-name shape; name-stable files revalidate every load.
+ */
+const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable'
+const REVALIDATE_CACHE = 'no-cache'
+
+function cacheHeader(pathname: string, isIndex: boolean): string {
+  if (isIndex) return 'no-store'
+  const nested = pathname.split('/').filter(segment => segment !== '').length > 1
+  const basename = pathname.slice(pathname.lastIndexOf('/') + 1)
+  return nested && HASHED_ASSET.test(basename) ? IMMUTABLE_CACHE : REVALIDATE_CACHE
+}
+
+/**
  * Serve one GET/HEAD static request from the dist root.
  * @param pathname - decoded URL pathname of the request.
  * @param res - the node:http response to write.
@@ -84,11 +109,13 @@ export async function serveStatic(
   }
   let body: string | Buffer
   let type: string
+  let isIndex = false
   try {
     if (target === distRoot || target === distIndex) {
       if (!authorizeIndex()) return
       body = await renderIndex()
       type = HTML_MIME
+      isIndex = true
     } else {
       body = await readFile(target)
       type = MIME[extname(target)] ?? 'application/octet-stream'
@@ -101,7 +128,7 @@ export async function serveStatic(
     res.end()
     return
   }
-  res.writeHead(200, { 'content-type': type })
+  res.writeHead(200, { 'content-type': type, 'cache-control': cacheHeader(pathname, isIndex) })
   res.end(body)
 }
 
