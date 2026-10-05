@@ -249,7 +249,10 @@ export function AppFrame({
   // Escape dismisses the overlay drawer like the scrim tap does.
   useEffect(() => {
     if (!drawerOpen) return
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') actions.toggleSidebar() }
+    const onKey = (event: KeyboardEvent) => {
+      // Overlays that already handled Escape (preventDefault) keep the drawer.
+      if (event.key === 'Escape' && !event.defaultPrevented) actions.toggleSidebar()
+    }
     window.addEventListener('keydown', onKey)
     return () => { window.removeEventListener('keydown', onKey) }
   }, [drawerOpen, actions])
