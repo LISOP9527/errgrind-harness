@@ -207,17 +207,17 @@ export function GrillQuestionCard({ node, t, useChat }: GrillQuestionProps) {
     : <PromptBlock label={t('question.label')}>{body}</PromptBlock>
 }
 
-/** Render one durable intake clarification: pending asks keep the prompt
- * frame, past ones flow, and text the conclusion restated is not repeated. */
+/** Render one durable intake clarification as ordinary agent prose; text the
+ * conclusion restated verbatim is absorbed instead of repeated. */
 export function IntakeClarificationCard({ node, t, useChat }: IntakeClarificationProps) {
   const labels = useMemo(() => markdownLabels(t), [t])
-  const resolved = usePromptResolved(node.key, useChat)
   const absorbed = useAbsorbedByDiagnosis(node.key, node.data.text, useChat)
   if (absorbed) return null
-  const body = <MarkdownText text={node.data.text} labels={labels} />
-  return resolved
-    ? <div className={css.flow}>{body}</div>
-    : <PromptBlock label={t('clarification.label')}>{body}</PromptBlock>
+  return (
+    <div className={css.flow}>
+      <MarkdownText text={node.data.text} labels={labels} />
+    </div>
+  )
 }
 
 /** Render one public Teach step as ordinary agent prose — no card chrome. */

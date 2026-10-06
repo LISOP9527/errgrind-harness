@@ -631,23 +631,22 @@ describe('Prompt card resolution framing', () => {
     expect(screen.getByText(en['drill.answerDraftReview'])).toBeTruthy()
   })
 
-  it('frames a pending clarification and flattens it once the flow moves on', () => {
+  it('renders a clarification as ordinary prose without a prompt frame', () => {
     const pending = createChatNode('errgrind-intake-clarification', { text: 'Which step came first?', turn: 1 })
-    const { unmount } = render(
+    const { container, unmount } = render(
       <IntakeClarificationCard node={pending} t={tEn} {...chatNodeOwner}
         useChat={chatWith([pending.key], [pending])} />,
     )
-    expect(screen.getByText(en['clarification.label'])).toBeTruthy()
+    expect(container.textContent).toBe('Which step came first?')
     unmount()
 
     const resolved = createChatNode('errgrind-intake-clarification', { text: 'Which step came first?', turn: 1 })
     const later = createChatNode('errgrind-teach-step', { kind: 'hint', text: 'A later hint.' })
-    render(
+    const { container: resolvedContainer } = render(
       <IntakeClarificationCard node={resolved} t={tEn} {...chatNodeOwner}
         useChat={chatWith([resolved.key, later.key], [resolved, later])} />,
     )
-    expect(screen.queryByText(en['clarification.label'])).toBeNull()
-    expect(screen.getByText('Which step came first?')).toBeTruthy()
+    expect(resolvedContainer.textContent).toBe('Which step came first?')
   })
 
   it('hides a clarification the conclusion restates and keeps one it does not cover', () => {
