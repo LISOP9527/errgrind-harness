@@ -108,12 +108,6 @@
   color: inherit;
 }
 
-.archivedBody {
-  display: grid;
-  gap: 0.45rem;
-  padding: 0.2rem;
-}
-
 .card {
   display: grid;
   /* Auto tracks size to max-content; the rename editor (input + Save + Cancel)

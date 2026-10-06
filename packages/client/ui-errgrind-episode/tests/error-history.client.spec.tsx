@@ -113,7 +113,9 @@ describe('ErrGrind Error history', () => {
     const archivedCard = screen.getByText('first').closest('article')
     expect(archivedCard).not.toBeNull()
     expect(archivedCard?.textContent).toContain('Archived')
-    expect(within(archivedCard as HTMLElement).queryByRole('button', { name: /first/ })).toBeNull()
+    // Archived rows explain instead of opening: archived Sessions cannot be viewed.
+    fireEvent.click(within(archivedCard as HTMLElement).getByRole('button', { name: /first/ }))
+    expect(screen.getByText('Archived sessions cannot be opened. Unarchive it to view.')).toBeTruthy()
     // An archived Session without a cached Error classification stays listed by title.
     expect(screen.getByText('unrelated')).toBeTruthy()
 

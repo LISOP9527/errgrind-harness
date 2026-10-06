@@ -262,7 +262,7 @@ export function ErrorHistory({
                       sessionId,
                       () => practiceFromError(
                         sessionId,
-                        (index) => t(index === 0 ? 'history.practiceSessionTitle' : 'history.practiceSessionTitleIndexed', {
+                        index => t(index === 0 ? 'history.practiceSessionTitle' : 'history.practiceSessionTitleIndexed', {
                           index: index + 1,
                           description: Array.from(description).slice(0, 40).join(''),
                         }),
@@ -294,10 +294,10 @@ export function ErrorHistory({
         )}
         {showArchived && archivedEntries.map(({ sessionId, title, updatedAt }) => (
           <article className={css.card} key={sessionId}>
-            <div className={css.archivedBody}>
+            <button className={css.openButton} type="button" onClick={() => { setNotice(t('history.archivedNotOpenable')) }}>
               <span className={css.cardTitle}>{title}</span>
               <span className={css.status}>{t('history.status.archived')} · {timeLabel(updatedAt)}</span>
-            </div>
+            </button>
             <div className={css.actions}>
               <button
                 className={css.iconAction}
