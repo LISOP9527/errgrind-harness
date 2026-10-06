@@ -561,10 +561,11 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
       }
       let pending: PendingDrillSpec | undefined
       let draftSettled = false
-      // Every rejected attempt still leaves a settlement marker so the browser
-      // renders the generation-failure card instead of a silently empty turn.
-      // Attempts rejected before their specification persisted mint an
-      // unattached marker; the fold admits it only while nothing is pending.
+      // An attempt rejected past this point still leaves a settlement marker
+      // so the browser renders the generation-failure card instead of a
+      // silently empty turn. Attempts rejected before their specification
+      // persisted mint an unattached marker; the fold admits it only while
+      // nothing is pending.
       const settleDraft = (status: DrillDraftStatus, usage?: TokenUsage): void => {
         if (draftSettled) return
         draftSettled = true
