@@ -34,6 +34,8 @@ export type DrillJudgmentProps = PropsRuntime<'conversation.chat.node', 'errgrin
   & { openDerivedError: (preparationId: string) => Promise<boolean> }
 export type DerivedErrorProps = PropsRuntime<'conversation.chat.node', 'errgrind-derived-error'> & PropsLocale<typeof NS>
 export type DrillDraftCardProps = PropsRuntime<'conversation.chat.node', 'errgrind-drill-draft-card'> & PropsLocale<typeof NS>
+/** Complete props for a diagnosis conclusion row. */
+export type DiagnosisConclusionProps = PropsRuntime<'conversation.chat.node', 'errgrind-diagnosis'> & PropsLocale<typeof NS>
 
 /**
  * Localized code-fence and footnote chrome for ErrGrind card prose. The keys
@@ -83,6 +85,7 @@ const PROMPT_RESOLVERS: ReadonlySet<string> = new Set([
   'errgrind-drill-judgment',
   'errgrind-drill-draft-card',
   'errgrind-derived-error',
+  'errgrind-diagnosis',
 ])
 
 /**
@@ -101,7 +104,7 @@ function usePromptResolved(key: string, useChat: UseChat): boolean {
   })
 }
 
-/** Render the current full Error description and its public investigation state. */
+/** Render the Error description alone; the diagnosis outcome flows as an ordinary message. */
 export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
   const [pending, setPending] = useState(false)
   const [feedback, setFeedback] = useState('')
@@ -130,17 +133,12 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
 
   const status = description.confirmed
     ? t('card.confirmed')
-    : description.diagnosisStatus !== null ? t('card.pending') : t('card.grillActive')
-  const statusLine = description.probeCount === 1
-    ? t('card.grillProgressOne')
-    : description.probeCount > 1
-      ? t('card.grillProgress', { count: description.probeCount })
-      : ''
+    : description.diagnosisStatus !== null ? t('card.pending') : null
   return (
     <article className={css.episodeCard} aria-label={t('card.title')}>
       <header className={css.header}>
         <h3 className={css.title}>{t('card.title')}</h3>
-        <span className={css.status} aria-live="polite">{status}</span>
+        {status !== null && <span className={css.status} aria-live="polite">{status}</span>}
       </header>
       <MarkdownText text={description.description} labels={labels} />
       {!description.confirmed && (
@@ -149,7 +147,6 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
         </p>
       )}
       <footer className={css.footer}>
-        {statusLine !== '' && <span className={css.statusLine}>{statusLine}</span>}
         {!description.confirmed && description.diagnosisStatus !== null && (
           <form onSubmit={(event) => { void confirm(event) }}>
             <button className={css.confirmButton} type="submit" disabled={pending}>
@@ -159,25 +156,20 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
         )}
         {feedback !== '' && <span className={css.feedback} role="status">{feedback}</span>}
       </footer>
-      {description.summary !== null && (
-        <section>
-          <span className={css.statusLine}>
-            {!description.confirmed
-              ? t('card.proposal')
-              : description.diagnosisStatus === 'supported'
-                ? t('card.conclusion.supported')
-                : t('card.conclusion.undetermined')}
-          </span>
-          <MarkdownText text={description.summary} labels={labels} />
-          {description.remainingUncertainty !== null && (
-            <>
-              <span className={css.uncertaintyLabel}>{t('card.remainingUncertainty')}</span>
-              <MarkdownText text={description.remainingUncertainty} labels={labels} />
-            </>
-          )}
-        </section>
-      )}
     </article>
+  )
+}
+
+/** Model diagnosis outcome, rendered as ordinary prose rather than card chrome. */
+export function DiagnosisConclusionCard({ node, t }: DiagnosisConclusionProps) {
+  const labels = useMemo(() => markdownLabels(t), [t])
+  return (
+    <div className={css.flow}>
+      <MarkdownText text={node.data.summary} labels={labels} />
+      {node.data.remainingUncertainty !== null && (
+        <MarkdownText text={node.data.remainingUncertainty} labels={labels} />
+      )}
+    </div>
   )
 }
 

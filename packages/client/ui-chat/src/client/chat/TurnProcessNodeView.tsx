@@ -14,6 +14,7 @@ const ACTIVITY_LABELS: Readonly<Record<string, ChatKey>> = {
   replied: 'turnProcess.activity.replied',
   asked: 'turnProcess.activity.asked',
   clarified: 'turnProcess.activity.clarified',
+  diagnosed: 'turnProcess.activity.diagnosed',
   explained: 'turnProcess.activity.explained',
   practice: 'turnProcess.activity.practice',
   drafted: 'turnProcess.activity.drafted',

@@ -31,6 +31,7 @@ import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-
 import { apply, inject } from '../src/client/index.ts'
 import {
   DerivedErrorCard,
+  DiagnosisConclusionCard,
   DrillAnswerDraftCard,
   DrillDraftCard,
   type DrillDraftCardProps,
@@ -160,6 +161,7 @@ describe('ui-errgrind-episode browser plugin', () => {
 
     const registeredKinds = harness.events.entries().map(d => d.kind)
     expect(registeredKinds).toContain('errgrind-episode-card')
+    expect(registeredKinds).toContain('errgrind-diagnosis')
     expect(registeredKinds).toContain('errgrind-grill-question')
     expect(registeredKinds).toContain('errgrind-intake-clarification')
     expect(registeredKinds).toContain('errgrind-teach-step')
@@ -435,7 +437,12 @@ describe('Error episode card assembly', () => {
       description: '根据你目前提供的信息：…',
       confirmed: true,
       diagnosisStatus: 'supported',
+    })
+
+    const diagnosis = assembledNodes.find(n => n.kind === 'errgrind-diagnosis')
+    expect(diagnosis?.data).toMatchObject({
       summary: '暂定结论',
+      remainingUncertainty: null,
     })
   })
 })
@@ -482,10 +489,7 @@ describe('Existing conversation cards assembly and presentation', () => {
       revision: 1,
       description: 'Misapplied distributive property',
       confirmed: false,
-      probeCount: 2,
       diagnosisStatus: null,
-      summary: null,
-      remainingUncertainty: null,
     })
     const { unmount: unmountError } = render(
       <ErrorEpisodeCard node={errorNode} t={tEn} confirmRevision={vi.fn()} {...chatNodeOwner} />,
@@ -633,25 +637,25 @@ function errorCardNode(overrides: Partial<ChatNodeDataMap['errgrind-error-card']
     revision: 1,
     description: 'Misapplied distributive property',
     confirmed: false,
-    probeCount: 0,
     diagnosisStatus: null,
-    summary: null,
-    remainingUncertainty: null,
+    ...overrides,
+  })
+}
+
+function diagnosisNode(overrides: Partial<ChatNodeDataMap['errgrind-diagnosis']> = {}) {
+  return createChatNode('errgrind-diagnosis', {
+    summary: 'The learner distributed only to the first term.',
+    remainingUncertainty: 'Whether the same slip recurs with fractions.',
     ...overrides,
   })
 }
 
 describe('ErrorEpisodeCard states', () => {
-  it('shows the proposal, uncertainty, and confirm control while unconfirmed', async () => {
+  it('shows only the description and confirm control while unconfirmed', async () => {
     const confirmRevision = vi.fn().mockResolvedValue('confirmed' as const)
     render(
       <ErrorEpisodeCard
-        node={errorCardNode({
-          probeCount: 1,
-          diagnosisStatus: 'supported',
-          summary: 'The learner distributed only to the first term.',
-          remainingUncertainty: 'Whether the same slip recurs with fractions.',
-        })}
+        node={errorCardNode({ diagnosisStatus: 'supported' })}
         t={tEn}
         confirmRevision={confirmRevision}
         {...chatNodeOwner}
@@ -660,34 +664,26 @@ describe('ErrorEpisodeCard states', () => {
 
     expect(screen.getByText(en['card.pending'])).toBeTruthy()
     expect(screen.getByText(en['card.pendingProposalHint'])).toBeTruthy()
-    expect(screen.getByText(en['card.grillProgressOne'])).toBeTruthy()
-    expect(screen.getByText(en['card.proposal'])).toBeTruthy()
-    expect(screen.getByText('The learner distributed only to the first term.')).toBeTruthy()
-    expect(screen.getByText(en['card.remainingUncertainty'])).toBeTruthy()
-    expect(screen.getByText('Whether the same slip recurs with fractions.')).toBeTruthy()
+    expect(screen.getByText('Misapplied distributive property')).toBeTruthy()
 
     fireEvent.submit(screen.getByRole('button', { name: en['card.confirm'] }).closest('form')!)
     await waitFor(() => { expect(screen.getByText(en['card.confirmedNotice'])).toBeTruthy() })
     expect(confirmRevision).toHaveBeenCalledWith(1)
   })
 
-  it('marks an unproposed card as still being diagnosed with no progress count', () => {
+  it('shows the revise hint without a status badge while no diagnosis exists', () => {
     render(
       <ErrorEpisodeCard node={errorCardNode()} t={tEn} confirmRevision={vi.fn()} {...chatNodeOwner} />,
     )
-    expect(screen.getAllByText(en['card.grillActive'])).not.toHaveLength(0)
     expect(screen.getByText(en['card.reviseHint'])).toBeTruthy()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.queryByRole('button')).toBeNull()
   })
 
-  it('renders the confirmed card with conclusion label and no confirm form', () => {
+  it('renders the confirmed card with no confirm form and no diagnosis body', () => {
     render(
       <ErrorEpisodeCard
-        node={errorCardNode({
-          confirmed: true,
-          probeCount: 3,
-          diagnosisStatus: 'supported',
-          summary: 'Confirmed diagnosis text.',
-        })}
+        node={errorCardNode({ confirmed: true, diagnosisStatus: 'supported' })}
         t={tEn}
         confirmRevision={vi.fn()}
         {...chatNodeOwner}
@@ -695,21 +691,32 @@ describe('ErrorEpisodeCard states', () => {
     )
 
     expect(screen.getByText(en['card.confirmed'])).toBeTruthy()
-    expect(screen.getByText(en['card.conclusion.supported'])).toBeTruthy()
+    expect(screen.getByText('Misapplied distributive property')).toBeTruthy()
     expect(screen.queryByRole('button')).toBeNull()
     expect(screen.queryByText(en['card.reviseHint'])).toBeNull()
+    expect(screen.queryByText(en['card.pendingProposalHint'])).toBeNull()
   })
 
-  it('labels an undetermined confirmed conclusion', () => {
+  it('renders a diagnosis conclusion as ordinary prose without card chrome', () => {
+    const { container } = render(
+      <DiagnosisConclusionCard node={diagnosisNode()} t={tEn} {...chatNodeOwner} />,
+    )
+
+    expect(container.querySelector('article')).toBeNull()
+    expect(screen.getByText('The learner distributed only to the first term.')).toBeTruthy()
+    expect(screen.getByText('Whether the same slip recurs with fractions.')).toBeTruthy()
+  })
+
+  it('omits the uncertainty paragraph when the diagnosis leaves none', () => {
     render(
-      <ErrorEpisodeCard
-        node={errorCardNode({ confirmed: true, diagnosisStatus: 'undetermined', summary: 'Partial.' })}
+      <DiagnosisConclusionCard
+        node={diagnosisNode({ summary: 'Concluded.', remainingUncertainty: null })}
         t={tEn}
-        confirmRevision={vi.fn()}
         {...chatNodeOwner}
       />,
     )
-    expect(screen.getByText(en['card.conclusion.undetermined'])).toBeTruthy()
+    expect(screen.getByText('Concluded.')).toBeTruthy()
+    expect(screen.queryByText('Whether the same slip recurs with fractions.')).toBeNull()
   })
 
   it('reports a stale confirmation attempt', async () => {

@@ -48,3 +48,4 @@
 - [x] 用实际用量检查是否能区分阶段、失败、修复、缓存和缺失 usage，且日志不含正文/凭据；旧用量报告命令不迁入新运行路径。
 
 长期 Pattern、独立事件/冻结版本、盲法关联、opportunity 分母和 Policy 仍按 research 中的门槛推迟；保存资料不代表开始实现。
+2026-10-06 Error 卡片收窄：卡内不再混渲染诊断内容——`errgrind/grill-conclude` 现由新增的 `errgrind-diagnosis` 节点定义消费（同一事件同时喂 episode update 做确认门控），结论正文与尚存不确定性按普通 assistant 消息经 MarkdownText 渲染；Error 卡片只剩标题、描述、确认状态徽标（无诊断时无徽标）、补充提示与确认控件，`probeCount`/`summary`/`remainingUncertainty` 从卡片数据与状态中移除，`card.grillActive`/`grillProgress`/`proposal`/`conclusion.*`/`remainingUncertainty` locale 键删除，`pendingProposalHint` 改写为指向下方结论。ui-chat `ACTIVITY_LABELS` 补 `diagnosed`（zh 诊断 / en Diagnosed）。

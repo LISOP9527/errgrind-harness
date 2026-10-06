@@ -12,7 +12,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@errgrind/episode'
-import { DerivedErrorCard, DrillAnswerDraftCard, DrillDraftCard, DrillJudgmentCard, DrillQuestionCard, ErrorEpisodeCard, GrillQuestionCard, IntakeClarificationCard, TeachStepCard } from './EpisodeCards.tsx'
+import { DerivedErrorCard, DiagnosisConclusionCard, DrillAnswerDraftCard, DrillDraftCard, DrillJudgmentCard, DrillQuestionCard, ErrorEpisodeCard, GrillQuestionCard, IntakeClarificationCard, TeachStepCard } from './EpisodeCards.tsx'
 import { ErrGrindBrandMark, ErrGrindBrandName, ErrGrindHeroBrandMark } from './Brand.tsx'
 import { en, NS, zh } from './locales.ts'
 import { ModelOnboarding } from './ModelOnboarding.tsx'
@@ -21,7 +21,7 @@ import { ErrorHistory } from './ErrorHistory.tsx'
 
 /** Activity ids an ErrGrind node publishes for the shared Turn-tail label. */
 export type TurnActivity =
-  'recorded' | 'asked' | 'clarified' | 'explained' | 'practice' | 'drafted' | 'scored'
+  'recorded' | 'asked' | 'clarified' | 'diagnosed' | 'explained' | 'practice' | 'drafted' | 'scored'
 
 /** Safe fields displayed in the Error card. */
 export interface ErrorCardData {
@@ -29,9 +29,13 @@ export interface ErrorCardData {
   readonly revision: number
   readonly description: string
   readonly confirmed: boolean
-  readonly probeCount: number
   readonly diagnosisStatus: 'supported' | 'undetermined' | null
-  readonly summary: string | null
+}
+
+/** Safe fields displayed by one diagnosis conclusion row. */
+export interface DiagnosisData {
+  readonly activity?: TurnActivity
+  readonly summary: string
   readonly remainingUncertainty: string | null
 }
 
@@ -95,6 +99,7 @@ export interface DrillDraftCardData {
 declare module '@deepseek-ai/dsh-client-ui-chat/client' {
   interface ChatNodeDataMap {
     'errgrind-error-card': ErrorCardData
+    'errgrind-diagnosis': DiagnosisData
     'errgrind-grill-question': GrillQuestionData
     'errgrind-intake-clarification': IntakeClarificationData
     'errgrind-teach-step': TeachStepData
@@ -117,10 +122,7 @@ interface EpisodeState {
   readonly revision: number
   readonly description: string
   readonly confirmed: boolean
-  readonly probeCount: number
   readonly diagnosisStatus: 'supported' | 'undetermined' | null
-  readonly summary: string | null
-  readonly remainingUncertainty: string | null
 }
 
 interface QuestionState {
@@ -130,11 +132,12 @@ interface QuestionState {
 /** Turn-tail activity each ErrGrind node kind reports for the shared process label. */
 const KIND_TURN_ACTIVITY: {
   readonly [Kind in keyof Pick<ChatNodeDataMap,
-    'errgrind-error-card' | 'errgrind-grill-question' | 'errgrind-intake-clarification' | 'errgrind-teach-step'
+    'errgrind-error-card' | 'errgrind-diagnosis' | 'errgrind-grill-question' | 'errgrind-intake-clarification' | 'errgrind-teach-step'
     | 'errgrind-drill-question' | 'errgrind-drill-answer-draft' | 'errgrind-drill-judgment'
     | 'errgrind-derived-error' | 'errgrind-drill-draft-card'>]: TurnActivity
 } = {
   'errgrind-error-card': 'recorded',
+  'errgrind-diagnosis': 'diagnosed',
   'errgrind-grill-question': 'asked',
   'errgrind-intake-clarification': 'clarified',
   'errgrind-teach-step': 'explained',
@@ -189,10 +192,7 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
       revision: 0,
       description: match.event.data.text,
       confirmed: false,
-      probeCount: 0,
       diagnosisStatus: null,
-      summary: null,
-      remainingUncertainty: null,
     }
   },
   update({ state }, match) {
@@ -202,10 +202,7 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
           revision: match.event.data.revision,
           description: match.event.data.text,
           confirmed: false,
-          probeCount: 0,
           diagnosisStatus: null,
-          summary: null,
-          remainingUncertainty: null,
         }
       case 'errgrind/error-confirm':
         return match.event.data.revision === state.revision && state.diagnosisStatus !== null
@@ -216,18 +213,13 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
           ...state,
           confirmed: false,
           diagnosisStatus: null,
-          summary: null,
-          remainingUncertainty: null,
         }
       case 'errgrind/grill-probe':
         return match.event.data.anchorRevision === undefined || match.event.data.anchorRevision === state.revision
           ? {
             ...state,
             confirmed: false,
-            probeCount: state.probeCount + 1,
             diagnosisStatus: null,
-            summary: null,
-            remainingUncertainty: null,
           }
           : state
       case 'errgrind/grill-conclude':
@@ -235,8 +227,6 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
           ? {
             ...state,
             diagnosisStatus: match.event.data.diagnosisStatus,
-            summary: match.event.data.summary,
-            remainingUncertainty: match.event.data.remainingUncertainty ?? null,
           }
           : state
       default:
@@ -249,12 +239,32 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
       revision: context.state.revision,
       description: context.state.description,
       confirmed: context.state.confirmed,
-      probeCount: context.state.probeCount,
       diagnosisStatus: context.state.diagnosisStatus,
-      summary: context.state.summary,
-      remainingUncertainty: context.state.remainingUncertainty,
     }
     return chatNode(context, 'errgrind-error-card', data)
+  },
+}
+
+/** Diagnosis conclusion: same grill-conclude event, rendered as ordinary prose. */
+const diagnosisDefinition: ConversationNodeDefinition<DiagnosisData> = {
+  kind: 'errgrind-diagnosis',
+  target: 'chat',
+  match(event) {
+    return event.type === 'errgrind/grill-conclude'
+      ? { id: `seq:${event.seq}`, role: 'start' }
+      : null
+  },
+  start(_context, match) {
+    if (match.event.type !== 'errgrind/grill-conclude') throw new Error('Diagnosis conclusion must start from its conclude event')
+    return {
+      summary: match.event.data.summary,
+      remainingUncertainty: match.event.data.remainingUncertainty ?? null,
+    }
+  },
+  update({ state }) { return state },
+  buildViewNode(context) {
+    if (context.state === undefined) return null
+    return chatNode(context, 'errgrind-diagnosis', context.state)
   },
 }
 
@@ -491,6 +501,7 @@ export function apply(ctx: ClientContext): void {
     }),
   }, ErrorHistory))
   ctx.effect(() => ctx.uiConversation.events.register(episodeDefinition), 'ui-errgrind-episode: Error card')
+  ctx.effect(() => ctx.uiConversation.events.register(diagnosisDefinition), 'ui-errgrind-episode: diagnosis conclusions')
   ctx.effect(() => ctx.uiConversation.events.register(questionDefinition), 'ui-errgrind-episode: Grill questions')
   ctx.effect(() => ctx.uiConversation.events.register(clarificationDefinition), 'ui-errgrind-episode: intake clarifications')
   ctx.effect(() => ctx.uiConversation.events.register(teachStepDefinition), 'ui-errgrind-episode: Teach steps')
@@ -516,6 +527,11 @@ export function apply(ctx: ClientContext): void {
       },
     }),
   }, ErrorEpisodeCard))
+  ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
+    name: 'conversation.chat.node',
+    key: 'errgrind-diagnosis',
+    locale: NS,
+  }, DiagnosisConclusionCard))
   ctx.slots.inject('conversation.chat.node', () => ctx.slots.register({
     name: 'conversation.chat.node',
     key: 'errgrind-grill-question',

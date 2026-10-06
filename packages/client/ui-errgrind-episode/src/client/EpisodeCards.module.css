@@ -59,8 +59,7 @@
 }
 
 .header,
-.footer,
-.statusLine {
+.footer {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -120,19 +119,10 @@
   font-family: inherit;
 }
 
-.hint,
-.uncertaintyLabel {
-  color: var(--dsw-alias-label-secondary, #5c6572);
-  font-size: 0.88rem;
-}
-
-.statusLine {
-  color: var(--dsw-alias-label-secondary, #5c6572);
-  font-size: 0.82rem;
-}
-
 .hint {
   margin: 0.75rem 0 0;
+  color: var(--dsw-alias-label-secondary, #5c6572);
+  font-size: 0.88rem;
 }
 
 .footer {
@@ -247,11 +237,6 @@
   flex-basis: 100%;
   color: var(--dsw-alias-label-secondary, #5c6572);
   font-size: 0.88rem;
-}
-
-.uncertaintyLabel {
-  display: block;
-  margin-top: 0.75rem;
 }
 
 @media (max-width: 480px) {
