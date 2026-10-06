@@ -82,6 +82,11 @@
   --dsh-chat-flow-gap: 8px;
 }
 
+/* A settled tail row captions the content above it, not the next message. */
+.flowItem[data-chat-flow-kind="turn-process"] {
+  --dsh-chat-flow-gap: 4px;
+}
+
 /* Empty Seats retain ordered layout positions for Turn lookup without
    contributing height or the sibling gap. */
 .flowItem:empty {

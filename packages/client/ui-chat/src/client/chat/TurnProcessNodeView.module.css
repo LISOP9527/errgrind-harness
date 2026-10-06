@@ -4,10 +4,9 @@
   align-items: center;
   width: 100%;
   min-width: 0;
-  height: calc(20px + var(--dsh-content-font-delta, 0px));
+  height: calc(17px + var(--dsh-content-font-delta, 0px));
   padding: 0;
   border: none;
-  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
   background: none;
   color: var(--dsw-alias-label-tertiary);
   cursor: pointer;
@@ -24,7 +23,7 @@
 }
 
 .root:not([data-open]) {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .chevron {
