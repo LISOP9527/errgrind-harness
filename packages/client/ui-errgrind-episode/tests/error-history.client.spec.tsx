@@ -9,6 +9,7 @@ afterEach(() => { cleanup() })
 
 const first = SessionId('error-open')
 const second = SessionId('error-complete')
+const drillSession = SessionId('drill-practice')
 const unrelated = SessionId('generic-session')
 
 type WorkspaceState = Parameters<Parameters<ErrorHistoryProps['useWorkspaces']>[0]>[0]
@@ -19,13 +20,16 @@ function workspaces(archivedSessionIds: WorkspaceState['archivedSessionIds']): W
 
 function props(): ErrorHistoryProps {
   const list = {
-    ids: [first, second, unrelated],
+    ids: [first, second, drillSession, unrelated],
     byId: {
       [first]: { displayTitle: 'first', updatedAt: 1_000, projectionValues: {
-        errgrindEpisode: { description: '原来把分母相加', status: 'grill', drillEligible: false },
+        errgrindEpisode: { description: '原来把分母相加', status: 'grill', drillEligible: false, kind: 'error' },
       } },
       [second]: { displayTitle: 'second', updatedAt: 1_000, projectionValues: {
-        errgrindEpisode: { description: '忘记检查定义域', status: 'teach', drillEligible: true },
+        errgrindEpisode: { description: '忘记检查定义域', status: 'teach', drillEligible: true, kind: 'error' },
+      } },
+      [drillSession]: { displayTitle: '练习 · 定义域错误', updatedAt: 1_000, projectionValues: {
+        errgrindEpisode: { description: '通分时忘了找公共分母', status: 'teach', drillEligible: false, kind: 'drill' },
       } },
       [unrelated]: { displayTitle: 'unrelated', updatedAt: 1_000, projectionValues: { errgrindEpisode: null } },
     },
@@ -59,7 +63,20 @@ describe('ErrGrind Error history', () => {
     expect(input.practiceFromError).not.toHaveBeenCalledWith(first)
   })
 
-  it('renames the session title in place and archives a row', async () => {
+  it('labels Drill Sessions as practice and gates archiving to them', async () => {
+    const input = props()
+    render(<ErrorHistory {...input} />)
+    const drillCard = screen.getByText('练习 · 定义域错误').closest('article')
+    expect(drillCard?.textContent).toContain('Practice')
+    expect(within(drillCard as HTMLElement).queryByRole('button', { name: 'Practice from this Error' })).toBeNull()
+    expect(screen.getAllByRole('button', { name: 'Archive' })).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Archive' }))
+    await waitFor(() => { expect(input.archiveSession).toHaveBeenCalledWith(drillSession) })
+    expect(input.archiveSession).not.toHaveBeenCalledWith(first)
+  })
+
+  it('renames the session title in place', async () => {
     const input = props()
     render(<ErrorHistory {...input} />)
     fireEvent.click(screen.getAllByRole('button', { name: 'Rename' })[0]!)
@@ -67,9 +84,6 @@ describe('ErrGrind Error history', () => {
     fireEvent.change(editor, { target: { value: '新的名字' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => { expect(input.renameSession).toHaveBeenCalledWith(first, '新的名字') })
-
-    fireEvent.click(screen.getAllByRole('button', { name: 'Archive' })[1]!)
-    await waitFor(() => { expect(input.archiveSession).toHaveBeenCalledWith(second) })
   })
 
   it('hides archived sessions from the list', () => {

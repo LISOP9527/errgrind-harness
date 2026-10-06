@@ -12,21 +12,21 @@ describe('Error episode event rules', () => {
     let state = applyEpisodeEvent(null, session.append('errgrind/error-open', {
       text: 'PRIVATE_ORIGINAL_ANSWER', turn: 1,
     }))
-    expect(publicErrorListEntry(state)).toEqual({ description: null, status: 'grill', drillEligible: false })
+    expect(publicErrorListEntry(state)).toEqual({ description: null, status: 'grill', drillEligible: false, kind: 'error' })
     state = applyEpisodeEvent(state, session.append('errgrind/error-draft', {
       revision: 1, text: '把分数分母直接相加。',
     }))
-    expect(publicErrorListEntry(state)).toEqual({ description: '把分数分母直接相加。', status: 'grill', drillEligible: false })
+    expect(publicErrorListEntry(state)).toEqual({ description: '把分数分母直接相加。', status: 'grill', drillEligible: false, kind: 'error' })
     state = applyEpisodeEvent(state, session.append('errgrind/grill-conclude', {
       anchorRevision: 1, diagnosisStatus: 'undetermined',
       summary: 'PRIVATE_DIAGNOSIS', remainingUncertainty: '还需证据', turn: 1,
     }))
-    expect(publicErrorListEntry(state)).toEqual({ description: '把分数分母直接相加。', status: 'confirm', drillEligible: false })
+    expect(publicErrorListEntry(state)).toEqual({ description: '把分数分母直接相加。', status: 'confirm', drillEligible: false, kind: 'error' })
     state = applyEpisodeEvent(state, session.append('errgrind/error-confirm', {
       revision: 1, commandId: 'reviewed',
     }))
     const visible = publicErrorListEntry(state)
-    expect(visible).toEqual({ description: '把分数分母直接相加。', status: 'teach', drillEligible: true })
+    expect(visible).toEqual({ description: '把分数分母直接相加。', status: 'teach', drillEligible: true, kind: 'error' })
     expect(JSON.stringify(visible)).not.toContain('PRIVATE_ORIGINAL_ANSWER')
     expect(JSON.stringify(visible)).not.toContain('PRIVATE_DIAGNOSIS')
     expect(publicErrorListEntry({ ...state!, draft: { revision: 1, text: '汉'.repeat(350) } })?.description)
@@ -1160,5 +1160,71 @@ describe('Error episode event rules', () => {
       }],
       turn: 1,
     }))).toThrow('Evidence E2 quote must match the recorded text')
+  })
+
+  it('seeds a concluded episode for a dedicated Drill Session', () => {
+    const session = Session.create(SessionId('errgrind-drill-seeded'))
+    const drillOpen = {
+      text: 'Practice target: confirmed Error description (revision 2):\nAdded denominators directly.',
+      sourceSessionId: 'session-error',
+      sourceRevision: 2,
+      description: 'Added the denominators directly when adding fractions.',
+      diagnosisStatus: 'undetermined' as const,
+      diagnosisSummary: 'One probe could not separate rule from slip.',
+      remainingUncertainty: 'Rule misconception versus slip is undecided.',
+      whatWouldChangeJudgment: 'A second incident pattern.',
+    }
+    const state = applyEpisodeEvent(null, session.append('errgrind/drill-open', drillOpen))
+    expect(state).toMatchObject({
+      firstInput: drillOpen.text,
+      origin: { kind: 'drill', sourceSessionId: 'session-error' },
+      draft: { revision: 1, text: drillOpen.description },
+      confirmedRevision: 1,
+      drillStartedAtTurn: 1,
+      teachStartedAtTurn: null,
+      pendingConclusion: null,
+      diagnosis: {
+        status: 'undetermined', anchoredRevision: 1, stale: false,
+        summary: drillOpen.diagnosisSummary, concludedAtTurn: 1,
+      },
+    })
+    expect(publicErrorListEntry(state)).toEqual({
+      description: drillOpen.description, status: 'teach', drillEligible: false, kind: 'drill',
+    })
+    // The seeded confirmation satisfies the same Drill gate the tool checks.
+    expect(state?.diagnosis.status).not.toBe('active')
+    expect(state?.confirmedRevision).toBe(state?.diagnosis.anchoredRevision)
+  })
+
+  it('rejects malformed Drill Session seeds and a second episode open', () => {
+    const session = Session.create(SessionId('errgrind-drill-invalid'))
+    const base = {
+      text: 'Practice target', sourceSessionId: 'session-error', sourceRevision: 1,
+      description: 'Added denominators directly.',
+      diagnosisStatus: 'supported' as const,
+      diagnosisSummary: 'Rule misconception confirmed.',
+      remainingUncertainty: '',
+      whatWouldChangeJudgment: '',
+    }
+    expect(() => applyEpisodeEvent(null, session.append('errgrind/drill-open', {
+      ...base, description: ' ',
+    }))).toThrow('Drill Session must retain its source Error')
+    expect(() => applyEpisodeEvent(null, session.append('errgrind/drill-open', {
+      ...base, diagnosisStatus: 'undetermined' as const, diagnosisSummary: '',
+    }))).toThrow('Drill Session must retain its source Error')
+    let state = applyEpisodeEvent(null, session.append('errgrind/drill-open', base))
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/drill-open', base)))
+      .toThrow('Error episode already open')
+    // Intake and Grill events stay locked for the whole Drill Session.
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/error-draft', {
+      revision: 2, text: 'Attempted rewrite.',
+    }))).toThrow('locked after Drill begins')
+    // Host drill context commits mark the request consumed for deduplication.
+    const message = createUserMessage({
+      content: [{ type: 'text', text: base.text }],
+      source: { kind: 'errgrind-drill-request', sourceSessionId: 'session-error' },
+    })
+    state = applyEpisodeEvent(state, session.append('user/message', message, { surfaceOp: 'append' }))
+    expect(state?.derivedContextConsumed).toBe(true)
   })
 })

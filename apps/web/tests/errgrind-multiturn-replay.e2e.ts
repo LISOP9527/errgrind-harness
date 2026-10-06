@@ -31,10 +31,10 @@ const PROBE_QUESTION = 'How would you add 1/2 and 1/3 using a common denominator
 const TEACH_QUESTION = 'What denominator can both 2 and 3 divide into evenly?'
 const TEACH_ANSWER = '6, because both 2 and 3 divide 6 evenly.'
 const TEACH_FOLLOWUP = 'Now rewrite both fractions with denominator 6 before adding.'
-const DRILL_REQUEST = '请基于这条已确认的 Error 生成一道独立 Drill 练习。'
 const DRILL_QUESTION = 'What is 3/4 + 1/8? Show the denominator you use.'
 const DRILL_ANSWER = 'I added top and bottom again and got 4/12.'
 const DRILL_FEEDBACK = 'The denominator describes the size of each part. Rewrite 3/4 in eighths before adding.'
+const DRILL_FEEDBACK_CORRECT = 'The learner converted to eighths before adding — the rule held.'
 
 type ReplayEntry = { kind: 'chunks'; chunks: Record<string, unknown>[] }
 
@@ -99,22 +99,53 @@ function replayScript(): ReplayEntry[] {
       kind: 'hint', text: TEACH_FOLLOWUP,
     }),
     assistantText('That answer is a post-intervention observation, so it is not added to the original Error evidence.'),
-    toolCall('call_errgrind_drill_prepare', 'drill_prepare', {
-      targetMechanism: 'Using a common denominator before adding fractions',
-      trigger: 'Adding fractions with unlike denominators',
-      failureBehavior: 'Adds denominators without checking the size of the parts',
-      desiredBehavior: 'Convert to equal-sized parts before adding numerators',
-      successSignal: 'Explains and uses a common denominator',
-      domain: 'Fractions', taskType: 'explain', setting: 'Compare lengths measured in different fractional units',
-      taskGoal: 'Find the combined length and justify the unit conversion',
-      essentialTrigger: 'Units represent different-sized parts', solutionStrategy: 'Express both lengths in equal-sized units',
-      avoid: ['Unrelated algebra'], difficultyLevel: 1, reasoningDepth: 2, calculationLoad: 1,
-    }),
-    assistantText('Practice question prepared.'),
-    toolCall('call_errgrind_drill_judge', 'drill_judge', {
-      isCorrect: false, feedback: DRILL_FEEDBACK,
-    }),
-    assistantText('The attempt was recorded.'),
+  ]
+}
+
+/** Model calls of Sessions spawned after the primary: Drill Sessions and the
+ * materialized derived Error bind their scripts in first-call order. */
+function extraSessionScripts(): ReplayEntry[][] {
+  const preparation = toolCall('call_errgrind_drill_prepare_a', 'drill_prepare', {
+    targetMechanism: 'Using a common denominator before adding fractions',
+    trigger: 'Adding fractions with unlike denominators',
+    failureBehavior: 'Adds denominators without checking the size of the parts',
+    desiredBehavior: 'Convert to equal-sized parts before adding numerators',
+    successSignal: 'Explains and uses a common denominator',
+    domain: 'Fractions', taskType: 'explain', setting: 'Compare lengths measured in different fractional units',
+    taskGoal: 'Find the combined length and justify the unit conversion',
+    essentialTrigger: 'Units represent different-sized parts', solutionStrategy: 'Express both lengths in equal-sized units',
+    avoid: ['Unrelated algebra'], difficultyLevel: 1, reasoningDepth: 2, calculationLoad: 1,
+  })
+  const preparationB = toolCall('call_errgrind_drill_prepare_b', 'drill_prepare', {
+    targetMechanism: 'Using a common denominator before adding fractions',
+    trigger: 'Adding fractions with unlike denominators',
+    failureBehavior: 'Adds denominators without checking the size of the parts',
+    desiredBehavior: 'Convert to equal-sized parts before adding numerators',
+    successSignal: 'Explains and uses a common denominator',
+    domain: 'Fractions', taskType: 'explain', setting: 'Compare lengths measured in different fractional units',
+    taskGoal: 'Find the combined length and justify the unit conversion',
+    essentialTrigger: 'Units represent different-sized parts', solutionStrategy: 'Express both lengths in equal-sized units',
+    avoid: ['Unrelated algebra'], difficultyLevel: 1, reasoningDepth: 2, calculationLoad: 1,
+  })
+  return [
+    // Dedicated Drill Session A (sidebar Practice): prepare, then an incorrect
+    // judged attempt that materializes a derived Error Session.
+    [preparation,
+      assistantText('Practice question prepared.'),
+      toolCall('call_errgrind_drill_judge_wrong', 'drill_judge', {
+        isCorrect: false, feedback: DRILL_FEEDBACK,
+      }),
+      assistantText('The attempt was recorded.')],
+    // The derived Error Session's kickoff turn.
+    [assistantText('Opening the derived Error.')],
+    // Dedicated Drill Session B (second openDrill call): prepare, then a
+    // correct judged attempt that archives the Drill Session.
+    [preparationB,
+      assistantText('Practice question prepared.'),
+      toolCall('call_errgrind_drill_judge_right', 'drill_judge', {
+        isCorrect: true, feedback: DRILL_FEEDBACK_CORRECT,
+      }),
+      assistantText('Nicely done.')],
   ]
 }
 
@@ -175,7 +206,22 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     scaffold.ctx.on('api-session/status', (_sessionId, running) => { startupSignals.push(`status:${running}`) })
     // The Draft is an independent request, so its external model response has
     // its own fixture instead of consuming the conversation replay cursor.
+    const spawnedScripts = extraSessionScripts()
+    const boundScripts = new Map<string, ReplayEntry[]>()
     scaffold.ctx.on('llm/stream', (options, next) => {
+      if (typeof options.sessionId === 'string' && options.sessionId.startsWith('errgrind-')) {
+        let entries = boundScripts.get(options.sessionId)
+        if (entries === undefined) {
+          entries = spawnedScripts.shift()
+          if (entries === undefined) throw new Error(`no replay script left for Session "${options.sessionId}"`)
+          boundScripts.set(options.sessionId, entries)
+        }
+        const entry = entries.shift()
+        if (entry === undefined) throw new Error(`replay script exhausted for Session "${options.sessionId}"`)
+        return (async function* (): AsyncIterable<StreamChunk> {
+          yield* entry.chunks as StreamChunk[]
+        })()
+      }
       if (options.sessionId !== undefined) return next()
       isolatedDraftRequests.push(options)
       return (async function* (): AsyncIterable<StreamChunk> {
@@ -188,7 +234,9 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     browser = await chromium.launch()
     page = await newEnglishPage(browser)
     page.on('pageerror', (error) => { pageErrors.push(String(error)) })
-    page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()) })
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text())
+    })
     page.on('response', async (response) => {
       if (!response.url().includes('/api/')) return
       try {
@@ -266,7 +314,7 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     const input = page.locator('[data-composer-input]').first()
     await input.waitFor({ timeout: 10_000 })
     expect(await input.getAttribute('data-placeholder'))
-      .toBe('')
+      .toBe('Describe the mistake and what you tried, / for commands')
     await page.getByRole('button', { name: 'Add a problem image or file' }).waitFor({ timeout: 10_000 })
 
     if (smokeImages.length > 0) {
@@ -333,14 +381,12 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
       }))
     }
     const initialCardText = await firstErrorCard.innerText()
-    expect(initialCardText).toContain('Version 1')
-    expect(initialCardText).toContain('Grill in progress')
+    expect(initialCardText).toContain('If anything is missing')
     expect(await firstErrorCard.getByRole('button', { name: 'Confirm this description' }).count()).toBe(0)
-    const clarificationCard = page.getByRole('article', { name: 'Clarification' })
-    await clarificationCard.waitFor({ state: 'visible', timeout: 10_000 })
+    // The clarification renders as an ordinary flow message, not a card.
+    await page.getByText(CLARIFICATION).waitFor({ state: 'visible', timeout: 10_000 })
     await expect.poll(() => page.locator('[data-submission-echo]').count()).toBe(0)
     expect(await page.locator('[class*="userRow"]').count()).toBe(1)
-    expect(await clarificationCard.innerText()).toContain(CLARIFICATION)
     expect((await page.locator('body').innerText())).not.toContain(SENTINEL)
     expect(inboundFrames.join('\n')).toContain(CLARIFICATION)
     expect(inboundFrames.join('\n')).not.toContain(SENTINEL)
@@ -365,7 +411,6 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     const currentErrorCard = page.getByRole('article', { name: 'Error description' })
     await currentErrorCard.waitFor({ state: 'visible' })
     const currentCardText = await currentErrorCard.innerText()
-    expect(currentCardText).toContain('Version 2')
     expect(currentCardText).toContain('In this incident, the user added the numerators and denominators directly and obtained 2/5.')
     const staleConfirmation = await scaffold.ctx.commands.execute(
       agent,
@@ -421,15 +466,41 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     await input.fill(TEACH_ANSWER)
     await input.press('Enter')
     await teachAnswerTurn
-    await page.getByRole('article', { name: 'Teaching guidance: Hint' }).getByText(TEACH_FOLLOWUP).waitFor()
+    await page.getByText(TEACH_FOLLOWUP).first().waitFor({ state: 'visible' })
     const afterTeachAnswer = scaffold.ctx.sessionProjections.stateOf(agent.session, 'errgrindEpisode')
     expect(afterTeachAnswer?.evidenceSources.some(source => source.text === TEACH_ANSWER)).toBe(false)
-    const fourthTurn = scaffold.whenTurnSettled()
+    // A sidebar Practice click opens a dedicated Drill Session seeded with the
+    // confirmed Error; the learner answers inside that Session.
+    const settleFor = (id: SessionId) => new Promise<SessionId>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        off()
+        reject(new Error(`no turn/end for ${id} within 30000ms`))
+      }, 30_000)
+      const off = scaffold.ctx.on('session/event', (session, event) => {
+        if (session.id === id && event.type === 'turn/end') {
+          clearTimeout(timer)
+          off()
+          resolve(id)
+        }
+      })
+    })
+    const drillId = SessionId(`errgrind-drill-${createHash('sha256')
+      .update(`${sessionId}\u00000`).digest('hex').slice(0, 32)}`)
+    const drillTurn = settleFor(drillId)
     await errorRow.getByRole('button', { name: 'Practice from this Error' }).click()
-    expect(await fourthTurn).toBe(sessionId)
-    await expect.poll(() => agent.session.snapshotEvents().some(event => event.type === 'user/message'
-      && event.data.source.kind === 'user'
-      && event.data.content.some(block => block.type === 'text' && block.text === DRILL_REQUEST))).toBe(true)
+    expect(await drillTurn).toBe(drillId)
+    const drillAgent = scaffold.ctx.agents.get(drillId)
+    if (drillAgent === undefined) throw new Error('the Drill Session has no live Agent')
+    const drillOpened = drillAgent.session.snapshotEvents()
+    expect(drillOpened.some(event => event.type === 'errgrind/drill-open'
+      && event.data.sourceSessionId === sessionId
+      && event.data.sourceRevision === 2)).toBe(true)
+    expect(drillOpened.some(event => event.type === 'user/message'
+      && event.data.source.kind === 'errgrind-drill-request')).toBe(true)
+    const drillEpisode = scaffold.ctx.sessionProjections.stateOf(drillAgent.session, 'errgrindEpisode')
+    expect(drillEpisode?.origin).toMatchObject({ kind: 'drill', sourceSessionId: sessionId })
+    expect(drillEpisode?.confirmedRevision).toBe(1)
+    expect(drillEpisode?.diagnosis.status).toBe('undetermined')
     expect(isolatedDraftRequests).toHaveLength(1)
     const draftRequest = isolatedDraftRequests[0]!
     expect(draftRequest.messages).toHaveLength(1)
@@ -437,15 +508,22 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(JSON.stringify(draftRequest)).not.toContain(INPUT)
     expect(JSON.stringify(draftRequest)).not.toContain(SENTINEL)
     expect(JSON.stringify(draftRequest)).not.toContain(ANSWER)
-    await page.getByRole('article', { name: 'Independent practice' }).getByText(DRILL_QUESTION).waitFor()
-    const fifthTurn = scaffold.whenTurnSettled()
+    await page.getByText('Independent practice').waitFor()
+    await page.getByText(DRILL_QUESTION).first().waitFor({ state: 'visible' })
+    const drillPrepared = drillAgent.session.snapshotEvents()
+      .find(event => event.type === 'errgrind/drill-prepared')
+    if (drillPrepared === undefined) throw new Error('Drill Session A committed no preparation')
+    const preparationId = drillPrepared.data.id
+    const derivedId = SessionId(`errgrind-derived-${createHash('sha256')
+      .update(`${drillId}\0${preparationId}`).digest('hex').slice(0, 32)}`)
+    const drillAnswerTurn = settleFor(drillId)
+    const derivedKickoff = settleFor(derivedId)
     await input.fill(DRILL_ANSWER)
     await input.press('Enter')
-    await fifthTurn
-    const persisted = await readPersistedEvents(scaffold, sessionId)
-    const coldSession = Session.create(sessionId, persisted)
-    const episode = scaffold.ctx.sessionProjections.stateOf(coldSession, 'errgrindEpisode')
-    const drill = scaffold.ctx.sessionProjections.stateOf(coldSession, 'errgrindDrill')
+    expect(new Set([await drillAnswerTurn, await derivedKickoff])).toEqual(new Set([drillId, derivedId]))
+    const drillPersisted = await readPersistedEvents(scaffold, drillId)
+    const coldDrill = Session.create(drillId, drillPersisted)
+    const drill = scaffold.ctx.sessionProjections.stateOf(coldDrill, 'errgrindDrill')
     expect(drill?.active).toBeNull()
     expect(drill?.attempts).toHaveLength(1)
     expect(drill?.attempts[0]?.userResponse).toBe(DRILL_ANSWER)
@@ -453,8 +531,29 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(drill?.attempts[0]?.derivedError?.origin).toBe('drill')
     expect(drill?.attempts[0]?.derivedError?.question).toBe(DRILL_QUESTION)
     expect(drill?.attempts[0]?.derivedError?.referenceAnswer).toContain(SENTINEL)
-    expect(persisted.filter(event => event.type === 'errgrind/drill-judged')).toHaveLength(1)
-    await page.getByRole('article', { name: 'Practice result' }).getByText(DRILL_FEEDBACK).waitFor()
+    expect(drillPersisted.filter(event => event.type === 'errgrind/drill-judged')).toHaveLength(1)
+    await page.getByText('Incorrect').first().waitFor({ state: 'visible' })
+    await page.getByText(DRILL_FEEDBACK).waitFor()
+    // The incorrect verdict materializes the derived Error Session by itself.
+    const derivedAgent = scaffold.ctx.agents.get(derivedId)
+    if (derivedAgent === undefined) throw new Error('incorrect Drill did not materialize its derived Error')
+    const derivedEpisode = scaffold.ctx.sessionProjections.stateOf(derivedAgent.session, 'errgrindEpisode')
+    expect(derivedEpisode?.origin).toMatchObject({
+      kind: 'derived_drill', sourceSessionId: drillId, sourcePreparationId: preparationId,
+    })
+    // Neither a Drill Session nor an unconfirmed derived Error can open a Drill.
+    await expect(scaffold.ctx.sessionController.openDrill({ sourceSessionId: drillId }))
+      .rejects.toThrow('Only a confirmed Error')
+    await expect(scaffold.ctx.sessionController.openDrill({ sourceSessionId: derivedId }))
+      .rejects.toThrow('Only a confirmed Error')
+    await expect(scaffold.ctx.sessionController.openDrill({ sourceSessionId: SessionId('errgrind-missing') }))
+      .rejects.toThrow()
+    // The transcript checks below read the source Error Session; the Practice
+    // click navigated the page to the Drill Session, so return first.
+    await errorRow.locator('button').first().click()
+    const persisted = await readPersistedEvents(scaffold, sessionId)
+    const coldSession = Session.create(sessionId, persisted)
+    const episode = scaffold.ctx.sessionProjections.stateOf(coldSession, 'errgrindEpisode')
     const draftEvents = persisted.filter(event => event.type === 'errgrind/error-draft')
     const correctionIndex = persisted.findIndex(event => event.type === 'user/message'
       && event.data.source.kind === 'user'
@@ -481,9 +580,7 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(teachEvent?.data).toMatchObject({ kind: 'question', text: TEACH_QUESTION })
     expect(persisted.filter(event => event.type === 'errgrind/teach-step')).toHaveLength(2)
     expect(episode?.teachStartedAtTurn).not.toBeNull()
-    const teachCard = page.getByRole('article', { name: 'Teaching guidance: Question' })
-    await teachCard.waitFor({ state: 'visible', timeout: 10_000 })
-    expect(await teachCard.innerText()).toContain(TEACH_QUESTION)
+    await page.getByText(TEACH_QUESTION).first().waitFor({ state: 'visible', timeout: 10_000 })
     expect(persisted.some(event => event.type === 'errgrind/grill-probe'
       && JSON.stringify(event.data).includes(SENTINEL))).toBe(true)
 
@@ -501,6 +598,9 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(inboundFrames.join('\n')).not.toContain('answerKey')
     expect(apiBodies.join('\n')).not.toContain('predictions')
 
+    // Return to the Error Session before the mobile transcript checks; the
+    // Drill cards and verdict live in the Drill Session transcript.
+    await errorRow.locator('button').first().click()
     const beforeReload = inboundFrames.length
     await page.setViewportSize({ width: 390, height: 844 })
     await page.reload({ waitUntil: 'load' })
@@ -515,11 +615,7 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(mobileTranscript).not.toContain('answerKey')
     expect(mobileTranscript).not.toContain('predictions')
     expect(mobileTranscript).not.toContain('errgrindEpisode')
-    const persistedTeachCard = page.getByRole('article', { name: 'Teaching guidance: Question' })
-    await persistedTeachCard.waitFor({ state: 'visible', timeout: 10_000 })
-    expect(await persistedTeachCard.innerText()).toContain(TEACH_QUESTION)
-    await page.getByRole('article', { name: 'Independent practice' }).getByText(DRILL_QUESTION).waitFor()
-    await page.getByRole('article', { name: 'Practice result' }).getByText(DRILL_FEEDBACK).waitFor()
+    await page.getByText(TEACH_QUESTION).first().waitFor({ state: 'visible', timeout: 10_000 })
     for (const image of smokeImages) {
       await page.getByRole('img', { name: image.name, exact: true }).waitFor({ timeout: 20_000 })
     }
@@ -531,33 +627,26 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(mobileLayout.viewportWidth).toBe(390)
     expect(mobileLayout.documentWidth).toBeLessThanOrEqual(mobileLayout.viewportWidth)
     expect(mobileLayout.composerWidth).toBeGreaterThan(0)
-    const firstAttempt = drill?.attempts[0]
-    if (firstAttempt === undefined) throw new Error('missing Drill attempt')
+
+    // The verdict card's Investigate button still navigates into the
+    // already-materialized derived Error Session.
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await page.locator(`[data-error-session-id="${drillId}"]`).locator('button').first().click()
+    await page.getByText(DRILL_FEEDBACK).waitFor()
     await page.getByRole('button', { name: 'Investigate this new Error' }).click()
-    const derivedCard = page.getByRole('article', { name: 'New Error from practice' })
     try {
-      await derivedCard.waitFor({ state: 'visible', timeout: 10_000 })
+      await page.getByText('New Error from practice').waitFor({ state: 'visible', timeout: 10_000 })
     } catch {
       throw new Error(`Derived Error card missing: ${JSON.stringify({ body: (await page.locator('body').innerText()).slice(-800), pageErrors, consoleErrors })}`)
     }
-    expect(await derivedCard.innerText()).toContain(DRILL_QUESTION)
-    expect(await derivedCard.innerText()).toContain(DRILL_ANSWER)
-    const derivedHash = createHash('sha256')
-      .update(`${sessionId}\0${firstAttempt.preparationId}`).digest('hex').slice(0, 32)
-    const derivedId = SessionId(`errgrind-derived-${derivedHash}`)
-    const derivedAgent = scaffold.ctx.agents.get(derivedId)
-    expect(derivedAgent).toBeDefined()
-    const derivedEpisode = scaffold.ctx.sessionProjections.stateOf(derivedAgent!.session, 'errgrindEpisode')
-    expect(derivedEpisode?.origin).toMatchObject({
-      kind: 'derived_drill', sourceSessionId: sessionId,
-      sourcePreparationId: firstAttempt.preparationId,
-    })
+    await page.getByText(DRILL_QUESTION).first().waitFor({ state: 'visible' })
+    await page.getByText(DRILL_ANSWER).first().waitFor({ state: 'visible' })
     const retry = await scaffold.ctx.sessionController.openDerivedError({
-      sourceSessionId: sessionId,
-      preparationId: firstAttempt.preparationId,
+      sourceSessionId: drillId,
+      preparationId,
     })
     expect(retry.sessionId).toBe(derivedId)
-    expect(derivedAgent!.session.snapshotEvents().filter(event => event.type === 'errgrind/derived-error-open'))
+    expect(derivedAgent.session.snapshotEvents().filter(event => event.type === 'errgrind/derived-error-open'))
       .toHaveLength(1)
     const derivedPersisted = await readPersistedEvents(scaffold, derivedId)
     const coldDerived = Session.create(derivedId, derivedPersisted)
@@ -565,8 +654,38 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
       .toBe('derived_drill')
     expect(inboundFrames.join('\n')).not.toContain(SENTINEL)
     await page.reload({ waitUntil: 'load' })
-    await page.getByRole('article', { name: 'New Error from practice' }).waitFor({ timeout: 15_000 })
+    await page.getByText('New Error from practice').waitFor({ state: 'visible', timeout: 15_000 })
     expect((await page.locator('body').innerText())).not.toContain(SENTINEL)
+
+    // A second Practice request allocates the next deterministic Drill index;
+    // its row carries the practice label in Error history.
+    const drillBId = SessionId(`errgrind-drill-${createHash('sha256')
+      .update(`${sessionId}\u00001`).digest('hex').slice(0, 32)}`)
+    const drillBTurn = settleFor(drillBId)
+    const secondDrill = await scaffold.ctx.sessionController.openDrill({ sourceSessionId: sessionId })
+    expect(secondDrill.sessionId).toBe(drillBId)
+    expect(await drillBTurn).toBe(drillBId)
+    const drillBRow = page.locator(`[data-error-session-id="${drillBId}"]`)
+    await drillBRow.waitFor({ timeout: 10_000 })
+    expect(await drillBRow.innerText()).toContain('Practice')
+    await drillBRow.locator('button').first().click()
+    await page.getByText('Independent practice').waitFor()
+    await page.getByText(DRILL_QUESTION).first().waitFor({ state: 'visible' })
+    const judgeBTurn = settleFor(drillBId)
+    await input.fill('Converted to eighths first: 6/8 + 1/8 = 7/8.')
+    await input.press('Enter')
+    expect(await judgeBTurn).toBe(drillBId)
+    // A correct verdict archives the Drill Session once its turn settles;
+    // the incorrect one stays open beside its derived Error. The verdict card
+    // itself was already exercised on the incorrect path; here the log owns the
+    // fact because archival can unmount the transcript before it renders.
+    const drillBPersisted = await readPersistedEvents(scaffold, drillBId)
+    expect(drillBPersisted.some(event => event.type === 'errgrind/drill-judged'
+      && event.data.isCorrect)).toBe(true)
+    await expect.poll(() => scaffold.ctx.workspaceRegistry.archivedSessionIds.includes(drillBId))
+      .toBe(true)
+    expect(scaffold.ctx.workspaceRegistry.archivedSessionIds.includes(drillId)).toBe(false)
+    await expect.poll(() => page.locator(`[data-error-session-id="${drillBId}"]`).count()).toBe(0)
     expect(pageErrors).toEqual([])
     expect(remoteSocket).toBeDefined()
   }, 120_000)
@@ -582,7 +701,7 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     const derived = scaffold.ctx.agents.list().find(agent => String(agent.session.id).startsWith('errgrind-derived-'))
     if (derived === undefined) throw new Error('derived Error Session missing')
     await page.locator(`[data-error-session-id="${derived.session.id}"] button`).first().click()
-    await page.getByRole('article', { name: 'New Error from practice' }).waitFor({ timeout: 15_000 })
+    await page.getByText('New Error from practice').waitFor({ state: 'visible', timeout: 15_000 })
     expect(pageErrors).toEqual([])
   })
 

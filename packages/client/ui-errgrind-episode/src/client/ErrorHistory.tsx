@@ -97,8 +97,9 @@ export function ErrorHistory({
     )
   }
 
-  const statusLabel = (status: ErrorListEntry['status']): string => {
-    switch (status) {
+  const statusLabel = (episode: ErrorListEntry): string => {
+    if (episode.kind === 'drill') return t('history.status.practice')
+    switch (episode.status) {
       case 'grill': return t('history.status.grill')
       case 'confirm': return t('history.status.confirm')
       case 'teach': return t('history.status.teach')
@@ -146,7 +147,7 @@ export function ErrorHistory({
     }
   }
 
-  const cardActions = (sessionId: SessionId, title: string): ReactNode => (
+  const cardActions = (sessionId: SessionId, title: string, canArchive: boolean): ReactNode => (
     editingSession === sessionId
       ? (
         <div className={css.renameRow}>
@@ -189,23 +190,25 @@ export function ErrorHistory({
           >
             <IconEditOutlineRegular />
           </button>
-          <button
-            className={css.iconAction}
-            type="button"
-            aria-label={t('history.archive')}
-            title={t('history.archive')}
-            disabled={busySession === sessionId}
-            onClick={() => {
-              void runCardAction(
-                sessionId,
-                () => archiveSession(sessionId),
-                t('history.archived'),
-                t('history.archiveFailed'),
-              )
-            }}
-          >
-            <IconArchiveOutlineRegular />
-          </button>
+          {canArchive && (
+            <button
+              className={css.iconAction}
+              type="button"
+              aria-label={t('history.archive')}
+              title={t('history.archive')}
+              disabled={busySession === sessionId}
+              onClick={() => {
+                void runCardAction(
+                  sessionId,
+                  () => archiveSession(sessionId),
+                  t('history.archived'),
+                  t('history.archiveFailed'),
+                )
+              }}
+            >
+              <IconArchiveOutlineRegular />
+            </button>
+          )}
         </div>
       )
   )
@@ -244,9 +247,9 @@ export function ErrorHistory({
               <button className={css.openButton} type="button" onClick={() => { openSession(sessionId) }}>
                 <span className={css.cardTitle}>{title}</span>
                 {description !== title && <span className={css.description}>{previewText(description)}</span>}
-                <span className={css.status}>{statusLabel(episode.status)} · {timeLabel(updatedAt)}</span>
+                <span className={css.status}>{statusLabel(episode)} · {timeLabel(updatedAt)}</span>
               </button>
-              {cardActions(sessionId, title)}
+              {cardActions(sessionId, title, episode.kind === 'drill')}
               {episode.drillEligible && (
                 <button
                   className={css.practiceButton}
@@ -275,7 +278,7 @@ export function ErrorHistory({
               <span className={css.cardTitle}>{title}</span>
               <span className={css.status}>{timeLabel(updatedAt)}</span>
             </button>
-            {cardActions(sessionId, title)}
+            {cardActions(sessionId, title, false)}
           </article>
         ))}
         {showArchived && archivedEntries.length > 0 && (

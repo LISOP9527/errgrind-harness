@@ -47,12 +47,13 @@ the public Web view shows only permitted fields. Grill investigates the
 original Error-time mechanism, not the causal effects of later instruction.
 
 Teach begins only after joint confirmation. It is an intervention and may
-continue in the same conversation. An independent Drill may be prepared from
-the completed diagnosis; it stores a private specification and reference
-answer. Judgment binds to a persisted learner response. A wrong judgment
-atomically records an attempt and a lineage-bound derived Error, which the
-learner can open as a separate pending episode. Neither Teach nor Drill
-responses become retrospective evidence about the original Error.
+continue in the same conversation. An independent Drill runs in its own
+Session, opened on demand from a completed Error's history entry. It stores a
+private specification and reference answer. Judgment binds to a persisted
+learner response. A correct verdict archives the Drill Session; a wrong
+judgment atomically records an attempt and a lineage-bound derived Error,
+which the Host materializes as a separate pending episode. Neither Teach nor
+Drill responses become retrospective evidence about the original Error.
 
 The DSH Session log is the durable fact source for this fork. Core projections
 and validators own the episode state, evidence grounding, transitions, and
@@ -127,8 +128,8 @@ real usage telemetry.
   episode view. Sessions without cached classification remain openable. The
   old SQLite records entered the fork store through a one-off external
   importer; the product ships no repeatable import path. An explicit Drill
-  action opens one completed Error's own Session, where Core checks the
-  current diagnosis before generating practice.
+  action opens a dedicated Drill Session for one completed Error, where Core
+  checks the current diagnosis before generating practice.
   The old generic option let the model choose one eligible Error, rather than
   synthesizing one question across Errors. This fork does not implement a
   learner-wide or cross-Error model.

@@ -821,6 +821,13 @@ inspect( sessionId: SessionId, signal?: AbortSignal, ): Promise<SessionInspectio
 @Remote('openDerivedError') async openDerivedError(request: DerivedErrorOpenRequest): Promise<DerivedErrorOpenValue>
 
 /**
+ * Open a dedicated Drill Session for one confirmed Error.
+ * @param request - Source Session whose concluded diagnosis seeds the practice.
+ * @returns The new Drill Session identity; each Error spawns sessions in index order.
+ */
+@Remote('openDrill') async openDrill(request: DrillOpenRequest): Promise<DrillOpenValue>
+
+/**
  * Select one Session-local model after explicitly resuming the Session.
  * @param request - Session identity and requested model selection.
  * @returns the normalized selection installed for the Session.

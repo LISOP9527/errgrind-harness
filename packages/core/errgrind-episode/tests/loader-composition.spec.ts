@@ -123,7 +123,7 @@ describe('ErrGrind episode real Loader composition', () => {
     expect(decision.kind).toBe('enter')
 
     const publicListValue = ctx.sessionProjections.cachedSnapshot(session)?.values.errgrindEpisode
-    expect(publicListValue).toEqual({ description: null, status: 'grill', drillEligible: false })
+    expect(publicListValue).toEqual({ description: null, status: 'grill', drillEligible: false, kind: 'error' })
     expect(JSON.stringify(publicListValue)).not.toContain('errgrindOriginal')
     expect(JSON.stringify(publicListValue)).not.toContain('sha256')
 

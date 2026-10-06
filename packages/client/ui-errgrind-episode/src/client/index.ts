@@ -172,7 +172,8 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
   kind: 'errgrind-episode-card',
   target: 'chat',
   match(event) {
-    if (event.type === 'errgrind/error-open' || event.type === 'errgrind/derived-error-open') {
+    if (event.type === 'errgrind/error-open' || event.type === 'errgrind/derived-error-open'
+      || event.type === 'errgrind/drill-open') {
       return { id: 'episode', role: 'start' }
     }
     if (event.type === 'errgrind/error-draft'
@@ -185,6 +186,16 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
   start(_context, match) {
     // The episode-open event is the only guaranteed lead event: clarifications,
     // probes, and conclusions may all precede the first description draft.
+    if (match.event.type === 'errgrind/drill-open') {
+      // A Drill Session opens already confirmed: the card shows the practiced
+      // Error's description with its concluded diagnosis standing.
+      return {
+        revision: match.event.data.sourceRevision,
+        description: match.event.data.description,
+        confirmed: true,
+        diagnosisStatus: match.event.data.diagnosisStatus,
+      }
+    }
     if (match.event.type !== 'errgrind/error-open' && match.event.type !== 'errgrind/derived-error-open') {
       throw new Error('ErrGrind Error card must start from the episode-open event')
     }
@@ -473,16 +484,10 @@ export function apply(ctx: ClientContext): void {
     inject: () => ({
       openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
       practiceFromError: async (sessionId: SessionId): Promise<void> => {
-        ctx.uiWorkspace.openSession(sessionId)
-        const result = await ctx.sessions.using(
-          sessionId,
-          { source: 'workspaceOperation' },
-          reference => reference.binding.session.prompt(
-            [{ type: 'text', text: '请基于这条已确认的 Error 生成一道独立 Drill 练习。' }],
-            'queue',
-          ),
-        )
+        const result = await ctx.remote.session.openDrill({ sourceSessionId: sessionId })
         if (!result.ok) throw new Error(`Drill request failed: ${result.error.code}`)
+        await ctx.sessions.refresh()
+        ctx.uiWorkspace.openSession(result.value.sessionId)
       },
       renameSession: async (sessionId: SessionId, title: string): Promise<void> => {
         const result = await ctx.sessions.using(

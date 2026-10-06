@@ -44,6 +44,7 @@ const errorListEntrySchema: ZodType<ErrorListEntry | null> = zod.object({
   description: zod.string().nullable(),
   status: zod.enum(['grill', 'confirm', 'teach']),
   drillEligible: zod.boolean(),
+  kind: zod.enum(['error', 'drill']),
 }).strict().nullable()
 
 /**
@@ -53,15 +54,17 @@ const errorListEntrySchema: ZodType<ErrorListEntry | null> = zod.object({
  */
 export function publicErrorListEntry(episode: ErrorEpisode | null): ErrorListEntry | null {
   if (episode === null) return null
-  const drillEligible = episode.diagnosis.status !== 'active'
+  const kind = episode.origin.kind === 'drill' ? 'drill' : 'error'
+  const drillEligible = kind === 'error'
+    && episode.diagnosis.status !== 'active'
     && !episode.diagnosis.stale
     && episode.confirmedRevision !== null
     && episode.confirmedRevision === episode.diagnosis.anchoredRevision
-  const status = drillEligible ? 'teach' : episode.pendingConclusion !== null ? 'confirm' : 'grill'
+  const status = drillEligible || kind === 'drill' ? 'teach' : episode.pendingConclusion !== null ? 'confirm' : 'grill'
   const description = episode.draft?.text === undefined
     ? null
     : Array.from(episode.draft.text).slice(0, 300).join('')
-  return { description, status, drillEligible }
+  return { description, status, drillEligible, kind }
 }
 
 const MAX_DESCRIPTION_CHARS = 12_000
@@ -141,7 +144,7 @@ const attachmentSchema = zod.object({
 }).strict()
 
 const originSchema = zod.object({
-  kind: zod.enum(['direct_user', 'host_relay', 'derived_drill']),
+  kind: zod.enum(['direct_user', 'host_relay', 'derived_drill', 'drill']),
   rpcId: zod.string().optional(),
   clientTimeZone: zod.string().optional(),
   senderSessionId: zod.string().optional(),
@@ -582,6 +585,47 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         pendingClarification: false,
       }
     }
+    case 'errgrind/drill-open': {
+      if (state !== null) throw new Error('Error episode already open')
+      const data = event.data
+      if (!data.sourceSessionId || !data.description.trim() || !data.diagnosisSummary.trim()) {
+        throw new Error('Drill Session must retain its source Error description and diagnosis')
+      }
+      return {
+        firstInput: data.text,
+        firstInputHasImage: false,
+        firstInputTurn: 1,
+        latestTurn: 1,
+        origin: { kind: 'drill', sourceSessionId: data.sourceSessionId },
+        attachments: [],
+        draft: { revision: 1, text: data.description },
+        confirmedRevision: 1,
+        diagnosisRound: 1,
+        diagnosisHistory: [],
+        evidenceSources: [],
+        diagnosis: {
+          status: data.diagnosisStatus,
+          hypotheses: [],
+          probes: [],
+          evidence: [],
+          currentProbeId: null,
+          bestHypothesisId: null,
+          remainingUncertainty: data.remainingUncertainty,
+          whatWouldChangeJudgment: data.whatWouldChangeJudgment,
+          summary: data.diagnosisSummary,
+          concludedAtTurn: 1,
+          anchoredRevision: 1,
+          stale: false,
+        },
+        pendingConclusion: null,
+        derivedContextConsumed: false,
+        teachStartedAtTurn: null,
+        // Practice is the whole Session: the seeded confirmation satisfies the
+        // Drill gate while this marker keeps intake and Grill tools locked.
+        drillStartedAtTurn: 1,
+        pendingClarification: false,
+      }
+    }
     case 'errgrind/error-draft': {
       if (state === null) throw new Error('Error episode is not open')
       if (state.teachStartedAtTurn !== null) {
@@ -786,7 +830,8 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
       return { ...state, latestTurn: turn }
     }
     case 'user/message': {
-      if (state !== null && (event.data.source as { kind: string }).kind === 'errgrind-derived-error') {
+      const sourceKind = (event.data.source as { kind: string }).kind
+      if (state !== null && (sourceKind === 'errgrind-derived-error' || sourceKind === 'errgrind-drill-request')) {
         return { ...state, derivedContextConsumed: true }
       }
       if (state === null || event.data.source.kind !== 'user') return state

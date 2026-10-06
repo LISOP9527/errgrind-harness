@@ -10,8 +10,9 @@ import z from '@deepseek-ai/schemastery'
 import { createUserMessage, errorChain } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-client-file-upload'
 import { canOpenNativePath, nativeFileManager, nativeFileApplications, openNativeFileApplication, openNativeAssociatedPath, revealNativePath } from '@deepseek-ai/dsh-native-command'
-import { SessionId } from '@deepseek-ai/dsh-session'
-import type {} from '@errgrind/episode'
+import { SessionId, type Session } from '@deepseek-ai/dsh-session'
+import { WorkspaceActiveSessionError } from '@deepseek-ai/dsh-workspace'
+import type { DrillAttempt } from '@errgrind/episode'
 import type { SessionInspection } from '@deepseek-ai/dsh-session-persistence'
 import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-session-query'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
@@ -43,6 +44,8 @@ import type {
   SessionCreateValue,
   DerivedErrorOpenRequest,
   DerivedErrorOpenValue,
+  DrillOpenRequest,
+  DrillOpenValue,
   SessionFollowFrame,
   SessionFollowRequest,
   SessionForkRequest,
@@ -199,6 +202,13 @@ export class SessionController extends TypertRemoteService {
     ctx.on('agent/disposed', publishAgentAvailability)
     ctx.on('agent/status', ({ agent, status }) => {
       ctx.emit('api-session/status', agent.id, status === 'running')
+      // A Drill Session judged correct while its turn still runs is archived
+      // here once the Agent goes idle; the verdict event is already durable.
+      if (status === 'running' || !this.pendingDrillArchives.has(agent.id)) return
+      this.pendingDrillArchives.delete(agent.id)
+      void this.ctx.workspaceRegistry.archiveSession(agent.id).catch((error: unknown) => {
+        this.ctx.logger.error(`session-controller: Drill Session archive for "${agent.id}" failed: ${errorChain(error)}`)
+      })
     })
     ctx.on('agent/error', ({ agent, error }) => {
       ctx.emit('api-session/error', agent.id, errorChain(error))
@@ -212,6 +222,11 @@ export class SessionController extends TypertRemoteService {
           event.data.header.config.model,
           event.data.header.config.reasoningEffort,
         )
+      }
+      if (event.type === 'errgrind/drill-judged') {
+        void this.settleDrillSession(session, event.data).catch((error: unknown) => {
+          this.ctx.logger.error(`session-controller: Drill Session settle for "${session.id}" failed: ${errorChain(error)}`)
+        })
       }
       if (event.type !== 'user/message' || event.data.source.kind !== 'user') return
       ctx.emit('api-session/activity', session.id, event.time)
@@ -229,6 +244,29 @@ export class SessionController extends TypertRemoteService {
     })
     this.promotions.add(task)
     void task.finally(() => { this.promotions.delete(task) })
+  }
+
+  /** Drill Sessions judged correct archive once their turn settles (agent/status retry). */
+  private readonly pendingDrillArchives = new Set<SessionId>()
+
+  /**
+   * Close out a judged Drill Session: archive a correct practice, materialize an incorrect one.
+   * @param session - Session that committed the Drill judgment event.
+   * @param attempt - Folded Drill attempt carrying the verdict and derived Error payload.
+   */
+  private async settleDrillSession(session: Session, attempt: DrillAttempt): Promise<void> {
+    const episode = this.ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
+    if (episode?.origin.kind !== 'drill') return
+    if (!attempt.isCorrect) {
+      await this.materializeDerivedError(session.id, attempt.preparationId)
+      return
+    }
+    try {
+      await this.ctx.workspaceRegistry.archiveSession(session.id)
+    } catch (error) {
+      if (!(error instanceof WorkspaceActiveSessionError)) throw error
+      this.pendingDrillArchives.add(session.id)
+    }
   }
 
   /**
@@ -305,15 +343,97 @@ export class SessionController extends TypertRemoteService {
     if ('error' in source) throw source.error
     const drill = this.ctx.sessionProjections.stateOf(source.agent.session, 'errgrindDrill')
     const attempt = drill?.attempts.find(item => item.preparationId === request.preparationId)
+    if (attempt === undefined || attempt.derivedError === null) {
+      throw new RemoteError('gateway/bad-request', 'No incorrect Drill attempt matches this request', {})
+    }
+    await this.materializeDerivedError(request.sourceSessionId, request.preparationId)
+    return { sessionId: SessionId(`errgrind-derived-${createHash('sha256')
+      .update(`${request.sourceSessionId}\0${request.preparationId}`).digest('hex').slice(0, 32)}`) }
+  }
+
+  /**
+   * Create or reuse the derived Error Session for one judged incorrect Drill attempt.
+   * @param sourceSessionId - Session that holds the judged Drill attempt.
+   * @param preparationId - Exact Drill preparation whose derived Error materializes.
+   * @returns The materialized Session identity.
+   */
+  private async materializeDerivedError(sourceSessionId: SessionId, preparationId: string): Promise<DerivedErrorOpenValue> {
+    const source = await this.resolveAgent(sourceSessionId)
+    if ('error' in source) throw source.error
+    const drill = this.ctx.sessionProjections.stateOf(source.agent.session, 'errgrindDrill')
+    const attempt = drill?.attempts.find(item => item.preparationId === preparationId)
     const derived = attempt?.derivedError
     if (attempt === undefined || derived === undefined || derived === null) {
       throw new RemoteError('gateway/bad-request', 'No incorrect Drill attempt matches this request', {})
     }
     const identity = createHash('sha256')
-      .update(`${request.sourceSessionId}\0${request.preparationId}`).digest('hex').slice(0, 32)
+      .update(`${sourceSessionId}\0${preparationId}`).digest('hex').slice(0, 32)
     const sessionId = SessionId(`errgrind-derived-${identity}`)
     // Keep the derived Error in the source Error's Workspace. A Session
     // created by cwd alone is absent from Workspace navigation after opening.
+    const sourceWorkspace = this.ctx.workspaceRegistry.list()
+      .find(workspace => workspace.sessionIds.includes(sourceSessionId))
+    await this.commands.create(sourceWorkspace === undefined
+      ? { sessionId, cwd: source.agent.session.header.cwd ?? process.cwd() }
+      : { sessionId, workspaceId: sourceWorkspace.id })
+    const target = await this.resolveAgent(sessionId)
+    if ('error' in target) throw target.error
+    const session = target.agent.session
+    const existing = this.ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
+    if (existing != null && (existing.origin.kind !== 'derived_drill'
+      || existing.origin.sourceSessionId !== sourceSessionId
+      || existing.origin.sourcePreparationId !== preparationId)) {
+      throw new RemoteError('gateway/internal', 'Derived Error Session identity conflicts with another Error', {})
+    }
+    const text = `Practice question: ${derived.question}\nLearner answer: ${derived.userResponse}`
+    if (existing == null) {
+      session.append('errgrind/derived-error-open', {
+        text, sourceSessionId,
+        sourcePreparationId: preparationId,
+        sourceAnswerRef: attempt.answerSourceRef,
+        question: derived.question, userResponse: derived.userResponse,
+        referenceAnswer: derived.referenceAnswer,
+      })
+    }
+    const alreadyQueued = [...target.agent.inbox.nextTurn, ...target.agent.inbox.nextStep]
+      .some(message => message.source.kind === 'errgrind-derived-error')
+    const alreadyConsumed = existing?.derivedContextConsumed ?? false
+    if (!alreadyQueued && !alreadyConsumed) {
+      target.agent.followup(createUserMessage({
+        content: [{ type: 'text', text: `${text}\nChecked reference answer: ${derived.referenceAnswer}. This is a derived Drill Error; distinguish the learner's earlier answer from this Host context.` }],
+        source: { kind: 'errgrind-derived-error', sourceSessionId, preparationId },
+      }))
+    }
+    return { sessionId }
+  }
+
+  /**
+   * Open a dedicated Drill Session for one confirmed Error.
+   * @param request - Source Session whose concluded diagnosis seeds the practice.
+   * @returns The new Drill Session identity; each Error spawns sessions in index order.
+   */
+  @Remote('openDrill')
+  async openDrill(request: DrillOpenRequest): Promise<DrillOpenValue> {
+    const source = await this.resolveAgent(request.sourceSessionId)
+    if ('error' in source) throw source.error
+    const episode = this.ctx.sessionProjections.stateOf(source.agent.session, 'errgrindEpisode')
+    if (episode == null || episode.origin.kind === 'drill'
+      || episode.diagnosis.status === 'active' || episode.diagnosis.stale
+      || episode.confirmedRevision === null || episode.draft === null
+      || episode.draft.revision !== episode.confirmedRevision
+      || episode.diagnosis.anchoredRevision !== episode.confirmedRevision
+      || episode.diagnosis.summary === null) {
+      throw new RemoteError('gateway/bad-request', 'Only a confirmed Error with a concluded diagnosis can open a Drill Session', {})
+    }
+    // Deterministic per (source, index): a fresh slot must miss every live,
+    // persisted, and archived Session already holding that identity.
+    const occupied = new Set<SessionId>((await this.listState.list()).map(item => item.sessionId))
+    for (const sessionId of this.ctx.workspaceRegistry.archivedSessionIds) occupied.add(sessionId)
+    let index = 0
+    while (occupied.has(SessionId(`errgrind-drill-${createHash('sha256')
+      .update(`${request.sourceSessionId}\0${index}`).digest('hex').slice(0, 32)}`))) index += 1
+    const sessionId = SessionId(`errgrind-drill-${createHash('sha256')
+      .update(`${request.sourceSessionId}\0${index}`).digest('hex').slice(0, 32)}`)
     const sourceWorkspace = this.ctx.workspaceRegistry.list()
       .find(workspace => workspace.sessionIds.includes(request.sourceSessionId))
     await this.commands.create(sourceWorkspace === undefined
@@ -323,30 +443,36 @@ export class SessionController extends TypertRemoteService {
     if ('error' in target) throw target.error
     const session = target.agent.session
     const existing = this.ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
-    if (existing !== null && (existing?.origin.kind !== 'derived_drill'
-      || existing.origin.sourceSessionId !== request.sourceSessionId
-      || existing.origin.sourcePreparationId !== request.preparationId)) {
-      throw new RemoteError('gateway/internal', 'Derived Error Session identity conflicts with another Error', {})
+    if (existing != null && (existing.origin.kind !== 'drill'
+      || existing.origin.sourceSessionId !== request.sourceSessionId)) {
+      throw new RemoteError('gateway/internal', 'Drill Session identity conflicts with another Session', {})
     }
-    const text = `Practice question: ${derived.question}\nLearner answer: ${derived.userResponse}`
-    if (existing === null) {
-      session.append('errgrind/derived-error-open', {
-        text, sourceSessionId: request.sourceSessionId,
-        sourcePreparationId: request.preparationId,
-        sourceAnswerRef: attempt.answerSourceRef,
-        question: derived.question, userResponse: derived.userResponse,
-        referenceAnswer: derived.referenceAnswer,
+    const text = `Practice target: confirmed Error description (revision ${episode.confirmedRevision}):\n${episode.draft.text}`
+    if (existing == null) {
+      session.append('errgrind/drill-open', {
+        text,
+        sourceSessionId: request.sourceSessionId,
+        sourceRevision: episode.confirmedRevision,
+        description: episode.draft.text,
+        diagnosisStatus: episode.diagnosis.status,
+        diagnosisSummary: episode.diagnosis.summary,
+        remainingUncertainty: episode.diagnosis.remainingUncertainty,
+        whatWouldChangeJudgment: episode.diagnosis.whatWouldChangeJudgment,
       })
     }
-    const sourceKind = 'errgrind-derived-error'
     const alreadyQueued = [...target.agent.inbox.nextTurn, ...target.agent.inbox.nextStep]
-      .some(message => message.source.kind === sourceKind)
+      .some(message => message.source.kind === 'errgrind-drill-request')
     const alreadyConsumed = existing?.derivedContextConsumed ?? false
     if (!alreadyQueued && !alreadyConsumed) {
-      target.agent.inject(createUserMessage({
-        content: [{ type: 'text', text: `${text}\nChecked reference answer: ${derived.referenceAnswer}. This is a derived Drill Error; distinguish the learner's earlier answer from this Host context.` }],
-        source: { kind: sourceKind, sourceSessionId: request.sourceSessionId, preparationId: request.preparationId },
+      target.agent.followup(createUserMessage({
+        content: [{ type: 'text', text: `${text}\n\nConfirmed diagnosis (${episode.diagnosis.status}): ${episode.diagnosis.summary}\n${episode.diagnosis.remainingUncertainty ? `Remaining uncertainty: ${episode.diagnosis.remainingUncertainty}\n` : ''}This is a dedicated Drill Session for that already-confirmed Error. Call drill_prepare exactly once to generate one practice question for the learner. Do not re-investigate the Error: Grill and confirmation are already complete.` }],
+        source: { kind: 'errgrind-drill-request', sourceSessionId: request.sourceSessionId },
       }))
+    }
+    try {
+      this.ctx.get('sessionTitle')?.rename(session, `练习 · ${Array.from(episode.draft.text.trim()).slice(0, 40).join('')}`)
+    } catch (error) {
+      this.ctx.logger.warn(`session-controller: Drill Session title for "${sessionId}" skipped: ${errorChain(error)}`)
     }
     return { sessionId }
   }

@@ -25,7 +25,7 @@ export interface ErrorAttachment {
 }
 
 /** Whether the first Error input came directly from the learner or through an agent host. */
-export type InputOriginKind = 'direct_user' | 'host_relay' | 'derived_drill'
+export type InputOriginKind = 'direct_user' | 'host_relay' | 'derived_drill' | 'drill'
 
 /** Source metadata for the first Error input. */
 export interface InputOrigin {
@@ -156,6 +156,8 @@ export interface ErrorListEntry {
   readonly description: string | null
   readonly status: 'grill' | 'confirm' | 'teach'
   readonly drillEligible: boolean
+  /** Whether this Session investigates an Error or practices one. */
+  readonly kind: 'error' | 'drill'
 }
 
 declare module '@deepseek-ai/dsh-session/types' {
@@ -177,6 +179,17 @@ declare module '@deepseek-ai/dsh-session/types' {
       question: string
       userResponse: string
       referenceAnswer: string
+    }
+    /** A dedicated Drill Session seeded from a confirmed Error's public outcome; Grill stages stay locked. */
+    'errgrind/drill-open': {
+      text: string
+      sourceSessionId: string
+      sourceRevision: number
+      description: string
+      diagnosisStatus: 'supported' | 'undetermined'
+      diagnosisSummary: string
+      remainingUncertainty: string
+      whatWouldChangeJudgment: string
     }
     /** Model-authored public description; each call replaces the draft. */
     'errgrind/error-draft': { revision: number; text: string }

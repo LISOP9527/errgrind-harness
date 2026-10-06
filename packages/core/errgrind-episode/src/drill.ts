@@ -186,6 +186,8 @@ declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
     /** Private answer key copied from the validated independent Draft. */
     'errgrind-drill-context': { kind: 'errgrind-drill-context'; preparationId: string }
+    /** Host-copied confirmed Error context for a dedicated Drill Session, never learner-authored. */
+    'errgrind-drill-request': { kind: 'errgrind-drill-request'; sourceSessionId: string }
   }
 }
 

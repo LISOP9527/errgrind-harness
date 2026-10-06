@@ -1820,6 +1820,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'The stable target Session identity; repeated calls return the same Error.',
       },
       {
+        signature: '@Remote(\'openDrill\') async openDrill(request: DrillOpenRequest): Promise<DrillOpenValue>',
+        description: 'Open a dedicated Drill Session for one confirmed Error.',
+        parameters: [{ name: 'request', description: 'Source Session whose concluded diagnosis seeds the practice.' }],
+        returns: 'The new Drill Session identity; each Error spawns sessions in index order.',
+      },
+      {
         signature: '@Remote(\'selectModel\') selectModel(request: SessionSelectModelRequest): Promise<SessionSelectModelValue>',
         description: 'Select one Session-local model after explicitly resuming the Session.',
         parameters: [{ name: 'request', description: 'Session identity and requested model selection.' }],
@@ -4886,6 +4892,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DomainTableSpec',
     declaration: 'export interface DomainTableSpec<K extends string = string, V = unknown> {\n    readonly valueSchema: ZodType<V>;\n    readonly __key?: K;\n}',
+  },
+  {
+    name: 'DrillOpenRequest',
+    declaration: 'export interface DrillOpenRequest {\n    readonly sourceSessionId: SessionId;\n}',
+  },
+  {
+    name: 'DrillOpenValue',
+    declaration: 'export interface DrillOpenValue {\n    readonly sessionId: SessionId;\n}',
   },
   {
     name: 'DshEnvironment',
