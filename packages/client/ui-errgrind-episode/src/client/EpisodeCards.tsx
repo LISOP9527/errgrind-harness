@@ -131,6 +131,11 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
   const status = description.confirmed
     ? t('card.confirmed')
     : description.diagnosisStatus !== null ? t('card.pending') : t('card.grillActive')
+  const statusLine = description.probeCount === 1
+    ? t('card.grillProgressOne')
+    : description.probeCount > 1
+      ? t('card.grillProgress', { count: description.probeCount })
+      : ''
   return (
     <article className={css.episodeCard} aria-label={t('card.title')}>
       <header className={css.header}>
@@ -144,13 +149,7 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
         </p>
       )}
       <footer className={css.footer}>
-        <span className={css.statusLine}>
-          {description.probeCount === 1
-            ? t('card.grillProgressOne')
-            : description.probeCount > 1
-              ? t('card.grillProgress', { count: description.probeCount })
-              : description.diagnosisStatus === null ? t('card.grillActive') : ''}
-        </span>
+        {statusLine !== '' && <span className={css.statusLine}>{statusLine}</span>}
         {!description.confirmed && description.diagnosisStatus !== null && (
           <form onSubmit={(event) => { void confirm(event) }}>
             <button className={css.confirmButton} type="submit" disabled={pending}>

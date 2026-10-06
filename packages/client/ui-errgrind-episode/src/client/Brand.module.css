@@ -10,6 +10,17 @@
   color: currentColor;
 }
 
+.mark rect,
+.heroMark rect {
+  fill: var(--dsw-alias-link, #4d6bfe);
+  fill-opacity: 1;
+}
+
+.mark text,
+.heroMark text {
+  fill: #fff;
+}
+
 .name {
   font-family: inherit;
   font-size: inherit;
