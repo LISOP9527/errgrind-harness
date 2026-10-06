@@ -4899,7 +4899,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'DrillOpenValue',
-    declaration: 'export interface DrillOpenValue {\n    readonly sessionId: SessionId;\n}',
+    declaration: 'export interface DrillOpenValue {\n    readonly sessionId: SessionId;\n    readonly index: number;\n}',
   },
   {
     name: 'DshEnvironment',
