@@ -254,6 +254,7 @@
         - modelSelection
         - title
         - errgrindEpisode
+        - sessionListMetadata
       redactDataKeys:
         - errgrindOriginal
       redactToolArguments: true
