@@ -101,6 +101,8 @@ Paging adds older content above the retained anchor without jumping to the new t
 
 A running clock updates in whole seconds, starts at one second, and uses hours from 60 minutes. Completion fixes the duration; cancellation and failure replace it with their status. Lifecycle changes have a polite announcement; clock ticks do not. This control is Chat's only Turn-level running indicator.
 
+A completed control names what the Turn produced: the last visible Node in the Turn supplies the activity, a Node's own `activity` id winning over the kind-level default, and the label joins the run duration. A closed Turn that was neither stopped nor failed renders no control when it produced neither process evidence nor a visible Node — a pure-input Turn leaves no tail row.
+
 Automatic collapse keeps the process open if hiding it would hide keyboard focus. Manual closing focuses the process control before hiding its members. Closing a whole Turn resets its groups and inner reasoning/tool disclosures; it does not reset unrelated renderer state. Browser find can reveal searchable hidden content.
 
 -----

@@ -19,8 +19,13 @@ import { ModelOnboarding } from './ModelOnboarding.tsx'
 import type { ErrorCardProps, EpisodeCardInjected, TeachStepProps, DrillDraftCardProps } from './EpisodeCards.tsx'
 import { ErrorHistory } from './ErrorHistory.tsx'
 
+/** Activity ids an ErrGrind node publishes for the shared Turn-tail label. */
+export type TurnActivity =
+  'recorded' | 'asked' | 'clarified' | 'explained' | 'practice' | 'drafted' | 'scored'
+
 /** Safe fields displayed in the Error card. */
 export interface ErrorCardData {
+  readonly activity?: TurnActivity
   readonly revision: number
   readonly description: string
   readonly confirmed: boolean
@@ -32,11 +37,13 @@ export interface ErrorCardData {
 
 /** Safe question displayed in a Grill timeline row. */
 export interface GrillQuestionData {
+  readonly activity?: TurnActivity
   readonly question: string
 }
 
 /** Safe intake question displayed before the first Grill probe. */
 export interface IntakeClarificationData {
+  readonly activity?: TurnActivity
   readonly text: string
   readonly turn: number
 }
@@ -46,30 +53,41 @@ export type TeachStepKind = 'question' | 'hint' | 'explanation'
 
 /** Safe Teach step displayed in a Teach timeline row. */
 export interface TeachStepData {
+  readonly activity?: TurnActivity
   readonly kind: TeachStepKind
   readonly text: string
 }
 
 /** Public practice question text shown to the learner. */
-export interface DrillQuestionData { readonly question: string }
+export interface DrillQuestionData {
+  readonly activity?: TurnActivity
+  readonly question: string
+}
 /** Model-transcribed image answer awaiting the learner's explicit review. */
 export interface DrillAnswerDraftData {
+  readonly activity?: TurnActivity
   readonly revision: number
   readonly preparationId: string
   readonly text: string
 }
 /** Verdict and feedback of one judged practice answer. */
 export interface DrillJudgmentData {
+  readonly activity?: TurnActivity
   readonly preparationId: string
   readonly isCorrect: boolean
   readonly feedback: string
 }
 /** Opening snapshot of an Error derived from a wrong practice answer. */
-export interface DerivedErrorData { readonly question: string; readonly userResponse: string }
+export interface DerivedErrorData {
+  readonly activity?: TurnActivity
+  readonly question: string
+  readonly userResponse: string
+}
 /** Draft-generation outcomes that need learner-facing recovery guidance. */
 export type DrillDraftCardStatus = 'failed' | 'aborted'
 /** Failure notice of one answer-draft generation. */
 export interface DrillDraftCardData {
+  readonly activity?: TurnActivity
   readonly preparationId: string
   readonly status: DrillDraftCardStatus
 }
@@ -109,11 +127,29 @@ interface QuestionState {
   readonly question: string
 }
 
+/** Turn-tail activity each ErrGrind node kind reports for the shared process label. */
+const KIND_TURN_ACTIVITY: {
+  readonly [Kind in keyof Pick<ChatNodeDataMap,
+    'errgrind-error-card' | 'errgrind-grill-question' | 'errgrind-intake-clarification' | 'errgrind-teach-step'
+    | 'errgrind-drill-question' | 'errgrind-drill-answer-draft' | 'errgrind-drill-judgment'
+    | 'errgrind-derived-error' | 'errgrind-drill-draft-card'>]: TurnActivity
+} = {
+  'errgrind-error-card': 'recorded',
+  'errgrind-grill-question': 'asked',
+  'errgrind-intake-clarification': 'clarified',
+  'errgrind-teach-step': 'explained',
+  'errgrind-drill-question': 'practice',
+  'errgrind-drill-answer-draft': 'drafted',
+  'errgrind-drill-judgment': 'scored',
+  'errgrind-derived-error': 'recorded',
+  'errgrind-drill-draft-card': 'practice',
+}
+
 /** Convert one assembled Context into a final Chat node at its first matched event. */
-function chatNode<Kind extends 'errgrind-error-card' | 'errgrind-grill-question' | 'errgrind-intake-clarification' | 'errgrind-teach-step' | 'errgrind-drill-question' | 'errgrind-drill-answer-draft' | 'errgrind-drill-judgment' | 'errgrind-derived-error' | 'errgrind-drill-draft-card'>(
+function chatNode<Kind extends keyof typeof KIND_TURN_ACTIVITY>(
   context: ConversationNodeContext,
   kind: Kind,
-  data: ChatNodeDataMap[Kind],
+  data: Omit<ChatNodeDataMap[Kind], 'activity'>,
 ): ChatConversationViewNode & { readonly kind: Kind; readonly data: ChatNodeDataMap[Kind] } {
   const anchor = context.start?.event ?? context.matches[0]?.event
   return {
@@ -125,7 +161,7 @@ function chatNode<Kind extends 'errgrind-error-card' | 'errgrind-grill-question'
     // Domain cards stay at their event position without joining Chat's foldable Turn process.
     location: { kind: 'unresolved' },
     visibility: 'visible',
-    data,
+    data: { ...data, activity: KIND_TURN_ACTIVITY[kind] } as ChatNodeDataMap[Kind],
   }
 }
 

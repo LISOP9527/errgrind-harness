@@ -24,7 +24,7 @@ kind: "package-reference"
 <a id="composition"></a>
 ## 组成
 
-本包是浏览器插件。Web profile 挂载 `@errgrind/ui-errgrind-episode`；Client 入口注册 Conversation 事件定义、本地化 Chat 节点、确认按钮、`sidebar.workspaces` 中的 Error 历史面板、ErrGrind 品牌标识，以及 `conversation.input.dock` 中的模型引导卡片（空白 Error 没有可用 provider 时显示）。历史面板遮蔽通用 Workspace 浏览器，但保留其导航服务。它依赖 Session Controller、Locale、Conversation、Chat、Sidebar、Workspace 和 Models 设置客户端包。入口还为 Conversation 的三个通用输入文案注册中英文覆盖，使这些产品文案只应用于挂载此 ErrGrind 插件的 profile。
+本包是浏览器插件。Web profile 挂载 `@errgrind/ui-errgrind-episode`；Client 入口注册 Conversation 事件定义、本地化 Chat 节点、确认按钮、`sidebar.workspaces` 中的 Error 历史面板、ErrGrind 品牌标识，以及 `conversation.input.dock` 中的模型引导卡片（空白 Error 没有可用 provider 时显示）。历史面板遮蔽通用 Workspace 浏览器，但保留其导航服务。它依赖 Session Controller、Locale、Conversation、Chat、Sidebar、Workspace 和 Models 设置客户端包。入口还为 Conversation 的三个通用输入文案注册中英文覆盖，使这些产品文案只应用于挂载此 ErrGrind 插件的 profile。注册的每个 Chat 节点在数据中携带 `TurnActivity` 标识（`kind` → 活动，经 `KIND_TURN_ACTIVITY`），使共享的轮次尾标能指出该轮产出——记录、追问、澄清、讲解、出题、起草或判分。
 
 <a id="privacy-boundary"></a>
 ## 隐私边界

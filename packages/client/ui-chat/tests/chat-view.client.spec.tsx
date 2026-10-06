@@ -2186,7 +2186,7 @@ describe('ChatView', () => {
       turnEnds: new Map([[1, 6]]),
     })
     const view = render(<h.ChatView {...h.props} />)
-    const toggle = view.getByRole('button', { name: '用时 4秒' })
+    const toggle = view.getByRole('button', { name: '回复 · 4秒' })
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(toggle.getAttribute('data-turn-process-tool-calls')).toBe('1')
     expect(toggle.getAttribute('data-turn-process-messages')).toBe('1')
@@ -2212,12 +2212,12 @@ describe('ChatView', () => {
     expect(members.map(member => member.getAttribute('hidden'))).toEqual([null, null, null])
 
     act(() => { h.set({ nodes: [user(1, 'question'), first] }) })
-    expect(view.getByRole('button', { name: '用时 4秒' }).getAttribute('aria-expanded')).toBe('false')
+    expect(view.getByRole('button', { name: '回复 · 4秒' }).getAttribute('aria-expanded')).toBe('false')
     expect(members[0]?.getAttribute('hidden')).toBeNull()
     act(() => { h.set({
       nodes: [user(1, 'question'), first, toolResult(3, 'a'), toolResult(4, 'b', 'subagent'), second],
     }) })
-    const renewedToggle = view.getByRole('button', { name: '用时 4秒' })
+    const renewedToggle = view.getByRole('button', { name: '回复 · 4秒' })
     expect(renewedToggle.getAttribute('aria-expanded')).toBe('true')
     expect(members[0]?.getAttribute('hidden')).toBeNull()
   })
@@ -2318,7 +2318,7 @@ describe('ChatView', () => {
       turnEnds: new Map([[1, 4]]),
     })
     const view = render(<h.ChatView {...h.props} />)
-    const toggle = view.getByRole('button', { name: '已完成工作' }) as HTMLButtonElement
+    const toggle = view.getByRole('button', { name: '回复' }) as HTMLButtonElement
     const contextRow = view.container.querySelector<HTMLElement>('[data-chat-flow-kind="context"]')
 
     expect(toggle.disabled).toBe(true)
@@ -2457,14 +2457,14 @@ describe('ChatView', () => {
     })
     const toggle = turnProcessControl(view.container)!
     expect(toggle).toBe(liveToggle)
-    expect(toggle.textContent).toBe('用时 5秒')
+    expect(toggle.textContent).toBe('回复 · 5秒')
     expect(toggle.disabled).toBe(false)
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(processRow.getAttribute('hidden')).toBe('until-found')
     fireEvent.click(toggle)
     act(() => { vi.advanceTimersByTime(1_000) })
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    expect(toggle.textContent).toBe('用时 5秒')
+    expect(toggle.textContent).toBe('回复 · 5秒')
     expect(processRow.getAttribute('hidden')).toBeNull()
   }))
 
@@ -2510,7 +2510,7 @@ describe('ChatView', () => {
       turnEnds: new Map([[1, 4]]),
     })
     const view = render(<h.ChatView {...h.props} />)
-    const toggle = view.getByRole('button', { name: '已完成工作' })
+    const toggle = view.getByRole('button', { name: '回复' })
     const reasoning = view.container.querySelector<HTMLElement>('[data-turn-process-inline]')
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
     expect(reasoning?.getAttribute('hidden')).toBe('until-found')
@@ -2574,7 +2574,7 @@ describe('ChatView', () => {
     }) })
     const toggle = turnProcessControl(view.container)!
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    expect(toggle.textContent).toBe('已完成工作')
+    expect(toggle.textContent).toBe('回复')
     expect(view.container.querySelector('[data-chat-node-key="fixture:assistant:2"]')).toBe(processRow)
     expect(processRow.getAttribute('hidden')).toBe('until-found')
     expect(view.getByLabelText('回到底部')).toBeTruthy()
@@ -2627,7 +2627,7 @@ describe('ChatView', () => {
     const row = view.container.querySelector<HTMLElement>('[data-chat-node-key="fixture:assistant:3"]')!
     const toggle = turnProcessControl(view.container)!
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    expect(toggle.textContent).toBe(h.props.t('message.turnProcess.worked'))
+    expect(toggle.textContent).toBe(h.props.t('turnProcess.activity.replied'))
     expect(row.getAttribute('hidden')).toBe('until-found')
     expect(view.getByText('final answer')).toBeTruthy()
 
@@ -2642,8 +2642,36 @@ describe('ChatView', () => {
     }) })
     expect(turnProcessControl(view.container)).toBe(toggle)
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    expect(toggle.textContent).toBe(h.props.t('message.turnProcess.took', { duration: formatRunDuration(5_000, h.props.t) }))
+    expect(toggle.textContent).toBe(h.props.t('message.turnProcess.tookActivity', { activity: h.props.t('turnProcess.activity.replied'), duration: formatRunDuration(5_000, h.props.t) }))
     expect(row.getAttribute('hidden')).toBe('until-found')
+  })
+
+  it('names a Turn tail after the last visible Node carrying an activity id', () => {
+    const probe = {
+      kind: 'fixture-probe', seq: 2, time: 2_000, turn: 1, activity: 'asked',
+    } as unknown as ConversationNode
+    const h = makeHarness({
+      nodes: [user(1, 'question'), probe],
+      turnEnds: new Map([[1, 3]]),
+      turnTimings: new Map([[1, { startTime: 0, endTime: 5_000 }]]),
+    })
+    const view = render(<h.ChatView {...h.props} />)
+    expect(turnProcessControl(view.container)?.textContent).toBe(
+      h.props.t('message.turnProcess.tookActivity', {
+        activity: h.props.t('turnProcess.activity.asked'),
+        duration: formatRunDuration(5_000, h.props.t),
+      }),
+    )
+  })
+
+  it('omits the Turn tail when the Turn produced no visible Node', () => {
+    const h = makeHarness({
+      nodes: [userInTurn(1, 'question', 1)],
+      turnEnds: new Map([[1, 3]]),
+      turnTimings: new Map([[1, { startTime: 0, endTime: 3_000 }]]),
+    })
+    const view = render(<h.ChatView {...h.props} />)
+    expect(view.container.querySelector('[data-turn-process]')).toBeNull()
   })
 
   it.each([
@@ -2677,7 +2705,7 @@ describe('ChatView', () => {
     const h = makeHarness({ chat: snapshot, hasMore: true })
     if (grouped) h.setGrouped(groups)
     const view = render(<h.ChatView {...h.props} />)
-    const toggle = view.getByRole('button', { name: h.props.t('message.turnProcess.worked') })
+    const toggle = view.getByRole('button', { name: h.props.t('turnProcess.activity.replied') })
     let row = view.container.querySelector<HTMLElement>('[data-chat-node-key="fixture:tool:partial"]')!
     let group = view.container.querySelector<HTMLElement>('[data-chat-group-key]')
     for (const mode of ['compact', 'detailed', 'expanded'] as const) {
@@ -2753,7 +2781,7 @@ describe('ChatView', () => {
       expect(view.container.querySelector('[data-chat-group-key]')).toBe(group)
       expect(group?.hasAttribute('hidden')).toBe(!manualOpen)
     }
-    expect(toggle.textContent).toBe(h.props.t('message.turnProcess.took', { duration: formatRunDuration(4_000, h.props.t) }))
+    expect(toggle.textContent).toBe(h.props.t('message.turnProcess.tookActivity', { activity: h.props.t('turnProcess.activity.replied'), duration: formatRunDuration(4_000, h.props.t) }))
     act(() => { h.set({ hasMore: false }) })
     expect(toggle.getAttribute('aria-expanded')).toBe(String(manualOpen))
   })
@@ -2823,7 +2851,7 @@ describe('ChatView', () => {
     const view = render(<h.ChatView {...h.props} />)
     const toggle = turnProcessControl(view.container)!
     const processRow = view.getByText('working').closest('[data-chat-flow-kind="assistant-step"]')!
-    expect(toggle.textContent).toBe('用时 5秒')
+    expect(toggle.textContent).toBe('回复 · 5秒')
     expect(toggle.disabled).toBe(true)
     expect(toggle.getAttribute('aria-expanded')).toBeNull()
     expect(processRow.hasAttribute('hidden')).toBe(false)
@@ -2975,7 +3003,7 @@ describe('ChatView', () => {
     expect(view.queryByRole('dialog')).toBeNull()
     const footer = view.container.querySelector<HTMLElement>('[data-turn-tail="1"]')!
     expect(within(footer).queryByRole('button', { name: /用时/ })).toBeNull()
-    expect(turnProcessControl(view.container)?.textContent).toBe('用时 19秒')
+    expect(turnProcessControl(view.container)?.textContent).toBe('回复 · 19秒')
     act(() => { h.setPerformanceUsage('compact') })
     expect(view.queryByRole('button', { name: /用量/ })).toBeNull()
     act(() => { h.setPerformanceUsage('detailed') })
@@ -2996,7 +3024,7 @@ describe('ChatView', () => {
     const view = render(<h.ChatView {...h.props} />)
     const footer = view.container.querySelector<HTMLElement>('[data-turn-tail="1"]')!
     expect(within(footer).queryByRole('button', { name: /用时/ })).toBeNull()
-    expect(turnProcessControl(view.container)?.textContent).toBe('用时 19秒')
+    expect(turnProcessControl(view.container)?.textContent).toBe('回复 · 19秒')
     expect(view.queryByRole('button', { name: /用量/ })).toBeNull()
   })
 

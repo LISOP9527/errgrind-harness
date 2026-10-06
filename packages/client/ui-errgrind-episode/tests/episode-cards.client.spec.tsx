@@ -212,7 +212,7 @@ describe('Drill draft event assembly and visibility', () => {
     expect(viewNode).not.toBeNull()
     expect(viewNode?.kind).toBe('errgrind-drill-draft-card')
     expect(viewNode?.visibility).toBe('visible')
-    expect(viewNode?.data).toEqual({ preparationId: 'prep-failed-1', status: 'failed' })
+    expect(viewNode?.data).toEqual({ preparationId: 'prep-failed-1', status: 'failed', activity: 'practice' })
   })
 
   it('assembles aborted drill draft events into visible timeline nodes', () => {
@@ -250,7 +250,7 @@ describe('Drill draft event assembly and visibility', () => {
     expect(viewNode).not.toBeNull()
     expect(viewNode?.kind).toBe('errgrind-drill-draft-card')
     expect(viewNode?.visibility).toBe('visible')
-    expect(viewNode?.data).toEqual({ preparationId: 'prep-aborted-1', status: 'aborted' })
+    expect(viewNode?.data).toEqual({ preparationId: 'prep-aborted-1', status: 'aborted', activity: 'practice' })
   })
 
   it('hides successful drill draft events with no extra timeline card', () => {
@@ -359,7 +359,7 @@ describe('Drill draft event assembly and visibility', () => {
 
     const drillCards = assembledNodes.filter(n => n.kind === 'errgrind-drill-draft-card')
     expect(drillCards).toHaveLength(1)
-    expect(drillCards[0]?.data).toEqual({ preparationId: 'prep-fail', status: 'failed' })
+    expect(drillCards[0]?.data).toEqual({ preparationId: 'prep-fail', status: 'failed', activity: 'practice' })
   })
 })
 
