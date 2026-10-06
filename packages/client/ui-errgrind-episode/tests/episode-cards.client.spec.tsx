@@ -363,6 +363,85 @@ describe('Drill draft event assembly and visibility', () => {
   })
 })
 
+describe('Error episode card assembly', () => {
+  it('starts from the episode-open event so pre-draft updates do not orphan the card', () => {
+    const harness = createTestHarness()
+    apply(harness.ctx)
+
+    const viewRegistry = new ConversationViewRegistry(harness.ctx)
+    const assembledNodes: ConversationViewNode[] = []
+    const chatView: ConversationViewDefinition<ConversationViewNode, { nodes: readonly ConversationViewNode[] }> = {
+      target: 'chat',
+      create: () => ({
+        empty: { nodes: [] },
+        replace: ({ nodes }) => {
+          assembledNodes.length = 0
+          assembledNodes.push(...nodes)
+          return { nodes }
+        },
+        apply: ({ upserts }) => {
+          assembledNodes.push(...upserts)
+          return { nodes: assembledNodes }
+        },
+      }),
+    }
+    viewRegistry.register(chatView)
+
+    const assembler = new ConversationNodeAssembler(harness.events, viewRegistry)
+    assembler.activateTarget('chat')
+
+    // The reported sequence: the model asked a clarification and probed before
+    // it ever published a description draft, so the first matched update had
+    // no start Match and assembly threw.
+    const entries: SessionEventLikeEntry[] = [
+      makeEventEntry({
+        seq: SessionSeq(1),
+        time: 1_700_000_000_001,
+        type: 'errgrind/error-open',
+        data: { text: '题目文本', turn: 1 },
+      }),
+      makeEventEntry({
+        seq: SessionSeq(2),
+        time: 1_700_000_000_002,
+        type: 'errgrind/error-clarify',
+        data: { text: '当时用什么方法？', turn: 2 },
+      }),
+      makeEventEntry({
+        seq: SessionSeq(3),
+        time: 1_700_000_000_003,
+        type: 'errgrind/error-draft',
+        data: { revision: 1, text: '根据你目前提供的信息：…' },
+      }),
+      makeEventEntry({
+        seq: SessionSeq(4),
+        time: 1_700_000_000_004,
+        type: 'errgrind/grill-conclude',
+        data: { anchorRevision: 1, diagnosisStatus: 'supported', summary: '暂定结论', turn: 3 },
+      }),
+      makeEventEntry({
+        seq: SessionSeq(5),
+        time: 1_700_000_000_005,
+        type: 'errgrind/error-confirm',
+        data: { revision: 1, commandId: 'cmd-1' },
+      }),
+    ]
+
+    expect(() => {
+      assembler.replaceWindow(entries, false)
+      assembler.flush()
+    }).not.toThrow()
+
+    const card = assembledNodes.find(n => n.kind === 'errgrind-error-card')
+    expect(card?.data).toMatchObject({
+      revision: 1,
+      description: '根据你目前提供的信息：…',
+      confirmed: true,
+      diagnosisStatus: 'supported',
+      summary: '暂定结论',
+    })
+  })
+})
+
 describe('DrillDraftCard presentation', () => {
   it('renders recovery guidance in English when drill draft fails', () => {
     const node = createChatNode('errgrind-drill-draft-card', {

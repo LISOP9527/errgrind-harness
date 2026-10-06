@@ -169,19 +169,24 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
   kind: 'errgrind-episode-card',
   target: 'chat',
   match(event) {
-    if (event.type === 'errgrind/error-draft') {
-      return { id: 'episode', role: event.data.revision === 1 ? 'start' : 'update' }
+    if (event.type === 'errgrind/error-open' || event.type === 'errgrind/derived-error-open') {
+      return { id: 'episode', role: 'start' }
     }
-    if (event.type === 'errgrind/error-confirm'
+    if (event.type === 'errgrind/error-draft'
+      || event.type === 'errgrind/error-confirm'
       || event.type === 'errgrind/error-clarify'
       || event.type === 'errgrind/grill-probe'
       || event.type === 'errgrind/grill-conclude') return { id: 'episode', role: 'update' }
     return null
   },
   start(_context, match) {
-    if (match.event.type !== 'errgrind/error-draft') throw new Error('ErrGrind Error card must start from a draft')
+    // The episode-open event is the only guaranteed lead event: clarifications,
+    // probes, and conclusions may all precede the first description draft.
+    if (match.event.type !== 'errgrind/error-open' && match.event.type !== 'errgrind/derived-error-open') {
+      throw new Error('ErrGrind Error card must start from the episode-open event')
+    }
     return {
-      revision: match.event.data.revision,
+      revision: 0,
       description: match.event.data.text,
       confirmed: false,
       probeCount: 0,
@@ -437,16 +442,16 @@ export function apply(ctx: ClientContext): void {
     zh: {
       'hero.headline': '从一道错题开始',
       'hero.preview': '',
-      'placeholder.default': '',
-      'placeholder.hero': '',
+      'placeholder.default': '描述错题或输入回答, / 调用指令',
+      'placeholder.hero': '描述你的错题和当时的做法, / 调用指令',
       'input.commands': '添加题目图片或文件',
       'error.sessionInUse': '这条 Error 正在另一处使用。请关闭占用它的其他窗口或程序后重试。',
     },
     en: {
       'hero.headline': 'Start with a math mistake',
       'hero.preview': '',
-      'placeholder.default': '',
-      'placeholder.hero': '',
+      'placeholder.default': 'Describe the problem or type an answer, / for commands',
+      'placeholder.hero': 'Describe the mistake and what you tried, / for commands',
       'input.commands': 'Add a problem image or file',
       'error.sessionInUse': 'This Error is open elsewhere. Close the other window or app using it, then try again.',
     },

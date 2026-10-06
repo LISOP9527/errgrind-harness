@@ -211,8 +211,6 @@
 - id: session-controller
   config:
     browserView:
-      privateEventTypes:
-        - errgrind/error-open
       privateMessageSourceKinds:
         - errgrind-derived-error
         - errgrind-drill-context
@@ -222,6 +220,7 @@
         - step/start
         - step/end
         - user/message
+        - errgrind/error-open
         - errgrind/error-draft
         - errgrind/derived-error-open
         - errgrind/error-confirm
@@ -240,7 +239,8 @@
         step/end: [turn, step]
         user/message: [id, role, content, source.kind, source.rpcId]
         errgrind/error-draft: [revision, text]
-        errgrind/derived-error-open: [question, userResponse]
+        errgrind/error-open: [text, turn]
+        errgrind/derived-error-open: [question, userResponse, text]
         errgrind/error-confirm: [revision]
         errgrind/error-clarify: [text, turn]
         errgrind/grill-probe: [anchorRevision, turn, probe.id, probe.type, probe.question]
