@@ -10,6 +10,29 @@ import type { ToolPrompts } from './tool-prompts.ts'
 
 const MAX_TEXT = 4_000
 
+/** Whole-text acceptance of a pending answer draft. */
+const DRAFT_ACCEPT = /^(?:确认|confirm)$/i
+/** `确认:`/`修正:`/`revise:`-style prefix carrying the corrected answer. */
+const DRAFT_REVISE = /^(?:修正|revise)\s*[:：]\s*/i
+
+/**
+ * Split one learner reply into the answer-draft fold vocabulary: bare
+ * acceptance, a corrected answer after the revise marker, or neither.
+ * @param text - trimmed learner message text.
+ * @returns the recognized intent, or null when the reply is ordinary content.
+ */
+function parseDraftReview(text: string): { readonly kind: 'accept' } | { readonly kind: 'revise'; readonly text: string } | null {
+  if (DRAFT_ACCEPT.test(text)) return { kind: 'accept' }
+  const revise = DRAFT_REVISE.exec(text)
+  if (revise === null) return null
+  const corrected = text.slice(revise[0].length).trim()
+  return corrected.length === 0 ? null : { kind: 'revise', text: corrected }
+}
+
+/**
+ * Complete private specification of one practice problem: the contract the
+ * Judge scores against; withheld from the learner and the browser.
+ */
 export interface DrillSpec {
   readonly targetMechanism: string
   readonly trigger: string
@@ -38,6 +61,7 @@ export interface LegacyDrillSpec {
   readonly difficulty: number
 }
 
+/** Specification staged by `drill_prepare` ahead of the isolated Draft call; replayed until `errgrind/drill-prepared` activates it. */
 export interface PendingDrillSpec {
   readonly id: string
   readonly spec: DrillSpec
@@ -46,6 +70,7 @@ export interface PendingDrillSpec {
   readonly preparedAtTurn: number
 }
 
+/** Exact isolated Draft-call input committed before the LLM request starts. */
 export interface DrillDraftRequested {
   readonly preparationId: string
   readonly prompt: string
@@ -53,14 +78,17 @@ export interface DrillDraftRequested {
   readonly config: LlmCallConfig
 }
 
+/** Terminal outcome of one isolated Draft call. */
 export type DrillDraftStatus = 'success' | 'failed' | 'aborted'
 
+/** Settlement record of one isolated Draft call; only `success` yields the practice problem. */
 export interface DrillDraftFinished {
   readonly preparationId: string
   readonly status: DrillDraftStatus
   readonly usage?: TokenUsage | undefined
 }
 
+/** Activated practice problem binding the private spec to the public question, reference answer, and source diagnosis anchor. */
 export interface DrillPreparation {
   readonly id: string
   readonly spec: DrillSpec | LegacyDrillSpec
@@ -74,6 +102,7 @@ export interface DrillPreparation {
   readonly draftUsage?: TokenUsage | undefined
 }
 
+/** One persisted learner answer contribution bound to its source message event. */
 export interface DrillAnswerSource {
   readonly sourceRef: string
   readonly preparationId: string
@@ -95,6 +124,7 @@ export interface DrillAnswerDraft {
   readonly text: string
 }
 
+/** Snapshot of an Error derived from a wrong Drill attempt; the browser opens it as a new pending-Grill Session. */
 export interface DerivedDrillError {
   readonly id: string
   readonly origin: 'drill'
@@ -104,6 +134,7 @@ export interface DerivedDrillError {
   readonly referenceAnswer: string
 }
 
+/** One judged learner attempt with its source references, verdict, feedback, and the judge that produced it. */
 export interface DrillAttempt {
   readonly preparationId: string
   readonly answerSourceRef: string
@@ -117,6 +148,7 @@ export interface DrillAttempt {
   readonly judgedAtTurn: number
 }
 
+/** Folded Drill projection: active and pending problems, held image input, draft review, answer sources, and attempts. */
 export interface DrillState {
   readonly active: DrillPreparation | null
   readonly pendingSpec: PendingDrillSpec | null
@@ -285,6 +317,12 @@ function rejectSourceLeak(spec: DrillSpec, sourceText: string): void {
 
 const inFlightSessions = new Set<string>()
 
+/**
+ * Advance the Drill projection by one committed event.
+ * @param state - projection state before the event.
+ * @param event - next committed Session event.
+ * @returns the advanced state; unrelated events return the original value.
+ */
 export function applyDrillEvent(state: DrillState, event: SessionEvent): DrillState {
   switch (event.type) {
     case 'errgrind/drill-spec-prepared': {
@@ -336,27 +374,26 @@ export function applyDrillEvent(state: DrillState, event: SessionEvent): DrillSt
       }
       const draft = state.pendingAnswerDraft
       if (draft !== null) {
-        const accepted = text === '确认'
-        const corrected = text.startsWith('修正：') ? text.slice('修正：'.length).trim() : ''
-        if (!accepted && corrected.length === 0) return state
+        const review = parseDraftReview(text)
+        if (review === null) return state
         return {
           ...state, pendingImageInput: null, pendingAnswerDraft: null,
           answerSources: [...state.answerSources, {
             sourceRef, preparationId: state.active.id,
-            text: accepted ? draft.text : corrected,
+            text: review.kind === 'accept' ? draft.text : review.text,
             imageSourceRef: draft.imageSourceRef,
           }],
         }
       }
       if (state.pendingImageInput !== null) {
-        const corrected = text.startsWith('修正：') ? text.slice('修正：'.length).trim() : ''
-        if (corrected.length === 0) return state
+        const review = parseDraftReview(text)
+        if (review?.kind !== 'revise') return state
         return { ...state, pendingImageInput: null, answerSources: [...state.answerSources, {
-          sourceRef, preparationId: state.active.id, text: corrected,
+          sourceRef, preparationId: state.active.id, text: review.text,
           imageSourceRef: state.pendingImageInput.sourceRef,
         }] }
       }
-      if (text.length === 0 || text === '确认') return state
+      if (text.length === 0 || DRAFT_ACCEPT.test(text)) return state
       return { ...state, pendingImageInput: null, answerSources: [...state.answerSources, {
         sourceRef, preparationId: state.active.id, text,
       }] }
@@ -411,7 +448,11 @@ function drillState(ctx: Context, session: Session): DrillState {
   return state
 }
 
-/** Add the independent Drill state and model tools to the existing episode plugin. */
+/**
+ * Add the independent Drill state and model tools to the existing episode plugin.
+ * @param ctx - Host context carrying the projection registry, agent hooks, and tool registry.
+ * @param toolPrompts - validated model-facing copy loaded from the prompts catalog.
+ */
 export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
   ctx.sessionProjections.register({
     key: 'errgrindDrill', stateSchema, stateVersion: 3,

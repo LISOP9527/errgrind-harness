@@ -28,7 +28,7 @@ describe('Codex account model catalog', () => {
       { slug: 'gpt-6-luna', visibility: 'list' },
     ] }), { status: 200 })) as unknown as typeof fetch
     const models = { getAuth: vi.fn(async () => ({ auth: { apiKey: token } })) }
-    const ids = await currentCodexModelIds(models as never, fetcher)
+    const ids = await currentCodexModelIds(models, fetcher)
     expect([...ids]).toEqual(['gpt-6-sol', 'gpt-6-luna'])
     const [url, options] = (fetcher as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [URL, RequestInit]
     expect(url.origin).toBe('https://chatgpt.com')
@@ -42,7 +42,7 @@ describe('Codex account model catalog', () => {
 
   it('returns no choices without Codex authorization', async () => {
     const fetcher = vi.fn() as unknown as typeof fetch
-    const ids = await currentCodexModelIds({ getAuth: async () => undefined } as never, fetcher)
+    const ids = await currentCodexModelIds({ getAuth: async () => undefined }, fetcher)
     expect(ids.size).toBe(0)
     expect(fetcher).not.toHaveBeenCalled()
   })

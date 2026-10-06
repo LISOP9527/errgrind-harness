@@ -146,6 +146,72 @@ describe('Drill attempt boundary', () => {
     expect(state.answerSources.at(-1)?.imageSourceRef).toBe(`user-event:${image.seq}`)
   })
 
+  it('accepts the English review keywords and ASCII-colon corrections', () => {
+    const session = Session.create(SessionId('drill-image-review-en'))
+    let state = applyDrillEvent(initial(), session.append('errgrind/drill-prepared', preparation))
+    const image = session.append('user/message', createUserMessage({
+      content: [{
+        type: 'image',
+        attachment: {
+          attachmentId: AttachmentId('sha256:039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81'),
+          mediaType: 'image/png', bytes: 3, width: 1, height: 1,
+        },
+      }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyDrillEvent(state, image)
+    const imageSourceRef = `user-event:${image.seq}`
+
+    state = applyDrillEvent(state, session.append('errgrind/drill-answer-draft', {
+      revision: 1, preparationId: preparation.id, imageSourceRef, text: '7/8',
+    }))
+    const ignored = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'looks right' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyDrillEvent(state, ignored)
+    expect(state.pendingAnswerDraft).not.toBeNull()
+
+    const accepted = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'Confirm' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyDrillEvent(state, accepted)
+    expect(state.answerSources.at(-1)?.text).toBe('7/8')
+
+    const second = session.append('user/message', createUserMessage({
+      content: [{
+        type: 'image',
+        attachment: {
+          attachmentId: AttachmentId('sha256:139058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb82'),
+          mediaType: 'image/png', bytes: 3, width: 1, height: 1,
+        },
+      }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyDrillEvent(state, second)
+    state = applyDrillEvent(state, session.append('errgrind/drill-answer-draft', {
+      revision: 1, preparationId: preparation.id, imageSourceRef: `user-event:${second.seq}`, text: '7/8',
+    }))
+    const revised = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'Revise: 3/4' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyDrillEvent(state, revised)
+    expect(state.answerSources.at(-1)?.text).toBe('3/4')
+
+    const third = session.append('user/message', createUserMessage({
+      content: [{
+        type: 'image',
+        attachment: {
+          attachmentId: AttachmentId('sha256:239058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb83'),
+          mediaType: 'image/png', bytes: 3, width: 1, height: 1,
+        },
+      }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyDrillEvent(state, third)
+    const ascii = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: '修正: 5/6' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    state = applyDrillEvent(state, ascii)
+    expect(state.answerSources.at(-1)?.text).toBe('5/6')
+  })
+
   it('replays legacy preparations without requiring pendingSpec and rejects legacy replacement when pendingSpec exists', () => {
     const session = Session.create(SessionId('drill-legacy-replay'))
     const state = applyDrillEvent(initial(), session.append('errgrind/drill-prepared', preparation))

@@ -26,7 +26,7 @@ import {
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import type {} from '@errgrind/episode'
-import type { ChatConversationViewNode, ChatNodeDataMap } from '@deepseek-ai/dsh-client-ui-chat/client'
+import { EMPTY_CHAT_SNAPSHOT, type ChatConversationViewNode, type ChatNodeDataMap } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { apply, inject } from '../src/client/index.ts'
 import {
@@ -479,6 +479,75 @@ describe('Existing conversation cards assembly and presentation', () => {
     const { unmount: unmountClarification } = render(<IntakeClarificationCard node={clarificationNode} t={tEn} {...chatNodeOwner} />)
     expect(screen.getByText('The answer key said 6x + 12.')).toBeTruthy()
     unmountClarification()
+  })
+})
+
+describe('Prompt card resolution framing', () => {
+  function chatWith(order: readonly string[], nodes: readonly ChatConversationViewNode[]) {
+    const byKey = new Map(nodes.map(node => [node.key, node]))
+    return bindSnapshotSelector(observable(chatSnapshot({
+      order,
+      nodes: { ...EMPTY_CHAT_SNAPSHOT.nodes, get: key => byKey.get(key) },
+    })))
+  }
+
+  it('keeps the frame while a Grill prompt is pending and flattens it once the flow moves on', () => {
+    const pending = createChatNode('errgrind-grill-question', { question: 'Still open?' })
+    const { unmount } = render(<GrillQuestionCard node={pending} t={tEn} {...chatNodeOwner} />)
+    expect(screen.getByText(en['question.label'])).toBeTruthy()
+    unmount()
+
+    const answered = createChatNode('errgrind-grill-question', { question: 'Earlier question?' })
+    const later = createChatNode('errgrind-teach-step', { kind: 'hint', text: 'A later hint.' })
+    render(
+      <GrillQuestionCard node={answered} t={tEn} {...chatNodeOwner}
+        useChat={chatWith([answered.key, later.key], [answered, later])} />,
+    )
+    expect(screen.queryByText(en['question.label'])).toBeNull()
+    expect(screen.getByText('Earlier question?')).toBeTruthy()
+  })
+
+  it('does not let a second pending Grill prompt or a missing later node resolve the first', () => {
+    const first = createChatNode('errgrind-grill-question', { question: 'First?' })
+    const second = { ...createChatNode('errgrind-grill-question', { question: 'Second?' }), key: 'test-grill-second' }
+    const useChat = chatWith([first.key, second.key, 'ghost-node'], [first, second])
+    render(<GrillQuestionCard node={first} t={tEn} {...chatNodeOwner} useChat={useChat} />)
+    expect(screen.getByText(en['question.label'])).toBeTruthy()
+  })
+
+  it('flattens an answered Drill question and a reviewed answer draft', () => {
+    const question = createChatNode('errgrind-drill-question', { question: 'Compute 3 + 4.' })
+    const draft = createChatNode('errgrind-drill-answer-draft', {
+      revision: 1, preparationId: 'prep-1', text: '7',
+    })
+    const judgment = createChatNode('errgrind-drill-judgment', {
+      preparationId: 'prep-1', isCorrect: true, feedback: 'Right.',
+    })
+    const useChat = chatWith(
+      [question.key, draft.key, judgment.key],
+      [question, draft, judgment],
+    )
+
+    const { unmount } = render(
+      <DrillQuestionCard node={question} t={tEn} {...chatNodeOwner} useChat={useChat} />,
+    )
+    expect(screen.queryByText(en['drill.question'])).toBeNull()
+    expect(screen.getByText('Compute 3 + 4.')).toBeTruthy()
+    unmount()
+
+    render(<DrillAnswerDraftCard node={draft} t={tEn} {...chatNodeOwner} useChat={useChat} />)
+    expect(screen.queryByText(en['drill.answerDraft'])).toBeNull()
+    expect(screen.queryByText(en['drill.answerDraftReview'])).toBeNull()
+    expect(screen.getByText('7')).toBeTruthy()
+  })
+
+  it('keeps the review hint while a Drill answer draft still waits for the learner', () => {
+    const draft = createChatNode('errgrind-drill-answer-draft', {
+      revision: 1, preparationId: 'prep-1', text: '7',
+    })
+    render(<DrillAnswerDraftCard node={draft} t={tEn} {...chatNodeOwner} useChat={chatWith([draft.key], [draft])} />)
+    expect(screen.getByText(en['drill.answerDraft'])).toBeTruthy()
+    expect(screen.getByText(en['drill.answerDraftReview'])).toBeTruthy()
   })
 })
 

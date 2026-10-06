@@ -108,7 +108,7 @@
   },
   "drill_answer_draft": {
     "description": [
-      "When the learner submits an image as the answer to the active Drill, transcribe only the visible answer into an editable draft. Do not judge it yet. Show the draft and wait for an explicit learner reply: 确认 to accept the exact draft, or 修正：followed by their complete corrected answer. The learner may also send 修正：complete answer before a draft is shown.",
+      "When the learner submits an image as the answer to the active Drill, transcribe only the visible answer into an editable draft. Do not judge it yet. Show the draft and wait for an explicit learner reply: a bare 确认 or Confirm accepts the exact draft; 修正：or Revise: followed by their complete corrected answer replaces it. The learner may also send 修正：or Revise: complete answer before a draft is shown.",
       "Preserve mathematical notation, steps and uncertainty. State illegible parts as uncertain rather than inventing them. This is model-authored OCR or vision output, not the learner's own text or evidence about the original Error-time cause. A new image replaces the pending image draft."
     ],
     "parameters": {

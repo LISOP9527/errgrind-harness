@@ -27,7 +27,12 @@ function accountIdFromToken(token: string): string {
   }
 }
 
-/** Fetch only slugs advertised to this signed-in account, with no prompt metadata. */
+/**
+ * Fetch only slugs advertised to this signed-in account, with no prompt metadata.
+ * @param models - pi-ai Models registry used to resolve the Codex credential.
+ * @param fetcher - fetch implementation; defaults to the ambient fetch for tests.
+ * @returns account-visible Codex model slugs; empty without a Codex authorization.
+ */
 export async function currentCodexModelIds(
   models: Pick<Models, 'getAuth'>,
   fetcher: typeof fetch = fetch,

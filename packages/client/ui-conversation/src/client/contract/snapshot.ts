@@ -20,7 +20,7 @@ export type ConversationPhase = 'blank' | 'engaging' | 'active'
 /**
  * Resolve the shell phase without adding Conversation data to the Session snapshot.
  * @param session - current Session lifecycle state.
- * @param conversation - current target-neutral Conversation state.
+ * @param _conversation - current target-neutral Conversation state.
  * @returns the phase used by the header, View ring, and composer layout.
  */
 export function conversationPhase(

@@ -41,14 +41,17 @@ function parseAuthority(authority: string): URL | undefined {
  * (`harness.internal/path`, `user@harness.internal` — which would authorize
  * the embedded hostname), stripped whitespace, a dangling colon or
  * zero-padded port (which would broaden an intended exact-port grant to every
- * port), and non-canonical host spellings (`0x7f.0.0.1`, percent-encoding,
- * unbracketed IPv6; IDN hosts are declared in punycode, the form the wire
- * carries).
+ * port), wildcard labels (`*.harness.internal` survives the WHATWG parse
+ * unchanged yet no request Host ever carries `*`, so a wildcard-looking grant
+ * would silently match nothing), and non-canonical host spellings
+ * (`0x7f.0.0.1`, percent-encoding, unbracketed IPv6; IDN hosts are declared
+ * in punycode, the form the wire carries).
  * @param entry - the configured value, verbatim.
  */
 export function assertTrustedAuthority(entry: string): void {
   const entryUrl = parseAuthority(entry)
-  if (entryUrl !== undefined && canonicalAuthority(entry, entryUrl) === entry.toLowerCase()) return
+  if (entryUrl !== undefined && !entry.includes('*')
+    && canonicalAuthority(entry, entryUrl) === entry.toLowerCase()) return
   throw new Error(`client-connection: trustedHosts entry ${JSON.stringify(entry)} is not a bare host[:port] authority`)
 }
 

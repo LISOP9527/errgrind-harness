@@ -50,19 +50,25 @@ export interface TeachStepData {
   readonly text: string
 }
 
+/** Public practice question text shown to the learner. */
 export interface DrillQuestionData { readonly question: string }
+/** Model-transcribed image answer awaiting the learner's explicit review. */
 export interface DrillAnswerDraftData {
   readonly revision: number
   readonly preparationId: string
   readonly text: string
 }
+/** Verdict and feedback of one judged practice answer. */
 export interface DrillJudgmentData {
   readonly preparationId: string
   readonly isCorrect: boolean
   readonly feedback: string
 }
+/** Opening snapshot of an Error derived from a wrong practice answer. */
 export interface DerivedErrorData { readonly question: string; readonly userResponse: string }
+/** Draft-generation outcomes that need learner-facing recovery guidance. */
 export type DrillDraftCardStatus = 'failed' | 'aborted'
+/** Failure notice of one answer-draft generation. */
 export interface DrillDraftCardData {
   readonly preparationId: string
   readonly status: DrillDraftCardStatus

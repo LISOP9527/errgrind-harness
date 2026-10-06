@@ -117,10 +117,10 @@ export class ApiSessionList {
       updatedAt: updatedAt(session.header, metadata),
       agentAvailable: this.ctx.agents.get(session.id)?.session === session,
       running: this.ctx.agents.get(session.id)?.status === 'running',
-      // Configuration events may precede the first user turn. Until the
-      // projection is available, inspect the attached log using the same
-      // visible-conversation boundary as sessionListMetadata.
-      blank: metadata?.blank ?? !session.snapshotEvents().some(startsVisibleConversation),
+      // Configuration events may precede the first user turn. A live row
+      // whose cell is not yet materialized stays unknown and visible, the
+      // same posture the cold path takes — a listing never folds.
+      blank: metadata?.blank ?? false,
       ...listFields(session.header),
       ...(projections === undefined ? {} : { projections }),
     }

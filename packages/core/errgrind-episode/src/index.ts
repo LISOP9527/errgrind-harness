@@ -46,7 +46,11 @@ const errorListEntrySchema: ZodType<ErrorListEntry | null> = zod.object({
   drillEligible: zod.boolean(),
 }).strict().nullable()
 
-/** Expose only the learner-facing Error description and coarse workflow state. */
+/**
+ * Expose only the learner-facing Error description and coarse workflow state.
+ * @param episode - folded episode state, or `null` when the Session has none.
+ * @returns the public list entry, or `null` for Sessions without an episode.
+ */
 export function publicErrorListEntry(episode: ErrorEpisode | null): ErrorListEntry | null {
   if (episode === null) return null
   const drillEligible = episode.diagnosis.status !== 'active'

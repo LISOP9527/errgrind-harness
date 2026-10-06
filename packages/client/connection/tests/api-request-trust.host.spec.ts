@@ -94,6 +94,12 @@ describe('isTrustedApiRequest', () => {
     for (const entry of ['harness.internal:', '[::1]:', 'harness.internal:0080', '0x7f.0.0.1', '[0:0:0:0:0:0:0:1]']) {
       expect(() => { assertTrustedAuthority(entry) }).toThrow(/not a bare host\[:port\] authority/)
     }
+    // `*` survives WHATWG hostname parsing unchanged, yet no request Host
+    // ever carries it — a wildcard-looking grant would silently match
+    // nothing, so it must fail at the boundary like every other typo.
+    for (const entry of ['*.harness.internal', '*', 'harness.*']) {
+      expect(() => { assertTrustedAuthority(entry) }).toThrow(/not a bare host\[:port\] authority/)
+    }
   })
 
   it('never lets stray whitespace broaden an exact-port entry to every port', () => {

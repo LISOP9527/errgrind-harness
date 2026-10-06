@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { UseChat } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
 import css from './EpisodeCards.module.css'
@@ -70,6 +71,34 @@ function PromptBlock({ label, hint, children }: {
       {hint !== undefined && <p className={css.hint}>{hint}</p>}
     </div>
   )
+}
+
+/** Node kinds proving the conversation moved past a still-pending prompt. */
+const PROMPT_RESOLVERS: ReadonlySet<string> = new Set([
+  'user', 'steering',
+  'errgrind-intake-clarification',
+  'errgrind-teach-step',
+  'errgrind-drill-question',
+  'errgrind-drill-answer-draft',
+  'errgrind-drill-judgment',
+  'errgrind-drill-draft-card',
+  'errgrind-derived-error',
+])
+
+/**
+ * Whether the transcript already moved past this prompt's position: the
+ * learner replied or the episode advanced to a later stage. Reads the shared
+ * Chat snapshot through the session-standard `useChat` seat.
+ */
+function usePromptResolved(key: string, useChat: UseChat): boolean {
+  return useChat((snapshot) => {
+    const index = snapshot.order.indexOf(key)
+    for (const laterKey of index < 0 ? [] : snapshot.order.slice(index + 1)) {
+      const later = snapshot.nodes.get(laterKey)
+      if (later !== undefined && PROMPT_RESOLVERS.has(later.kind)) return true
+    }
+    return false
+  })
 }
 
 /** Render the current full Error description and its public investigation state. */
@@ -153,14 +182,14 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
   )
 }
 
-/** Render one public Grill prompt in its chronological position. */
-export function GrillQuestionCard({ node, t }: GrillQuestionProps) {
+/** Render one public Grill prompt in its chronological position; an answered prompt flows as ordinary prose. */
+export function GrillQuestionCard({ node, t, useChat }: GrillQuestionProps) {
   const labels = useMemo(() => markdownLabels(t), [t])
-  return (
-    <PromptBlock label={t('question.label')}>
-      <MarkdownText text={node.data.question} labels={labels} />
-    </PromptBlock>
-  )
+  const resolved = usePromptResolved(node.key, useChat)
+  const body = <MarkdownText text={node.data.question} labels={labels} />
+  return resolved
+    ? <div className={css.flow}>{body}</div>
+    : <PromptBlock label={t('question.label')}>{body}</PromptBlock>
 }
 
 /** Render one durable intake clarification at its chronological position. */
@@ -183,24 +212,24 @@ export function TeachStepCard({ node, t }: TeachStepProps) {
   )
 }
 
-/** Show a new practice question without the private specification or answer. */
-export function DrillQuestionCard({ node, t }: DrillQuestionProps) {
+/** Show a new practice question without the private specification or answer; an answered question flows inline. */
+export function DrillQuestionCard({ node, t, useChat }: DrillQuestionProps) {
   const labels = useMemo(() => markdownLabels(t), [t])
-  return (
-    <PromptBlock label={t('drill.question')}>
-      <MarkdownText text={node.data.question} labels={labels} />
-    </PromptBlock>
-  )
+  const resolved = usePromptResolved(node.key, useChat)
+  const body = <MarkdownText text={node.data.question} labels={labels} />
+  return resolved
+    ? <div className={css.flow}>{body}</div>
+    : <PromptBlock label={t('drill.question')}>{body}</PromptBlock>
 }
 
-/** Show a transcribed image answer for explicit learner review before judging. */
-export function DrillAnswerDraftCard({ node, t }: DrillAnswerDraftProps) {
+/** Show a transcribed image answer for explicit learner review before judging; a reviewed draft flows inline. */
+export function DrillAnswerDraftCard({ node, t, useChat }: DrillAnswerDraftProps) {
   const labels = useMemo(() => markdownLabels(t), [t])
-  return (
-    <PromptBlock label={t('drill.answerDraft')} hint={t('drill.answerDraftReview')}>
-      <MarkdownText text={node.data.text} labels={labels} />
-    </PromptBlock>
-  )
+  const resolved = usePromptResolved(node.key, useChat)
+  const body = <MarkdownText text={node.data.text} labels={labels} />
+  return resolved
+    ? <div className={css.flow}>{body}</div>
+    : <PromptBlock label={t('drill.answerDraft')} hint={t('drill.answerDraftReview')}>{body}</PromptBlock>
 }
 
 /** Show the recorded verdict and feedback after the learner has answered. */
