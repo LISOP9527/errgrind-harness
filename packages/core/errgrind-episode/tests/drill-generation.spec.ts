@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionEvent } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
@@ -148,6 +149,75 @@ describe('Isolated Drill Generation', () => {
     expect(result.error?.message).toContain('distinctive text')
     expect(called).toBe(false)
     expect(ctx.sessionProjections.stateOf(session, 'errgrindDrill')?.pendingSpec).toBeNull()
+
+    // Rejected before a specification persisted, the attempt still records a
+    // standalone failure marker for the browser's generation-failure card.
+    const finished = session.snapshotEvents().find(e => e.type === 'errgrind/drill-draft-finished')
+    expect(finished).toBeDefined()
+    if (finished?.type === 'errgrind/drill-draft-finished') {
+      expect(finished.data.status).toBe('failed')
+    }
+  })
+
+  it('records a failure marker for an invalid specification and for a Draft call that cannot start', async () => {
+    const { ctx, mockLlm } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-early-failures'))
+    const agent = createTestAgent(ctx, session)
+    setupCompletedEpisode(session)
+
+    const invalid = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-invalid'), name: 'drill_prepare', agent,
+      arguments: { ...validSpecArgs, taskGoal: '   ' },
+    })
+    expect(invalid.isError).toBe(true)
+    const markers = () => session.snapshotEvents().filter(
+      (e): e is SessionEvent<'errgrind/drill-draft-finished'> => e.type === 'errgrind/drill-draft-finished')
+    expect(markers()).toHaveLength(1)
+    expect(markers()[0]?.data.status).toBe('failed')
+
+    // The specification persists; the Draft call then fails to resolve, so the
+    // marker must reference the pending specification exactly.
+    mockLlm.resolveHandler = () => Promise.reject(new Error('config backend down'))
+    const unresolved = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-unresolved'), name: 'drill_prepare', agent,
+      arguments: validSpecArgs,
+    })
+    expect(unresolved.isError).toBe(true)
+    const pending = ctx.sessionProjections.stateOf(session, 'errgrindDrill')?.pendingSpec
+    expect(pending).not.toBeNull()
+    expect(markers()).toHaveLength(2)
+    expect(markers()[1]?.data.preparationId).toBe(pending?.id)
+    expect(markers()[1]?.data.status).toBe('failed')
+
+    // A stale pending anchor still settles against the retained specification.
+    const stale = ctx.sessions.create(SessionId('drill-stale-anchor'))
+    const staleAgent = createTestAgent(ctx, stale)
+    setupCompletedEpisode(stale)
+    stale.append('errgrind/drill-spec-prepared', {
+      id: 'stale-pending',
+      spec: {
+        targetMechanism: 'Align denominators', trigger: 'Unlike denominators',
+        failureBehavior: 'Added denominators directly', desiredBehavior: 'Use equal parts',
+        successSignal: 'Explains the common denominator', domain: 'fractions',
+        taskType: 'calculate', setting: 'arithmetic', taskGoal: 'Compute sum of fractions',
+        essentialTrigger: 'Different denominators', solutionStrategy: 'Find common denominator',
+        avoid: ['same denominators'], difficultyLevel: 1, reasoningDepth: 1, calculationLoad: 1,
+      },
+      sourceRevision: 99, sourceDiagnosisRound: 1, preparedAtTurn: 4,
+    })
+    const staleResult = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-stale'), name: 'drill_prepare', agent: staleAgent,
+      arguments: validSpecArgs,
+    })
+    expect(staleResult.isError).toBe(true)
+    const staleMarkers = stale.snapshotEvents().filter(
+      (e): e is SessionEvent<'errgrind/drill-draft-finished'> => e.type === 'errgrind/drill-draft-finished')
+    expect(staleMarkers).toHaveLength(1)
+    expect(staleMarkers[0]?.data.preparationId).toBe('stale-pending')
+    expect(staleMarkers[0]?.data.status).toBe('failed')
   })
 
   it('allows the mechanism to describe the original behavior while isolating the new problem', async () => {

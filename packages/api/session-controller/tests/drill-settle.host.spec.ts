@@ -23,6 +23,8 @@ interface Harness {
   episodes: Map<string, unknown>
   followups: Map<string, { count: number; kinds: string[] }>
   archiveAttempts: SessionId[]
+  renames: string[]
+  failRename: { value: boolean }
   workspaces: { id: string; path: string; sessionIds: SessionId[]; attachSession: (id: SessionId) => Promise<void> }[]
 }
 
@@ -57,6 +59,14 @@ async function harness(): Promise<Harness> {
     }),
   } as never)
   const followups = new Map<string, { count: number; kinds: string[] }>()
+  const renames: string[] = []
+  const failRename: Harness['failRename'] = { value: false }
+  ctx.provide('sessionTitle', {
+    rename: (_session: Session, title: string) => {
+      if (failRename.value) throw new Error('rename backend down')
+      renames.push(title)
+    },
+  } as never)
   const factory: AgentFactory = {
     async createAgent(_ownerCtx, options) {
       const session = ctx.sessions.create(
@@ -95,7 +105,7 @@ async function harness(): Promise<Harness> {
   }
   ctx.agents.setFactory(factory)
   createSessionTestController(ctx, defaults)
-  return { ctx, archives, archiveAttempts, failArchive, episodes, followups, workspaces }
+  return { ctx, archives, archiveAttempts, failArchive, episodes, followups, renames, failRename, workspaces }
 }
 
 function attempt(isCorrect: boolean): DrillAttempt {
@@ -322,7 +332,9 @@ describe('openDrill', () => {
     const second = await ctx.sessionController.openDrill({ sourceSessionId: source.id })
 
     expect(first.sessionId).toBe(drillSessionId(source.id, 0))
+    expect(first.index).toBe(0)
     expect(second.sessionId).toBe(drillSessionId(source.id, 1))
+    expect(second.index).toBe(1)
     const secondOpened = ctx.agents.get(second.sessionId)!.session.snapshotEvents()
     expect(secondOpened.filter(event => event.type === 'errgrind/drill-open')).toHaveLength(1)
   })
@@ -463,7 +475,7 @@ describe('openDerivedError', () => {
   })
 
   it('materializes the derived Error Session once and reuses it', async () => {
-    const { ctx, episodes, followups } = await harness()
+    const { ctx, episodes, followups, renames } = await harness()
     const source = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-source')))
     episodes.set(`${source.id}:errgrindDrill`, { attempts: [attempt(false)] })
     const derivedId = SessionId(`errgrind-derived-${createHash('sha256')
@@ -492,6 +504,20 @@ describe('openDerivedError', () => {
     expect(target!.session.snapshotEvents()
       .filter(event => event.type === 'errgrind/derived-error-open')).toHaveLength(1)
     expect(followups.get(derivedId)?.count).toBe(1)
+    // The derived Error gets a question-derived title instead of the session default.
+    expect(renames).toEqual(['新错误 · What is 3/4 + 1/8?', '新错误 · What is 3/4 + 1/8?'])
+  })
+
+  it('survives a sessionTitle rename failure on the derived Error', async () => {
+    const { ctx, episodes, failRename } = await harness()
+    const source = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-source')))
+    episodes.set(`${source.id}:errgrindDrill`, { attempts: [attempt(false)] })
+    failRename.value = true
+
+    const result = await ctx.sessionController.openDerivedError({
+      sourceSessionId: source.id, preparationId: 'prep-1',
+    })
+    expect(String(result.sessionId)).toContain('errgrind-derived-')
   })
 
   it('rejects a derived identity already claimed by another Episode kind', async () => {

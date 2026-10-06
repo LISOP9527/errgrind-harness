@@ -15,7 +15,7 @@ export interface ErrorHistoryInjected {
   /** Navigate to the selected existing Session. */
   readonly openSession: (sessionId: SessionId) => void
   /** Open the dedicated Drill Session and queue the learner-triggered practice; `title` is the localized Session title to pin. */
-  readonly practiceFromError: (sessionId: SessionId, title: string) => Promise<void>
+  readonly practiceFromError: (sessionId: SessionId, title: (index: number) => string) => Promise<void>
   /** Rename the Session's display title. */
   readonly renameSession: (sessionId: SessionId, title: string) => Promise<void>
   /** Archive the Session (the row then leaves this list). */
@@ -64,6 +64,8 @@ export function ErrorHistory({
     if (needle && !`${description} ${session.displayTitle}`.toLocaleLowerCase().includes(needle)) return []
     return [{ sessionId: id, description, episode, title: session.displayTitle, updatedAt: session.updatedAt }]
   }), [list, needle, archived])
+  // The header counts Errors; practice Sessions share the list but are not Errors.
+  const errorCount = useMemo(() => errors.filter(entry => entry.episode.kind !== 'drill').length, [errors])
   // A cold Session can lack a projection-cache hint. Keep it reachable so
   // opening it can reconstruct the authoritative Error state.
   const unclassified = useMemo(() => list.ids.flatMap((id) => {
@@ -217,7 +219,7 @@ export function ErrorHistory({
     <section className={css.root} aria-label={t('history.title')}>
       <header className={css.header}>
         <h2>{t('history.title')}</h2>
-        <span className={css.count} aria-label={t('history.count', { count: errors.length })}>{errors.length}</span>
+        <span className={css.count} aria-label={t('history.count', { count: errorCount })}>{errorCount}</span>
       </header>
       <label className={css.searchLabel}>
         <span>{t('history.searchLabel')}</span>
@@ -260,7 +262,8 @@ export function ErrorHistory({
                       sessionId,
                       () => practiceFromError(
                         sessionId,
-                        t('history.practiceSessionTitle', {
+                        (index) => t(index === 0 ? 'history.practiceSessionTitle' : 'history.practiceSessionTitleIndexed', {
+                          index: index + 1,
                           description: Array.from(description).slice(0, 40).join(''),
                         }),
                       ),

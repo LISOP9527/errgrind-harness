@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/core/errgrind-episode/README.md
-README.md: f65495635fb451723b3e34cb24fb7530a8d3b19b
-README.zh.md: f2d2cf37f6c14d21948ce62abe80bd96e0fe6593
+README.md: f0714a74c0a61bbaace41b155ddc88ebf03f5c91
+README.zh.md: 6c60f24f4ffb19ba7104b0140c59ba90371ecbe4

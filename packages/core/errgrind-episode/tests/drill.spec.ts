@@ -212,6 +212,31 @@ describe('Drill attempt boundary', () => {
     expect(state.answerSources.at(-1)?.text).toBe('5/6')
   })
 
+  it('accepts a standalone settlement marker while no specification is pending, but requires an exact match once one is', () => {
+    const session = Session.create(SessionId('drill-settlement-marker'))
+    const orphan = session.append('errgrind/drill-draft-finished', {
+      preparationId: 'rejected-attempt', status: 'failed',
+    })
+    const state = applyDrillEvent(initial(), orphan)
+    expect(state.pendingSpec).toBeNull()
+
+    const pendingState = applyDrillEvent(state, session.append('errgrind/drill-spec-prepared', {
+      id: 'pending-1',
+      spec: {
+        targetMechanism: 'Align denominators', trigger: 'Unlike denominators',
+        failureBehavior: 'Added denominators directly', desiredBehavior: 'Use equal parts',
+        successSignal: 'Explains the common denominator', domain: 'fractions',
+        taskType: 'calculate', setting: 'arithmetic', taskGoal: 'Compute sum of fractions',
+        essentialTrigger: 'Different denominators', solutionStrategy: 'Find common denominator',
+        avoid: ['same denominators'], difficultyLevel: 1, reasoningDepth: 1, calculationLoad: 1,
+      },
+      sourceRevision: 2, sourceDiagnosisRound: 1, preparedAtTurn: 4,
+    }))
+    expect(() => applyDrillEvent(pendingState, session.append('errgrind/drill-draft-finished', {
+      preparationId: 'unrelated-attempt', status: 'failed',
+    }))).toThrow('must reference the pending Drill specification')
+  })
+
   it('replays legacy preparations without requiring pendingSpec and rejects legacy replacement when pendingSpec exists', () => {
     const session = Session.create(SessionId('drill-legacy-replay'))
     const state = applyDrillEvent(initial(), session.append('errgrind/drill-prepared', preparation))

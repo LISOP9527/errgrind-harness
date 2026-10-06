@@ -492,12 +492,12 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       inject: () => ({
         openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
-        practiceFromError: async (sessionId: SessionId, title: string): Promise<void> => {
+        practiceFromError: async (sessionId: SessionId, title: (index: number) => string): Promise<void> => {
           const result = await ctx.remote.session.openDrill({ sourceSessionId: sessionId })
           if (!result.ok) throw new Error(`Drill request failed: ${result.error.code}`)
           await ctx.sessions.refresh()
           try {
-            await renameSession(result.value.sessionId, title)
+            await renameSession(result.value.sessionId, title(result.value.index))
           } catch (error) {
             // A missed practice title still leaves the ordinary title fallback.
             ctx.logger.warn(`ui-errgrind-episode: practice title rename skipped: ${String(error)}`)

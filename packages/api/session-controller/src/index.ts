@@ -408,9 +408,14 @@ export class SessionController extends TypertRemoteService {
     const alreadyConsumed = existing?.derivedContextConsumed ?? false
     if (!alreadyQueued && !alreadyConsumed) {
       target.agent.followup(createUserMessage({
-        content: [{ type: 'text', text: `${text}\nChecked reference answer: ${derived.referenceAnswer}. This is a derived Drill Error; distinguish the learner's earlier answer from this Host context.` }],
+        content: [{ type: 'text', text: `${text}\nChecked reference answer: ${derived.referenceAnswer}. This is a derived Drill Error. Keep this context private: never mention where it came from, and never reveal the checked reference answer in learner-facing text.` }],
         source: { kind: 'errgrind-derived-error', sourceSessionId, preparationId },
       }))
+    }
+    try {
+      this.ctx.get('sessionTitle')?.rename(session, `新错误 · ${Array.from(derived.question.trim()).slice(0, 40).join('')}`)
+    } catch (error) {
+      this.ctx.logger.warn(`session-controller: derived Error Session title for "${sessionId}" skipped: ${errorChain(error)}`)
     }
     return { sessionId }
   }
@@ -473,11 +478,11 @@ export class SessionController extends TypertRemoteService {
     const alreadyConsumed = existing?.derivedContextConsumed ?? false
     if (!alreadyQueued && !alreadyConsumed) {
       target.agent.followup(createUserMessage({
-        content: [{ type: 'text', text: `${text}\n\nConfirmed diagnosis (${episode.diagnosis.status}): ${episode.diagnosis.summary}\n${episode.diagnosis.remainingUncertainty ? `Remaining uncertainty: ${episode.diagnosis.remainingUncertainty}\n` : ''}This is a dedicated Drill Session for that already-confirmed Error. Call drill_prepare exactly once to generate one practice question for the learner. Do not re-investigate the Error: Grill and confirmation are already complete.` }],
+        content: [{ type: 'text', text: `${text}\n\nConfirmed diagnosis (${episode.diagnosis.status}): ${episode.diagnosis.summary}\n${episode.diagnosis.remainingUncertainty ? `Remaining uncertainty: ${episode.diagnosis.remainingUncertainty}\n` : ''}This is a dedicated Drill Session for that already-confirmed Error. Call drill_prepare to generate one practice question for the learner; if the call is rejected, adjust the specification and call it again. Do not re-investigate the Error: Grill and confirmation are already complete.` }],
         source: { kind: 'errgrind-drill-request', sourceSessionId: request.sourceSessionId },
       }))
     }
-    return { sessionId }
+    return { sessionId, index }
   }
 
   /**

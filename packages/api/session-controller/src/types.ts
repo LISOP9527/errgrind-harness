@@ -418,8 +418,8 @@ export interface DrillOpenRequest {
   readonly sourceSessionId: SessionId
 }
 
-/** Identity of the Drill Session created or adopted for this practice request. */
-export interface DrillOpenValue { readonly sessionId: SessionId }
+/** Identity and allocation index of the Drill Session created or adopted for this practice request. */
+export interface DrillOpenValue { readonly sessionId: SessionId; readonly index: number }
 
 /** Durable identity selecting an ordinary Session or one direct subagent child. */
 export type SessionAddress =

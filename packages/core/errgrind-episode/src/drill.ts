@@ -341,7 +341,11 @@ export function applyDrillEvent(state: DrillState, event: SessionEvent): DrillSt
       return state
     }
     case 'errgrind/drill-draft-finished': {
-      if (state.pendingSpec === null || state.pendingSpec.id !== event.data.preparationId) {
+      // Attempts rejected before a specification persisted still record their
+      // failure marker; with no pending specification any preparationId is a
+      // standalone record. Once a specification is staged, the marker must
+      // still reference it exactly.
+      if (state.pendingSpec !== null && state.pendingSpec.id !== event.data.preparationId) {
         throw new Error('Draft settlement must reference the pending Drill specification')
       }
       return state
@@ -548,228 +552,245 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
       const state = drillState(ctx, exec.agent.session)
       if (state.active !== null) throw new Error('Finish the current Drill first')
 
-      let pending: PendingDrillSpec
-      if (state.pendingSpec !== null) {
-        if (state.pendingSpec.sourceRevision !== episode.confirmedRevision
-          || state.pendingSpec.sourceDiagnosisRound !== episode.diagnosisRound) {
-          throw new Error('Pending Drill specification anchor is no longer current')
-        }
-        pending = state.pendingSpec
-      } else {
-        if (!Number.isInteger(args.difficultyLevel) || args.difficultyLevel < 1 || args.difficultyLevel > 5) {
-          throw new Error('Drill difficultyLevel must be an integer from 1 through 5')
-        }
-        if (!Number.isInteger(args.reasoningDepth) || args.reasoningDepth < 1 || args.reasoningDepth > 5) {
-          throw new Error('Drill reasoningDepth must be an integer from 1 through 5')
-        }
-        if (!Number.isInteger(args.calculationLoad) || args.calculationLoad < 1 || args.calculationLoad > 5) {
-          throw new Error('Drill calculationLoad must be an integer from 1 through 5')
-        }
-        if (!Array.isArray(args.avoid)) {
-          throw new Error('Drill avoid must be an array of strings')
-        }
-        const spec: DrillSpec = {
-          targetMechanism: bounded(args.targetMechanism, 'Target mechanism'),
-          trigger: bounded(args.trigger, 'Trigger'),
-          failureBehavior: bounded(args.failureBehavior, 'Failure behavior'),
-          desiredBehavior: bounded(args.desiredBehavior, 'Desired behavior'),
-          successSignal: bounded(args.successSignal, 'Success signal'),
-          domain: bounded(args.domain, 'Domain'),
-          taskType: args.taskType,
-          setting: bounded(args.setting, 'Setting'),
-          taskGoal: bounded(args.taskGoal, 'Task goal'),
-          essentialTrigger: bounded(args.essentialTrigger, 'Essential trigger'),
-          solutionStrategy: bounded(args.solutionStrategy, 'Solution strategy'),
-          avoid: args.avoid.map(item => bounded(item, 'Avoid item')),
-          difficultyLevel: args.difficultyLevel,
-          reasoningDepth: args.reasoningDepth,
-          calculationLoad: args.calculationLoad,
-        }
-        specSchema.parse(spec)
-        rejectSourceLeak(spec, `${episode.firstInput}\n${episode.draft?.text ?? ''}`)
-
-        pending = {
-          id: randomUUID(),
-          spec,
-          sourceRevision: episode.confirmedRevision,
-          sourceDiagnosisRound: episode.diagnosisRound,
-          preparedAtTurn: episode.latestTurn,
-        }
-        exec.agent.session.append('errgrind/drill-spec-prepared', pending)
-      }
-
-      const sessionId = exec.agent.session.id
-      if (inFlightSessions.has(sessionId)) {
-        throw new Error('Drill generation is already in progress for this session')
-      }
-      inFlightSessions.add(sessionId)
-
-      let lastFinishKind: string | undefined
-      try {
-        const llm = ctx.get('llm')
-        if (!llm) throw new Error('LLM service is unavailable')
-
-        const headerConfig = exec.agent.session.requestHeader()?.config
-        const agentOptions = exec.agent.options
-        const selectedProvider = headerConfig?.provider ?? agentOptions.provider
-        const selectedModel = headerConfig?.model ?? agentOptions.model
-        const selectedReasoningEffort = headerConfig?.reasoningEffort ?? agentOptions.reasoningEffort
-
-        if (!selectedProvider || !selectedModel) {
-          throw new Error('No provider or model available for Drill generation')
-        }
-
-        const requestedConfig: LlmCallConfig = {
-          provider: selectedProvider,
-          model: selectedModel,
-          ...(selectedReasoningEffort !== undefined ? { reasoningEffort: selectedReasoningEffort } : {}),
-        }
-
-        const effectiveConfig = await llm.resolveCallConfig(requestedConfig, exec.signal)
-
-        const systemPrompt = toolPrompts.drillDraftPrompt
-        exec.agent.session.append('errgrind/drill-draft-requested', {
-          preparationId: pending.id,
-          prompt: systemPrompt,
-          spec: pending.spec,
-          config: effectiveConfig,
+      const agentSession = exec.agent.session
+      const sessionId = agentSession.id
+      let pending: PendingDrillSpec | undefined
+      let draftSettled = false
+      // Every rejected attempt still leaves a settlement marker so the browser
+      // renders the generation-failure card instead of a silently empty turn.
+      // Attempts rejected before their specification persisted mint an
+      // unattached marker; the fold admits it only while nothing is pending.
+      const settleDraft = (status: DrillDraftStatus, usage?: TokenUsage): void => {
+        if (draftSettled) return
+        draftSettled = true
+        agentSession.append('errgrind/drill-draft-finished', {
+          preparationId: pending?.id ?? state.pendingSpec?.id ?? randomUUID(),
+          status,
+          ...(usage === undefined ? {} : { usage }),
         })
+      }
 
-        const options: GenerateOptions = {
-          provider: effectiveConfig.provider,
-          model: effectiveConfig.model,
-          ...(effectiveConfig.reasoningEffort !== undefined ? { reasoningEffort: effectiveConfig.reasoningEffort } : {}),
-          ...(effectiveConfig.temperature !== undefined ? { temperature: effectiveConfig.temperature } : {}),
-          ...(effectiveConfig.maxTokens !== undefined ? { maxTokens: effectiveConfig.maxTokens } : {}),
-          ...(effectiveConfig.stop !== undefined ? { stop: effectiveConfig.stop } : {}),
-          system: systemPrompt,
-          messages: [
-            Object.freeze({
-              role: 'user' as const,
-              content: Object.freeze([{ type: 'text' as const, text: JSON.stringify(pending.spec) }]),
-            }),
-          ],
-          signal: exec.signal,
+      try {
+        if (state.pendingSpec !== null) {
+          if (state.pendingSpec.sourceRevision !== episode.confirmedRevision
+            || state.pendingSpec.sourceDiagnosisRound !== episode.diagnosisRound) {
+            throw new Error('Pending Drill specification anchor is no longer current')
+          }
+          pending = state.pendingSpec
+        } else {
+          if (!Number.isInteger(args.difficultyLevel) || args.difficultyLevel < 1 || args.difficultyLevel > 5) {
+            throw new Error('Drill difficultyLevel must be an integer from 1 through 5')
+          }
+          if (!Number.isInteger(args.reasoningDepth) || args.reasoningDepth < 1 || args.reasoningDepth > 5) {
+            throw new Error('Drill reasoningDepth must be an integer from 1 through 5')
+          }
+          if (!Number.isInteger(args.calculationLoad) || args.calculationLoad < 1 || args.calculationLoad > 5) {
+            throw new Error('Drill calculationLoad must be an integer from 1 through 5')
+          }
+          if (!Array.isArray(args.avoid)) {
+            throw new Error('Drill avoid must be an array of strings')
+          }
+          const spec: DrillSpec = {
+            targetMechanism: bounded(args.targetMechanism, 'Target mechanism'),
+            trigger: bounded(args.trigger, 'Trigger'),
+            failureBehavior: bounded(args.failureBehavior, 'Failure behavior'),
+            desiredBehavior: bounded(args.desiredBehavior, 'Desired behavior'),
+            successSignal: bounded(args.successSignal, 'Success signal'),
+            domain: bounded(args.domain, 'Domain'),
+            taskType: args.taskType,
+            setting: bounded(args.setting, 'Setting'),
+            taskGoal: bounded(args.taskGoal, 'Task goal'),
+            essentialTrigger: bounded(args.essentialTrigger, 'Essential trigger'),
+            solutionStrategy: bounded(args.solutionStrategy, 'Solution strategy'),
+            avoid: args.avoid.map(item => bounded(item, 'Avoid item')),
+            difficultyLevel: args.difficultyLevel,
+            reasoningDepth: args.reasoningDepth,
+            calculationLoad: args.calculationLoad,
+          }
+          specSchema.parse(spec)
+          rejectSourceLeak(spec, `${episode.firstInput}\n${episode.draft?.text ?? ''}`)
+
+          pending = {
+            id: randomUUID(),
+            spec,
+            sourceRevision: episode.confirmedRevision,
+            sourceDiagnosisRound: episode.diagnosisRound,
+            preparedAtTurn: episode.latestTurn,
+          }
+          exec.agent.session.append('errgrind/drill-spec-prepared', pending)
         }
 
-        const assembler = new BlockAssembler()
-        let hasFinishChunk = false
-        let draftStatus: DrillDraftStatus = 'failed'
-        let parsedQuestion: string | undefined
-        let parsedReferenceAnswer: string | undefined
+        if (inFlightSessions.has(sessionId)) {
+          throw new Error('Drill generation is already in progress for this session')
+        }
+        inFlightSessions.add(sessionId)
 
+        let lastFinishKind: string | undefined
         try {
-          for await (const chunk of llm.stream(options)) {
-            if (chunk.type === 'finish') {
-              hasFinishChunk = true
-            }
-            assembler.push(chunk)
+          const llm = ctx.get('llm')
+          if (!llm) throw new Error('LLM service is unavailable')
+
+          const headerConfig = exec.agent.session.requestHeader()?.config
+          const agentOptions = exec.agent.options
+          const selectedProvider = headerConfig?.provider ?? agentOptions.provider
+          const selectedModel = headerConfig?.model ?? agentOptions.model
+          const selectedReasoningEffort = headerConfig?.reasoningEffort ?? agentOptions.reasoningEffort
+
+          if (!selectedProvider || !selectedModel) {
+            throw new Error('No provider or model available for Drill generation')
           }
 
-          lastFinishKind = assembler.finish.kind
-
-          if (exec.signal.aborted) {
-            draftStatus = 'aborted'
-            throw new Error('Aborted')
+          const requestedConfig: LlmCallConfig = {
+            provider: selectedProvider,
+            model: selectedModel,
+            ...(selectedReasoningEffort !== undefined ? { reasoningEffort: selectedReasoningEffort } : {}),
           }
 
-          if (!hasFinishChunk) {
-            draftStatus = 'failed'
-            throw new Error('Absent finish chunk')
-          }
+          const effectiveConfig = await llm.resolveCallConfig(requestedConfig, exec.signal)
 
-          if (assembler.finish.kind === 'aborted') {
-            draftStatus = 'aborted'
-            throw new Error('Stream aborted')
-          }
-
-          if (assembler.finish.kind !== 'stop') {
-            draftStatus = 'failed'
-            throw new Error(`Invalid finish reason: ${assembler.finish.kind}`)
-          }
-
-          const blocks = assembler.blocks()
-          if (blocks.some(b => b.type === 'tool-call')) {
-            draftStatus = 'failed'
-            throw new Error('Model produced tool calls')
-          }
-
-          const text = blocks.filter(b => b.type === 'text').map(b => b.text).join('').trim()
-          if (text.length === 0) {
-            draftStatus = 'failed'
-            throw new Error('Empty model output')
-          }
-
-          let rawJson: unknown
-          try {
-            rawJson = JSON.parse(text)
-          } catch {
-            draftStatus = 'failed'
-            throw new Error('Malformed JSON output')
-          }
-
-          const parsedResult = draftResponseSchema.safeParse(rawJson)
-          if (!parsedResult.success) {
-            draftStatus = 'failed'
-            throw new Error('Output does not match required schema')
-          }
-
-          parsedQuestion = bounded(parsedResult.data.question, 'Drill question')
-          parsedReferenceAnswer = bounded(parsedResult.data.referenceAnswer, 'Reference answer')
-          draftStatus = 'success'
-        } catch (err) {
-          if (exec.signal.aborted || (err instanceof Error && err.name === 'AbortError')) {
-            draftStatus = 'aborted'
-          }
-          throw err
-        } finally {
-          exec.agent.session.append('errgrind/drill-draft-finished', {
+          const systemPrompt = toolPrompts.drillDraftPrompt
+          exec.agent.session.append('errgrind/drill-draft-requested', {
             preparationId: pending.id,
-            status: draftStatus,
-            ...(assembler.usage !== undefined ? { usage: assembler.usage } : {}),
+            prompt: systemPrompt,
+            spec: pending.spec,
+            config: effectiveConfig,
           })
+
+          const options: GenerateOptions = {
+            provider: effectiveConfig.provider,
+            model: effectiveConfig.model,
+            ...(effectiveConfig.reasoningEffort !== undefined ? { reasoningEffort: effectiveConfig.reasoningEffort } : {}),
+            ...(effectiveConfig.temperature !== undefined ? { temperature: effectiveConfig.temperature } : {}),
+            ...(effectiveConfig.maxTokens !== undefined ? { maxTokens: effectiveConfig.maxTokens } : {}),
+            ...(effectiveConfig.stop !== undefined ? { stop: effectiveConfig.stop } : {}),
+            system: systemPrompt,
+            messages: [
+              Object.freeze({
+                role: 'user' as const,
+                content: Object.freeze([{ type: 'text' as const, text: JSON.stringify(pending.spec) }]),
+              }),
+            ],
+            signal: exec.signal,
+          }
+
+          const assembler = new BlockAssembler()
+          let hasFinishChunk = false
+          let draftStatus: DrillDraftStatus = 'failed'
+          let parsedQuestion: string | undefined
+          let parsedReferenceAnswer: string | undefined
+
+          try {
+            for await (const chunk of llm.stream(options)) {
+              if (chunk.type === 'finish') {
+                hasFinishChunk = true
+              }
+              assembler.push(chunk)
+            }
+
+            lastFinishKind = assembler.finish.kind
+
+            if (exec.signal.aborted) {
+              draftStatus = 'aborted'
+              throw new Error('Aborted')
+            }
+
+            if (!hasFinishChunk) {
+              draftStatus = 'failed'
+              throw new Error('Absent finish chunk')
+            }
+
+            if (assembler.finish.kind === 'aborted') {
+              draftStatus = 'aborted'
+              throw new Error('Stream aborted')
+            }
+
+            if (assembler.finish.kind !== 'stop') {
+              draftStatus = 'failed'
+              throw new Error(`Invalid finish reason: ${assembler.finish.kind}`)
+            }
+
+            const blocks = assembler.blocks()
+            if (blocks.some(b => b.type === 'tool-call')) {
+              draftStatus = 'failed'
+              throw new Error('Model produced tool calls')
+            }
+
+            const text = blocks.filter(b => b.type === 'text').map(b => b.text).join('').trim()
+            if (text.length === 0) {
+              draftStatus = 'failed'
+              throw new Error('Empty model output')
+            }
+
+            let rawJson: unknown
+            try {
+              rawJson = JSON.parse(text)
+            } catch {
+              draftStatus = 'failed'
+              throw new Error('Malformed JSON output')
+            }
+
+            const parsedResult = draftResponseSchema.safeParse(rawJson)
+            if (!parsedResult.success) {
+              draftStatus = 'failed'
+              throw new Error('Output does not match required schema')
+            }
+
+            parsedQuestion = bounded(parsedResult.data.question, 'Drill question')
+            parsedReferenceAnswer = bounded(parsedResult.data.referenceAnswer, 'Reference answer')
+            draftStatus = 'success'
+          } catch (err) {
+            if (exec.signal.aborted || (err instanceof Error && err.name === 'AbortError')) {
+              draftStatus = 'aborted'
+            }
+            throw err
+          } finally {
+            settleDraft(draftStatus, assembler.usage)
+          }
+
+          exec.signal.throwIfAborted()
+
+          const currentEpisodeState = ctx.sessionProjections.stateOf(exec.agent.session, 'errgrindEpisode')
+          if (currentEpisodeState === undefined || currentEpisodeState === null
+            || currentEpisodeState.diagnosis.status === 'active'
+            || currentEpisodeState.diagnosis.stale
+            || currentEpisodeState.confirmedRevision === null
+            || currentEpisodeState.confirmedRevision !== pending.sourceRevision
+            || currentEpisodeState.diagnosisRound !== pending.sourceDiagnosisRound) {
+            throw new Error('诊断锚点已变更，练习题生成终止。练习规格已保留。')
+          }
+
+          const prepared: DrillPreparation = {
+            id: pending.id,
+            spec: pending.spec,
+            question: parsedQuestion,
+            referenceAnswer: parsedReferenceAnswer,
+            sourceRevision: pending.sourceRevision,
+            sourceDiagnosisRound: pending.sourceDiagnosisRound,
+            preparedAtTurn: currentEpisodeState.latestTurn,
+            draftProvider: effectiveConfig.provider,
+            draftModel: effectiveConfig.model,
+            ...(assembler.usage !== undefined ? { draftUsage: assembler.usage } : {}),
+          }
+          exec.agent.session.append('errgrind/drill-prepared', prepared)
+
+          return { question: parsedQuestion }
+        } catch (err) {
+          if (lastFinishKind === 'aborted' || exec.signal.aborted || (err instanceof Error && err.name === 'AbortError')) {
+            throw new Error('练习题生成已取消。练习规格已保留，可再次调用 drill_prepare 恢复生成。')
+          }
+          if (err instanceof Error && err.message.startsWith('诊断锚点已变更')) {
+            throw err
+          }
+          if (lastFinishKind === 'max-tokens' || (err instanceof Error && err.message.includes('截断'))) {
+            throw new Error('练习题生成因长度超限截断失败。练习规格已保留，请再次调用 drill_prepare 重试。')
+          }
+          throw new Error('练习题生成失败，练习规格已保留。请再次调用 drill_prepare 重试。')
+        } finally {
+          inFlightSessions.delete(sessionId)
         }
-
-        exec.signal.throwIfAborted()
-
-        const currentEpisodeState = ctx.sessionProjections.stateOf(exec.agent.session, 'errgrindEpisode')
-        if (currentEpisodeState === undefined || currentEpisodeState === null
-          || currentEpisodeState.diagnosis.status === 'active'
-          || currentEpisodeState.diagnosis.stale
-          || currentEpisodeState.confirmedRevision === null
-          || currentEpisodeState.confirmedRevision !== pending.sourceRevision
-          || currentEpisodeState.diagnosisRound !== pending.sourceDiagnosisRound) {
-          throw new Error('诊断锚点已变更，练习题生成终止。练习规格已保留。')
-        }
-
-        const prepared: DrillPreparation = {
-          id: pending.id,
-          spec: pending.spec,
-          question: parsedQuestion,
-          referenceAnswer: parsedReferenceAnswer,
-          sourceRevision: pending.sourceRevision,
-          sourceDiagnosisRound: pending.sourceDiagnosisRound,
-          preparedAtTurn: currentEpisodeState.latestTurn,
-          draftProvider: effectiveConfig.provider,
-          draftModel: effectiveConfig.model,
-          ...(assembler.usage !== undefined ? { draftUsage: assembler.usage } : {}),
-        }
-        exec.agent.session.append('errgrind/drill-prepared', prepared)
-
-        return { question: parsedQuestion }
       } catch (err) {
-        if (lastFinishKind === 'aborted' || exec.signal.aborted || (err instanceof Error && err.name === 'AbortError')) {
-          throw new Error('练习题生成已取消。练习规格已保留，可再次调用 drill_prepare 恢复生成。')
-        }
-        if (err instanceof Error && err.message.startsWith('诊断锚点已变更')) {
-          throw err
-        }
-        if (lastFinishKind === 'max-tokens' || (err instanceof Error && err.message.includes('截断'))) {
-          throw new Error('练习题生成因长度超限截断失败。练习规格已保留，请再次调用 drill_prepare 重试。')
-        }
-        throw new Error('练习题生成失败，练习规格已保留。请再次调用 drill_prepare 重试。')
-      } finally {
-        inFlightSessions.delete(sessionId)
+        settleDraft('failed')
+        throw err
       }
     },
     presentCall: () => ({ card: 'generic', title: 'Drill Question', kind: 'other' }),

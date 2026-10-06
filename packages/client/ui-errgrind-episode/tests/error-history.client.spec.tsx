@@ -61,8 +61,11 @@ describe('ErrGrind Error history', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Practice from this Error' }))
     await waitFor(() => {
-      expect(input.practiceFromError).toHaveBeenCalledWith(second, 'Practice · 忘记检查定义域')
+      expect(input.practiceFromError).toHaveBeenCalledWith(second, expect.any(Function))
     })
+    const title = vi.mocked(input.practiceFromError).mock.calls[0]![1]
+    expect(title(0)).toBe('Practice · 忘记检查定义域')
+    expect(title(1)).toBe('Practice 2 · 忘记检查定义域')
     expect(input.practiceFromError).not.toHaveBeenCalledWith(first, expect.anything())
   })
 
@@ -73,6 +76,8 @@ describe('ErrGrind Error history', () => {
     expect(drillCard?.textContent).toContain('Practice')
     expect(within(drillCard as HTMLElement).queryByRole('button', { name: 'Practice from this Error' })).toBeNull()
     expect(screen.getAllByRole('button', { name: 'Archive' })).toHaveLength(1)
+    // The header counts Errors; practice Sessions share the list but are not Errors.
+    expect(document.querySelector('[class*="count"]')?.textContent).toBe('2')
 
     fireEvent.click(screen.getByRole('button', { name: 'Archive' }))
     await waitFor(() => { expect(input.archiveSession).toHaveBeenCalledWith(drillSession) })
