@@ -823,7 +823,7 @@ inspect( sessionId: SessionId, signal?: AbortSignal, ): Promise<SessionInspectio
 /**
  * Open a dedicated Drill Session for one confirmed Error.
  * @param request - Source Session whose concluded diagnosis seeds the practice.
- * @returns The new Drill Session identity; each Error spawns sessions in index order.
+ * @returns the Drill Session identity, its allocation index, and whether this call materialized it.
  */
 @Remote('openDrill') async openDrill(request: DrillOpenRequest): Promise<DrillOpenValue>
 

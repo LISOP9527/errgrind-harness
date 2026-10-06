@@ -554,6 +554,11 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
 
       const agentSession = exec.agent.session
       const sessionId = agentSession.id
+      // A duplicate call while generation runs is a rejection, not a failed
+      // attempt: it must not mint a failure marker.
+      if (inFlightSessions.has(sessionId)) {
+        throw new Error('Drill generation is already in progress for this session')
+      }
       let pending: PendingDrillSpec | undefined
       let draftSettled = false
       // Every rejected attempt still leaves a settlement marker so the browser
@@ -620,9 +625,6 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
           exec.agent.session.append('errgrind/drill-spec-prepared', pending)
         }
 
-        if (inFlightSessions.has(sessionId)) {
-          throw new Error('Drill generation is already in progress for this session')
-        }
         inFlightSessions.add(sessionId)
 
         let lastFinishKind: string | undefined
@@ -789,7 +791,7 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
           inFlightSessions.delete(sessionId)
         }
       } catch (err) {
-        settleDraft('failed')
+        settleDraft(exec.signal.aborted ? 'aborted' : 'failed')
         throw err
       }
     },

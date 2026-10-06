@@ -402,6 +402,13 @@ export class SessionController extends TypertRemoteService {
         question: derived.question, userResponse: derived.userResponse,
         referenceAnswer: derived.referenceAnswer,
       })
+      // First materialization only: a later open must not re-pin the title
+      // over a learner's own rename.
+      try {
+        this.ctx.get('sessionTitle')?.rename(session, `新错误 · ${Array.from(derived.question.trim()).slice(0, 40).join('')}`)
+      } catch (error) {
+        this.ctx.logger.warn(`session-controller: derived Error Session title for "${sessionId}" skipped: ${errorChain(error)}`)
+      }
     }
     const alreadyQueued = [...target.agent.inbox.nextTurn, ...target.agent.inbox.nextStep]
       .some(message => message.source.kind === 'errgrind-derived-error')
@@ -412,18 +419,13 @@ export class SessionController extends TypertRemoteService {
         source: { kind: 'errgrind-derived-error', sourceSessionId, preparationId },
       }))
     }
-    try {
-      this.ctx.get('sessionTitle')?.rename(session, `新错误 · ${Array.from(derived.question.trim()).slice(0, 40).join('')}`)
-    } catch (error) {
-      this.ctx.logger.warn(`session-controller: derived Error Session title for "${sessionId}" skipped: ${errorChain(error)}`)
-    }
     return { sessionId }
   }
 
   /**
    * Open a dedicated Drill Session for one confirmed Error.
    * @param request - Source Session whose concluded diagnosis seeds the practice.
-   * @returns The new Drill Session identity; each Error spawns sessions in index order.
+   * @returns the Drill Session identity, its allocation index, and whether this call materialized it.
    */
   @Remote('openDrill')
   async openDrill(request: DrillOpenRequest): Promise<DrillOpenValue> {
@@ -478,11 +480,11 @@ export class SessionController extends TypertRemoteService {
     const alreadyConsumed = existing?.derivedContextConsumed ?? false
     if (!alreadyQueued && !alreadyConsumed) {
       target.agent.followup(createUserMessage({
-        content: [{ type: 'text', text: `${text}\n\nConfirmed diagnosis (${episode.diagnosis.status}): ${episode.diagnosis.summary}\n${episode.diagnosis.remainingUncertainty ? `Remaining uncertainty: ${episode.diagnosis.remainingUncertainty}\n` : ''}This is a dedicated Drill Session for that already-confirmed Error. Call drill_prepare to generate one practice question for the learner; if the call is rejected, adjust the specification and call it again. Do not re-investigate the Error: Grill and confirmation are already complete.` }],
+        content: [{ type: 'text', text: `${text}\n\nConfirmed diagnosis (${episode.diagnosis.status}): ${episode.diagnosis.summary}\n${episode.diagnosis.remainingUncertainty ? `Remaining uncertainty: ${episode.diagnosis.remainingUncertainty}\n` : ''}This is a dedicated Drill Session for that already-confirmed Error. Call drill_prepare to generate one practice question for the learner; if the call fails, call drill_prepare again to retry. Do not re-investigate the Error: Grill and confirmation are already complete.` }],
         source: { kind: 'errgrind-drill-request', sourceSessionId: request.sourceSessionId },
       }))
     }
-    return { sessionId, index }
+    return { sessionId, index, created: existing == null }
   }
 
   /**

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import SessionStore, { Session, SessionId } from '@deepseek-ai/dsh-session'
@@ -218,6 +218,83 @@ describe('Isolated Drill Generation', () => {
     expect(staleMarkers).toHaveLength(1)
     expect(staleMarkers[0]?.data.preparationId).toBe('stale-pending')
     expect(staleMarkers[0]?.data.status).toBe('failed')
+  })
+
+  it('rejects a second call during an in-flight Draft without recording a marker', async () => {
+    const { ctx, mockLlm } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-in-flight'))
+    const agent = createTestAgent(ctx, session)
+    setupCompletedEpisode(session)
+
+    let resolveEntered = false
+    let releaseResolve!: () => void
+    mockLlm.resolveHandler = (config: LlmCallConfig) => new Promise<LlmCallConfig>((resolve) => {
+      resolveEntered = true
+      releaseResolve = () => { resolve(config) }
+    })
+    const first = ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-in-flight-first'), name: 'drill_prepare', agent,
+      arguments: validSpecArgs,
+    })
+    await vi.waitFor(() => { expect(resolveEntered).toBe(true) })
+
+    const second = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-in-flight-second'), name: 'drill_prepare', agent,
+      arguments: validSpecArgs,
+    })
+    expect(second.isError).toBe(true)
+    expect(second.error?.message).toContain('already in progress')
+    const markers = () => session.snapshotEvents().filter(
+      (e): e is SessionEvent<'errgrind/drill-draft-finished'> => e.type === 'errgrind/drill-draft-finished')
+    // The duplicate is a rejection, not a failed attempt: no marker yet.
+    expect(markers()).toHaveLength(0)
+
+    mockLlm.streamHandler = async function* () {
+      const answer = JSON.stringify({ question: '计算 2/3 + 1/4', referenceAnswer: '11/12' })
+      yield { type: 'block-start' as const, index: 0, blockType: 'text' as const }
+      yield { type: 'text-delta' as const, index: 0, text: answer }
+      yield { type: 'block-end' as const, index: 0, block: { type: 'text' as const, text: answer } }
+      yield { type: 'finish' as const, reason: { kind: 'stop' as const } }
+    }
+    releaseResolve()
+    const firstResult = await first
+    expect(firstResult.isError).toBe(false)
+    expect(markers()).toHaveLength(1)
+    expect(markers()[0]?.data.status).toBe('success')
+  })
+
+  it('marks an attempt aborted when the call signal is cancelled mid-flight', async () => {
+    const { ctx, mockLlm } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-aborted-mid-flight'))
+    const agent = createTestAgent(ctx, session)
+    setupCompletedEpisode(session)
+
+    let resolveEntered = false
+    let rejectResolve!: (error: Error) => void
+    mockLlm.resolveHandler = () => new Promise<LlmCallConfig>((_resolve, reject) => {
+      resolveEntered = true
+      rejectResolve = reject
+    })
+    const controller = new AbortController()
+    const first = ctx.tools.execute({
+      signal: controller.signal,
+      callId: ToolCallId('call-aborted-mid-flight'), name: 'drill_prepare', agent,
+      arguments: validSpecArgs,
+    })
+    await vi.waitFor(() => { expect(resolveEntered).toBe(true) })
+    controller.abort()
+    rejectResolve(new Error('config backend gone'))
+
+    const result = await first
+    expect(result.isError).toBe(true)
+    const finished = () => session.snapshotEvents().find(e => e.type === 'errgrind/drill-draft-finished')
+    await vi.waitFor(() => { expect(finished()).toBeDefined() })
+    const marker = finished()
+    if (marker?.type === 'errgrind/drill-draft-finished') {
+      expect(marker.data.status).toBe('aborted')
+    }
   })
 
   it('allows the mechanism to describe the original behavior while isolating the new problem', async () => {

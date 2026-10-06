@@ -1823,7 +1823,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: '@Remote(\'openDrill\') async openDrill(request: DrillOpenRequest): Promise<DrillOpenValue>',
         description: 'Open a dedicated Drill Session for one confirmed Error.',
         parameters: [{ name: 'request', description: 'Source Session whose concluded diagnosis seeds the practice.' }],
-        returns: 'The new Drill Session identity; each Error spawns sessions in index order.',
+        returns: 'the Drill Session identity, its allocation index, and whether this call materialized it.',
       },
       {
         signature: '@Remote(\'selectModel\') selectModel(request: SessionSelectModelRequest): Promise<SessionSelectModelValue>',
@@ -4899,7 +4899,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'DrillOpenValue',
-    declaration: 'export interface DrillOpenValue {\n    readonly sessionId: SessionId;\n    readonly index: number;\n}',
+    declaration: 'export interface DrillOpenValue {\n    readonly sessionId: SessionId;\n    readonly index: number;\n    readonly created: boolean;\n}',
   },
   {
     name: 'DshEnvironment',

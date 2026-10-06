@@ -333,8 +333,10 @@ describe('openDrill', () => {
 
     expect(first.sessionId).toBe(drillSessionId(source.id, 0))
     expect(first.index).toBe(0)
+    expect(first.created).toBe(true)
     expect(second.sessionId).toBe(drillSessionId(source.id, 1))
     expect(second.index).toBe(1)
+    expect(second.created).toBe(true)
     const secondOpened = ctx.agents.get(second.sessionId)!.session.snapshotEvents()
     expect(secondOpened.filter(event => event.type === 'errgrind/drill-open')).toHaveLength(1)
   })
@@ -352,6 +354,7 @@ describe('openDrill', () => {
     const result = await ctx.sessionController.openDrill({ sourceSessionId: source.id })
 
     expect(result.sessionId).toBe(expectedId)
+    expect(result.created).toBe(false)
     expect(ctx.agents.get(expectedId)!.session.snapshotEvents()
       .filter(event => event.type === 'errgrind/drill-open')).toHaveLength(0)
     expect(followups.get(expectedId)?.kinds).toEqual(['errgrind-drill-request'])
@@ -504,8 +507,9 @@ describe('openDerivedError', () => {
     expect(target!.session.snapshotEvents()
       .filter(event => event.type === 'errgrind/derived-error-open')).toHaveLength(1)
     expect(followups.get(derivedId)?.count).toBe(1)
-    // The derived Error gets a question-derived title instead of the session default.
-    expect(renames).toEqual(['新错误 · What is 3/4 + 1/8?', '新错误 · What is 3/4 + 1/8?'])
+    // The derived Error gets a question-derived title once, on first
+    // materialization; a later open must not re-pin over a learner's rename.
+    expect(renames).toEqual(['新错误 · What is 3/4 + 1/8?'])
   })
 
   it('survives a sessionTitle rename failure on the derived Error', async () => {

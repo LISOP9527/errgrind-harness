@@ -496,11 +496,15 @@ export function apply(ctx: ClientContext): void {
           const result = await ctx.remote.session.openDrill({ sourceSessionId: sessionId })
           if (!result.ok) throw new Error(`Drill request failed: ${result.error.code}`)
           await ctx.sessions.refresh()
-          try {
-            await renameSession(result.value.sessionId, title(result.value.index))
-          } catch (error) {
-            // A missed practice title still leaves the ordinary title fallback.
-            ctx.logger.warn(`ui-errgrind-episode: practice title rename skipped: ${String(error)}`)
+          // Pin the practice title on first materialization only; an adopted
+          // Session may carry a learner's own rename.
+          if (result.value.created) {
+            try {
+              await renameSession(result.value.sessionId, title(result.value.index))
+            } catch (error) {
+              // A missed practice title still leaves the ordinary title fallback.
+              ctx.logger.warn(`ui-errgrind-episode: practice title rename skipped: ${String(error)}`)
+            }
           }
           ctx.uiWorkspace.openSession(result.value.sessionId)
         },
