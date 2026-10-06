@@ -25,6 +25,7 @@ const MESSAGE_TYPES = ['user/message', 'assistant/message'] as const
 
 function startsVisibleConversation(event: SessionEvent): boolean {
   return event.type === 'turn/start' || event.type === 'errgrind/derived-error-open'
+    || event.type === 'errgrind/drill-open'
 }
 
 const sessionListMetadataSchema: z.ZodType<SessionListMetadata> = z.object({

@@ -199,16 +199,17 @@ export class SessionController extends TypertRemoteService {
       }
     }
     ctx.on('agent/created', publishAgentAvailability)
-    ctx.on('agent/disposed', publishAgentAvailability)
+    ctx.on('agent/disposed', ({ agent }) => {
+      publishAgentAvailability({ agent })
+      // A parked Agent emits no further idle transition; its Session is
+      // already quiesced, so a pending Drill archive settles here.
+      this.attemptPendingDrillArchive(agent.id)
+    })
     ctx.on('agent/status', ({ agent, status }) => {
       ctx.emit('api-session/status', agent.id, status === 'running')
       // A Drill Session judged correct while its turn still runs is archived
       // here once the Agent goes idle; the verdict event is already durable.
-      if (status === 'running' || !this.pendingDrillArchives.has(agent.id)) return
-      this.pendingDrillArchives.delete(agent.id)
-      void this.ctx.workspaceRegistry.archiveSession(agent.id).catch((error: unknown) => {
-        this.ctx.logger.error(`session-controller: Drill Session archive for "${agent.id}" failed: ${errorChain(error)}`)
-      })
+      if (status !== 'running') this.attemptPendingDrillArchive(agent.id)
     })
     ctx.on('agent/error', ({ agent, error }) => {
       ctx.emit('api-session/error', agent.id, errorChain(error))
@@ -246,7 +247,7 @@ export class SessionController extends TypertRemoteService {
     void task.finally(() => { this.promotions.delete(task) })
   }
 
-  /** Drill Sessions judged correct archive once their turn settles (agent/status retry). */
+  /** Drill Sessions judged correct while running archive on the next idle transition or Agent disposal. */
   private readonly pendingDrillArchives = new Set<SessionId>()
 
   /**
@@ -267,6 +268,22 @@ export class SessionController extends TypertRemoteService {
       if (!(error instanceof WorkspaceActiveSessionError)) throw error
       this.pendingDrillArchives.add(session.id)
     }
+  }
+
+  /**
+   * Attempt the deferred archive of one Drill Session; keep its pending entry
+   * when the Session is still active so a later idle transition retries.
+   * @param sessionId - Drill Session awaiting its turn-final archive.
+   */
+  private attemptPendingDrillArchive(sessionId: SessionId): void {
+    if (!this.pendingDrillArchives.delete(sessionId)) return
+    void this.ctx.workspaceRegistry.archiveSession(sessionId).catch((error: unknown) => {
+      if (error instanceof WorkspaceActiveSessionError) {
+        this.pendingDrillArchives.add(sessionId)
+        return
+      }
+      this.ctx.logger.error(`session-controller: Drill Session archive for "${sessionId}" failed: ${errorChain(error)}`)
+    })
   }
 
   /**
@@ -339,16 +356,7 @@ export class SessionController extends TypertRemoteService {
    */
   @Remote('openDerivedError')
   async openDerivedError(request: DerivedErrorOpenRequest): Promise<DerivedErrorOpenValue> {
-    const source = await this.resolveAgent(request.sourceSessionId)
-    if ('error' in source) throw source.error
-    const drill = this.ctx.sessionProjections.stateOf(source.agent.session, 'errgrindDrill')
-    const attempt = drill?.attempts.find(item => item.preparationId === request.preparationId)
-    if (attempt === undefined || attempt.derivedError === null) {
-      throw new RemoteError('gateway/bad-request', 'No incorrect Drill attempt matches this request', {})
-    }
-    await this.materializeDerivedError(request.sourceSessionId, request.preparationId)
-    return { sessionId: SessionId(`errgrind-derived-${createHash('sha256')
-      .update(`${request.sourceSessionId}\0${request.preparationId}`).digest('hex').slice(0, 32)}`) }
+    return this.materializeDerivedError(request.sourceSessionId, request.preparationId)
   }
 
   /**
@@ -468,11 +476,6 @@ export class SessionController extends TypertRemoteService {
         content: [{ type: 'text', text: `${text}\n\nConfirmed diagnosis (${episode.diagnosis.status}): ${episode.diagnosis.summary}\n${episode.diagnosis.remainingUncertainty ? `Remaining uncertainty: ${episode.diagnosis.remainingUncertainty}\n` : ''}This is a dedicated Drill Session for that already-confirmed Error. Call drill_prepare exactly once to generate one practice question for the learner. Do not re-investigate the Error: Grill and confirmation are already complete.` }],
         source: { kind: 'errgrind-drill-request', sourceSessionId: request.sourceSessionId },
       }))
-    }
-    try {
-      this.ctx.get('sessionTitle')?.rename(session, `练习 · ${Array.from(episode.draft.text.trim()).slice(0, 40).join('')}`)
-    } catch (error) {
-      this.ctx.logger.warn(`session-controller: Drill Session title for "${sessionId}" skipped: ${errorChain(error)}`)
     }
     return { sessionId }
   }

@@ -22,8 +22,7 @@ interface Harness {
   failArchive: { value: 'active' | 'generic' | false }
   episodes: Map<string, unknown>
   followups: Map<string, { count: number; kinds: string[] }>
-  renames: string[]
-  failRename: { value: boolean }
+  archiveAttempts: SessionId[]
   workspaces: { id: string; path: string; sessionIds: SessionId[]; attachSession: (id: SessionId) => Promise<void> }[]
 }
 
@@ -41,6 +40,7 @@ async function harness(): Promise<Harness> {
   vi.spyOn(ctx.sessionProjections, 'stateOf').mockImplementation(((session: Session, key: keyof SessionProjectionStateMap) =>
     episodes.has(`${session.id}:${key}`) ? episodes.get(`${session.id}:${key}`) : readState(session, key)) as never)
   const archives: SessionId[] = []
+  const archiveAttempts: SessionId[] = []
   const failArchive: Harness['failArchive'] = { value: false }
   const workspaces: Harness['workspaces'] = []
   ctx.provide('workspaceRegistry', {
@@ -48,6 +48,7 @@ async function harness(): Promise<Harness> {
     list: () => workspaces,
     get: (id: string) => workspaces.find(workspace => workspace.id === id),
     archiveSession: vi.fn(async (sessionId: SessionId) => {
+      archiveAttempts.push(sessionId)
       const failure = failArchive.value
       failArchive.value = false
       if (failure === 'active') throw new WorkspaceActiveSessionError(sessionId, [])
@@ -56,14 +57,6 @@ async function harness(): Promise<Harness> {
     }),
   } as never)
   const followups = new Map<string, { count: number; kinds: string[] }>()
-  const renames: string[] = []
-  const failRename: Harness['failRename'] = { value: false }
-  ctx.provide('sessionTitle', {
-    rename: (_session: Session, title: string) => {
-      if (failRename.value) throw new Error('rename backend down')
-      renames.push(title)
-    },
-  } as never)
   const factory: AgentFactory = {
     async createAgent(_ownerCtx, options) {
       const session = ctx.sessions.create(
@@ -102,7 +95,7 @@ async function harness(): Promise<Harness> {
   }
   ctx.agents.setFactory(factory)
   createSessionTestController(ctx, defaults)
-  return { ctx, archives, failArchive, episodes, followups, renames, failRename, workspaces }
+  return { ctx, archives, archiveAttempts, failArchive, episodes, followups, workspaces }
 }
 
 function attempt(isCorrect: boolean): DrillAttempt {
@@ -196,6 +189,56 @@ describe('Drill Session settle', () => {
     ctx.emit('agent/status', { agent: failing, status: 'idle' })
     expect(archives).toEqual([])
   })
+
+  it('keeps the pending archive when a retry still finds the Session active', async () => {
+    const { ctx, archives, archiveAttempts, failArchive, episodes } = await harness()
+    const drill = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-stuck')))
+    episodes.set(`${drill.id}:errgrindEpisode`, { origin: { kind: 'drill' } })
+    failArchive.value = 'active'
+    drill.session.append('errgrind/drill-judged', attempt(true))
+    await vi.waitFor(() => { expect(archiveAttempts).toHaveLength(1) })
+
+    failArchive.value = 'active'
+    ctx.emit('agent/status', { agent: drill, status: 'idle' })
+    await vi.waitFor(() => { expect(archiveAttempts).toHaveLength(2) })
+    expect(archives).toEqual([])
+    await Promise.resolve()
+
+    ctx.emit('agent/status', { agent: drill, status: 'idle' })
+    await vi.waitFor(() => { expect(archives).toEqual([drill.id]) })
+  })
+
+  it('drops the pending archive and logs when a retry fails for another reason', async () => {
+    const { ctx, archives, archiveAttempts, failArchive, episodes } = await harness()
+    const loggerError = vi.spyOn(ctx.logger, 'error')
+    const drill = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-flaky')))
+    episodes.set(`${drill.id}:errgrindEpisode`, { origin: { kind: 'drill' } })
+    failArchive.value = 'active'
+    drill.session.append('errgrind/drill-judged', attempt(true))
+    await vi.waitFor(() => { expect(archiveAttempts).toHaveLength(1) })
+
+    failArchive.value = 'generic'
+    ctx.emit('agent/status', { agent: drill, status: 'idle' })
+    await vi.waitFor(() => { expect(loggerError).toHaveBeenCalledOnce() })
+    expect(archiveAttempts).toHaveLength(2)
+    expect(archives).toEqual([])
+
+    ctx.emit('agent/status', { agent: drill, status: 'idle' })
+    await Promise.resolve()
+    expect(archiveAttempts).toHaveLength(2)
+  })
+
+  it('archives a pending Drill Session when its Agent is disposed', async () => {
+    const { ctx, archives, archiveAttempts, failArchive, episodes } = await harness()
+    const drill = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-parked')))
+    episodes.set(`${drill.id}:errgrindEpisode`, { origin: { kind: 'drill' } })
+    failArchive.value = 'active'
+    drill.session.append('errgrind/drill-judged', attempt(true))
+    await vi.waitFor(() => { expect(archiveAttempts).toHaveLength(1) })
+
+    ctx.emit('agent/disposed', { agent: drill })
+    await vi.waitFor(() => { expect(archives).toEqual([drill.id]) })
+  })
 })
 
 /** The confirmed-Error projection state that satisfies the Drill gate. */
@@ -247,7 +290,7 @@ describe('openDrill', () => {
   })
 
   it('creates a Drill Session, seeds the episode, and wakes it with a followup', async () => {
-    const { ctx, episodes, followups, renames } = await harness()
+    const { ctx, episodes, followups } = await harness()
     const source = await liveAgent(ctx, ctx.sessions.create(SessionId('error-source')))
     episodes.set(`${source.id}:errgrindEpisode`, {
       ...confirmedEpisode() as Record<string, unknown>,
@@ -268,7 +311,6 @@ describe('openDrill', () => {
       && event.data.sourceSessionId === source.id
       && event.data.sourceRevision === 1)).toBe(true)
     expect(followups.get(expectedId)?.kinds).toEqual(['errgrind-drill-request'])
-    expect(renames).toEqual(['练习 · added numerators'])
   })
 
   it('allocates the next deterministic index for a second Drill', async () => {
@@ -285,14 +327,22 @@ describe('openDrill', () => {
     expect(secondOpened.filter(event => event.type === 'errgrind/drill-open')).toHaveLength(1)
   })
 
-  it('survives a sessionTitle rename failure', async () => {
-    const { ctx, episodes, failRename } = await harness()
+  it('queues the kickoff on a reused Drill Session whose earlier run never queued', async () => {
+    const { ctx, episodes, followups } = await harness()
     const source = await liveAgent(ctx, ctx.sessions.create(SessionId('error-source')))
     episodes.set(`${source.id}:errgrindEpisode`, confirmedEpisode())
-    failRename.value = true
+    const expectedId = drillSessionId(source.id, 0)
+    episodes.set(`${expectedId}:errgrindEpisode`, {
+      origin: { kind: 'drill', sourceSessionId: source.id },
+      derivedContextConsumed: false,
+    })
 
     const result = await ctx.sessionController.openDrill({ sourceSessionId: source.id })
-    expect(result.sessionId).toBe(drillSessionId(source.id, 0))
+
+    expect(result.sessionId).toBe(expectedId)
+    expect(ctx.agents.get(expectedId)!.session.snapshotEvents()
+      .filter(event => event.type === 'errgrind/drill-open')).toHaveLength(0)
+    expect(followups.get(expectedId)?.kinds).toEqual(['errgrind-drill-request'])
   })
 
   it('skips the kickoff when the projected Episode already consumed it', async () => {

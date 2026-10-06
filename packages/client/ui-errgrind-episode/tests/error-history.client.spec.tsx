@@ -34,7 +34,8 @@ function props(): ErrorHistoryProps {
       [unrelated]: { displayTitle: 'unrelated', updatedAt: 1_000, projectionValues: { errgrindEpisode: null } },
     },
   }
-  const translate = (key: ErrGrindKey): string => en[key]
+  const translate = (key: ErrGrindKey, params?: Record<string, string | number>): string =>
+    en[key].replace(/\{(\w+)\}/g, (match, name: string) => String(params?.[name] ?? match))
   return {
     wide: true,
     expandSidebar: vi.fn(),
@@ -59,8 +60,10 @@ describe('ErrGrind Error history', () => {
     expect(screen.getAllByRole('button', { name: 'Practice from this Error' })).toHaveLength(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'Practice from this Error' }))
-    await waitFor(() => { expect(input.practiceFromError).toHaveBeenCalledWith(second) })
-    expect(input.practiceFromError).not.toHaveBeenCalledWith(first)
+    await waitFor(() => {
+      expect(input.practiceFromError).toHaveBeenCalledWith(second, 'Practice · 忘记检查定义域')
+    })
+    expect(input.practiceFromError).not.toHaveBeenCalledWith(first, expect.anything())
   })
 
   it('labels Drill Sessions as practice and gates archiving to them', async () => {

@@ -14,8 +14,8 @@ import css from './ErrorHistory.module.css'
 export interface ErrorHistoryInjected {
   /** Navigate to the selected existing Session. */
   readonly openSession: (sessionId: SessionId) => void
-  /** Open the existing Error Session and queue the learner-triggered Drill request. */
-  readonly practiceFromError: (sessionId: SessionId) => Promise<void>
+  /** Open the dedicated Drill Session and queue the learner-triggered practice; `title` is the localized Session title to pin. */
+  readonly practiceFromError: (sessionId: SessionId, title: string) => Promise<void>
   /** Rename the Session's display title. */
   readonly renameSession: (sessionId: SessionId, title: string) => Promise<void>
   /** Archive the Session (the row then leaves this list). */
@@ -258,7 +258,12 @@ export function ErrorHistory({
                   onClick={() => {
                     void runCardAction(
                       sessionId,
-                      () => practiceFromError(sessionId),
+                      () => practiceFromError(
+                        sessionId,
+                        t('history.practiceSessionTitle', {
+                          description: Array.from(description).slice(0, 40).join(''),
+                        }),
+                      ),
                       t('history.practiceQueued'),
                       t('history.practiceFailed'),
                     )

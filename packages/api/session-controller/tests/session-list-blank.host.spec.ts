@@ -17,6 +17,7 @@ import { CommandId } from '@deepseek-ai/dsh-commands/brand'
 // Side-effect type imports: the configuration-event SessionEventMap merges.
 import type {} from '@deepseek-ai/dsh-permission-presets'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
+import type {} from '@errgrind/episode'
 import { createSessionTestRemote, type TestSessionRemote } from './test-remote.ts'
 
 async function harness(): Promise<{ ctx: Context; remote: TestSessionRemote; attach: (session: Session) => Promise<void> }> {
@@ -69,6 +70,23 @@ describe('summary blank = conversation not started', () => {
     await attach(session)
     appendStandalone(session)
     session.append('turn/start', { turn: 0 })
+    expect(await listBlank(remote, session.id)).toBe(false)
+  })
+
+  it('a dedicated episode-open event clears blank because the Session opens into content', async () => {
+    const { ctx, remote, attach } = await harness()
+    const session = ctx.sessions.create()
+    await attach(session)
+    session.append('errgrind/drill-open', {
+      text: 'Practice target: confirmed Error description (revision 1):\nadded numerators',
+      sourceSessionId: 'error-source',
+      sourceRevision: 1,
+      description: 'added numerators',
+      diagnosisStatus: 'undetermined',
+      diagnosisSummary: 'diag',
+      remainingUncertainty: '',
+      whatWouldChangeJudgment: '',
+    })
     expect(await listBlank(remote, session.id)).toBe(false)
   })
 })

@@ -477,34 +477,42 @@ export function apply(ctx: ClientContext): void {
       'error.sessionInUse': 'This Error is open elsewhere. Close the other window or app using it, then try again.',
     },
   }), 'ui-errgrind-episode: composer copy')
-  ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({
-    name: 'sidebar.workspaces',
-    priority: -100,
-    locale: NS,
-    inject: () => ({
-      openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
-      practiceFromError: async (sessionId: SessionId): Promise<void> => {
-        const result = await ctx.remote.session.openDrill({ sourceSessionId: sessionId })
-        if (!result.ok) throw new Error(`Drill request failed: ${result.error.code}`)
-        await ctx.sessions.refresh()
-        ctx.uiWorkspace.openSession(result.value.sessionId)
-      },
-      renameSession: async (sessionId: SessionId, title: string): Promise<void> => {
-        const result = await ctx.sessions.using(
-          sessionId,
-          { source: 'workspaceOperation' },
-          reference => reference.binding.session.rename(title),
-        )
-        if (!result.ok) throw new Error(result.error.message)
-      },
-      archiveSession: async (sessionId: SessionId): Promise<void> => {
-        await ctx.uiWorkspace.archiveSession(sessionId)
-      },
-      unarchiveSession: async (sessionId: SessionId): Promise<void> => {
-        await ctx.uiWorkspace.unarchiveSession(sessionId)
-      },
-    }),
-  }, ErrorHistory))
+  ctx.slots.inject('sidebar.workspaces', () => {
+    const renameSession = async (sessionId: SessionId, title: string): Promise<void> => {
+      const result = await ctx.sessions.using(
+        sessionId,
+        { source: 'workspaceOperation' },
+        reference => reference.binding.session.rename(title),
+      )
+      if (!result.ok) throw new Error(result.error.message)
+    }
+    return ctx.slots.register({
+      name: 'sidebar.workspaces',
+      priority: -100,
+      locale: NS,
+      inject: () => ({
+        openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
+        practiceFromError: async (sessionId: SessionId, title: string): Promise<void> => {
+          const result = await ctx.remote.session.openDrill({ sourceSessionId: sessionId })
+          if (!result.ok) throw new Error(`Drill request failed: ${result.error.code}`)
+          await ctx.sessions.refresh()
+          try {
+            await renameSession(result.value.sessionId, title)
+          } catch {
+            // A missed practice title still leaves the ordinary title fallback.
+          }
+          ctx.uiWorkspace.openSession(result.value.sessionId)
+        },
+        renameSession,
+        archiveSession: async (sessionId: SessionId): Promise<void> => {
+          await ctx.uiWorkspace.archiveSession(sessionId)
+        },
+        unarchiveSession: async (sessionId: SessionId): Promise<void> => {
+          await ctx.uiWorkspace.unarchiveSession(sessionId)
+        },
+      }),
+    }, ErrorHistory)
+  })
   ctx.effect(() => ctx.uiConversation.events.register(episodeDefinition), 'ui-errgrind-episode: Error card')
   ctx.effect(() => ctx.uiConversation.events.register(diagnosisDefinition), 'ui-errgrind-episode: diagnosis conclusions')
   ctx.effect(() => ctx.uiConversation.events.register(questionDefinition), 'ui-errgrind-episode: Grill questions')
