@@ -498,8 +498,9 @@ export function apply(ctx: ClientContext): void {
           await ctx.sessions.refresh()
           try {
             await renameSession(result.value.sessionId, title)
-          } catch {
+          } catch (error) {
             // A missed practice title still leaves the ordinary title fallback.
+            ctx.logger.warn(`ui-errgrind-episode: practice title rename skipped: ${String(error)}`)
           }
           ctx.uiWorkspace.openSession(result.value.sessionId)
         },
