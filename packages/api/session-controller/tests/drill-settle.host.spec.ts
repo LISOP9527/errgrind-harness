@@ -25,6 +25,7 @@ interface Harness {
   archiveAttempts: SessionId[]
   renames: string[]
   failRename: { value: boolean }
+  standingTitleKind: { value: 'user' | 'fallback' | 'provider' | null }
   workspaces: { id: string; path: string; sessionIds: SessionId[]; attachSession: (id: SessionId) => Promise<void> }[]
 }
 
@@ -61,7 +62,11 @@ async function harness(): Promise<Harness> {
   const followups = new Map<string, { count: number; kinds: string[] }>()
   const renames: string[] = []
   const failRename: Harness['failRename'] = { value: false }
+  const standingTitleKind: Harness['standingTitleKind'] = { value: null }
   ctx.provide('sessionTitle', {
+    get: (_session: Session) => (standingTitleKind.value === null
+      ? undefined
+      : { title: 'standing', seq: 1, messageSeqs: [], source: { kind: standingTitleKind.value } }),
     rename: (_session: Session, title: string) => {
       if (failRename.value) throw new Error('rename backend down')
       renames.push(title)
@@ -105,7 +110,7 @@ async function harness(): Promise<Harness> {
   }
   ctx.agents.setFactory(factory)
   createSessionTestController(ctx, defaults)
-  return { ctx, archives, archiveAttempts, failArchive, episodes, followups, renames, failRename, workspaces }
+  return { ctx, archives, archiveAttempts, failArchive, episodes, followups, renames, failRename, standingTitleKind, workspaces }
 }
 
 function attempt(isCorrect: boolean): DrillAttempt {
@@ -478,7 +483,7 @@ describe('openDerivedError', () => {
   })
 
   it('materializes the derived Error Session once and reuses it', async () => {
-    const { ctx, episodes, followups, renames } = await harness()
+    const { ctx, episodes, followups, renames, standingTitleKind } = await harness()
     const source = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-source')))
     episodes.set(`${source.id}:errgrindDrill`, { attempts: [attempt(false)] })
     const derivedId = SessionId(`errgrind-derived-${createHash('sha256')
@@ -495,11 +500,12 @@ describe('openDerivedError', () => {
     expect(followups.get(derivedId)?.kinds).toEqual(['errgrind-derived-error'])
 
     // A repeat request on a live derived Episode keeps one open event and does
-    // not queue a second kickoff.
+    // not queue a second kickoff. The first pin landed a 'user'-sourced title.
     episodes.set(`${derivedId}:errgrindEpisode`, {
       origin: { kind: 'derived_drill', sourceSessionId: source.id, sourcePreparationId: 'prep-1' },
       derivedContextConsumed: false,
     })
+    standingTitleKind.value = 'user'
     const again = await ctx.sessionController.openDerivedError({
       sourceSessionId: source.id, preparationId: 'prep-1',
     })
@@ -507,9 +513,16 @@ describe('openDerivedError', () => {
     expect(target!.session.snapshotEvents()
       .filter(event => event.type === 'errgrind/derived-error-open')).toHaveLength(1)
     expect(followups.get(derivedId)?.count).toBe(1)
-    // The derived Error gets a question-derived title once, on first
-    // materialization; a later open must not re-pin over a learner's rename.
+    // A 'user'-sourced title is a pin: re-opens must not rename over it.
     expect(renames).toEqual(['新错误 · What is 3/4 + 1/8?'])
+
+    // A generated standing title takes the pin again, healing Sessions
+    // materialized before the pin existed.
+    standingTitleKind.value = 'fallback'
+    await ctx.sessionController.openDerivedError({
+      sourceSessionId: source.id, preparationId: 'prep-1',
+    })
+    expect(renames).toEqual(['新错误 · What is 3/4 + 1/8?', '新错误 · What is 3/4 + 1/8?'])
   })
 
   it('survives a sessionTitle rename failure on the derived Error', async () => {

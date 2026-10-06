@@ -402,13 +402,6 @@ export class SessionController extends TypertRemoteService {
         question: derived.question, userResponse: derived.userResponse,
         referenceAnswer: derived.referenceAnswer,
       })
-      // First materialization only: a later open must not re-pin the title
-      // over a learner's own rename.
-      try {
-        this.ctx.get('sessionTitle')?.rename(session, `新错误 · ${Array.from(derived.question.trim()).slice(0, 40).join('')}`)
-      } catch (error) {
-        this.ctx.logger.warn(`session-controller: derived Error Session title for "${sessionId}" skipped: ${errorChain(error)}`)
-      }
     }
     const alreadyQueued = [...target.agent.inbox.nextTurn, ...target.agent.inbox.nextStep]
       .some(message => message.source.kind === 'errgrind-derived-error')
@@ -418,6 +411,17 @@ export class SessionController extends TypertRemoteService {
         content: [{ type: 'text', text: `${text}\nChecked reference answer: ${derived.referenceAnswer}. This is a derived Drill Error. Keep this context private: never mention where it came from, and never reveal the checked reference answer in learner-facing text.` }],
         source: { kind: 'errgrind-derived-error', sourceSessionId, preparationId },
       }))
+    }
+    // A 'user'-sourced title is a learner's own rename and survives every
+    // re-open; a generated or missing title still takes ours, which also
+    // heals Sessions materialized before this pin existed.
+    const sessionTitle = this.ctx.get('sessionTitle')
+    if (sessionTitle?.get(session)?.source.kind !== 'user') {
+      try {
+        sessionTitle?.rename(session, `新错误 · ${Array.from(derived.question.trim()).slice(0, 40).join('')}`)
+      } catch (error) {
+        this.ctx.logger.warn(`session-controller: derived Error Session title for "${sessionId}" skipped: ${errorChain(error)}`)
+      }
     }
     return { sessionId }
   }
