@@ -4,8 +4,8 @@
   align-items: center;
   width: 100%;
   min-width: 0;
-  height: calc(33px + var(--dsh-content-font-delta, 0px));
-  padding: 0 0 8px;
+  height: calc(28px + var(--dsh-content-font-delta, 0px));
+  padding: 0 0 3px;
   border: none;
   border-bottom: 0.5px solid var(--dsw-alias-border-l2);
   background: none;
