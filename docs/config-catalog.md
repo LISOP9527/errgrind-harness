@@ -252,7 +252,7 @@ export interface BrowserViewPolicy {
 }
 ```
 
-Source: [`packages/api/session-controller/src/index.ts:84`](../packages/api/session-controller/src/index.ts)
+Source: [`packages/api/session-controller/src/index.ts:87`](../packages/api/session-controller/src/index.ts)
 
 <a id="deepseek-aidsh-api-settings-controller"></a>
 

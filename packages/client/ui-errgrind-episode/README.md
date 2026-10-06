@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@errgrind/ui-errgrind-episode` shows Error history in the sidebar and renders Error, Grill, Teach, and Drill content in the conversation. Learners can reopen, rename, archive, restore, or open a dedicated Drill Session from a completed Error. Model-authored content (Teach steps, verdicts, conclusions) renders as ordinary assistant Markdown; prompts awaiting input keep a light frame. The Error card shows only the description and confirmation status; the Grill conclusion flows as an ordinary message, and a clarification it restates is not repeated. Confirmation calls `/error-confirm <revision>`. A composer-dock model-onboarding card appears while a blank Error has no provider.
+`@errgrind/ui-errgrind-episode` shows Error history in the sidebar and renders Error, Grill, Teach, and Drill content in the conversation. Learners can reopen, rename, restore, or open a dedicated Drill Session from a completed Error; only Drill rows offer archive. Model-authored content (Teach steps, verdicts, conclusions) renders as ordinary assistant Markdown; prompts awaiting input keep a light frame. The Error card shows only the description and confirmation status; the Grill conclusion flows as an ordinary message, and a clarification it restates is not repeated. Confirmation calls `/error-confirm <revision>`. A composer-dock model-onboarding card appears while a blank Error has no provider.
 
 ## Table of Contents
 
@@ -29,11 +29,11 @@ The package is a browser-only plugin. A Web profile mounts `@errgrind/ui-errgrin
 <a id="privacy-boundary"></a>
 ## Privacy boundary
 
-The Client assembles cards from public Session events. History reads only the narrow `errgrindEpisode` wire view containing a bounded public description excerpt, stage, and Drill eligibility; the private Host fold remains inaccessible. Sessions with no cached classification remain openable for reconstruction. The Host must configure `session-controller.browserView` to allow only approved projection keys and event fields, keeping private events, assistant streams, tool arguments, and attachment storage references out of browser responses. Image and file thumbnails use Session event-position locators resolved by the Host.
+The Client assembles cards from public Session events. History reads only the narrow `errgrindEpisode` wire view containing a bounded public description excerpt, stage, Drill eligibility, and the row kind (Error or Drill); the private Host fold remains inaccessible. Sessions with no cached classification remain openable for reconstruction. The Host must configure `session-controller.browserView` to allow only approved projection keys and event fields, keeping private events, assistant streams, tool arguments, and attachment storage references out of browser responses. Image and file thumbnails use Session event-position locators resolved by the Host.
 
 ## Model Experience
 
-None, as the package renders Session state and queues only the user's own revision confirmation and Drill requests; the Host plugins own every model-facing event.
+None, as the package renders Session state and queues only the user's own revision confirmation; Practice opens a dedicated Drill Session through `session.openDrill`, and the Host plugins own every model-facing event.
 
 #### KV Cache effect
 

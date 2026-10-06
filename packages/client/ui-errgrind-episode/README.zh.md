@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现 Error、Grill、Teach 与 Drill 内容。学习者可以重新打开、重命名、归档、恢复一条 Error，或针对已完成的 Error 打开独立的 Drill 会话。模型产出的内容（Teach 步骤、判分与结论）按普通 assistant Markdown 渲染，仅等待输入的提示保留轻量边框。Error 卡片只显示描述与确认状态；Grill 结论按普通消息呈现，被其复述的澄清不再重复。确认操作调用 `/error-confirm <revision>`。空白 Error 没有可用 provider 时，composer dock 会显示模型引导卡片。
+`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现 Error、Grill、Teach 与 Drill 内容。学习者可以重新打开、重命名、恢复，或针对已完成的 Error 打开独立的 Drill 会话；仅 Drill 行提供归档。模型产出的内容（Teach 步骤、判分与结论）按普通 assistant Markdown 渲染，仅等待输入的提示保留轻量边框。Error 卡片只显示描述与确认状态；Grill 结论按普通消息呈现，被其复述的澄清不再重复。确认操作调用 `/error-confirm <revision>`。空白 Error 没有可用 provider 时，composer dock 会显示模型引导卡片。
 
 ## 目录
 
@@ -29,12 +29,12 @@ kind: "package-reference"
 <a id="privacy-boundary"></a>
 ## 隐私边界
 
-Client 从公开 Session 事件组装卡片。历史只读取狭义的 `errgrindEpisode` 浏览器视图，其中包含有长度上限的公开描述摘录、阶段和能否出 Drill；私有的 Host 折叠状态不可读取。缺少缓存分类的旧会话仍可打开并重建。Host 必须配置 `session-controller.browserView`，只允许已批准的投影键和事件字段，并确保私有事件、assistant stream、工具参数和附件存储引用不会进入浏览器响应。图片与文件缩略图使用由 Host 解析的 Session 事件位置标识。
+Client 从公开 Session 事件组装卡片。历史只读取狭义的 `errgrindEpisode` 浏览器视图，其中包含有长度上限的公开描述摘录、阶段、能否出 Drill 与行类型（Error 或 Drill）；私有的 Host 折叠状态不可读取。缺少缓存分类的旧会话仍可打开并重建。Host 必须配置 `session-controller.browserView`，只允许已批准的投影键和事件字段，并确保私有事件、assistant stream、工具参数和附件存储引用不会进入浏览器响应。图片与文件缩略图使用由 Host 解析的 Session 事件位置标识。
 
 <a id="model-experience"></a>
 ## 模型体验
 
-无。本包渲染 Session 状态，且仅排入用户自己的修订确认与 Drill 请求；面向模型的全部事件由 Host 插件负责。
+无。本包渲染 Session 状态，且仅排入用户自己的修订确认；Practice 经 `session.openDrill` 打开独立的 Drill 会话，面向模型的全部事件由 Host 插件负责。
 
 #### KV 缓存影响
 
