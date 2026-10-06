@@ -82,8 +82,9 @@
   --dsh-chat-flow-gap: 8px;
 }
 
-/* A settled tail row captions the content above it, not the next message. */
-.flowItem[data-chat-flow-kind="turn-process"] {
+/* A settled tail row captions the content that follows it: keep the full
+   gap above it and tighten the gap to its own turn output. */
+.flowItem[data-chat-flow-kind="turn-process"] + .flowItem {
   --dsh-chat-flow-gap: 4px;
 }
 
