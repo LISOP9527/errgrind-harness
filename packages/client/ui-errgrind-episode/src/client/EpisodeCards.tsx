@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { UseChat } from '@deepseek-ai/dsh-client-ui-chat/client'
+import type { ChatNodeDataMap, UseChat } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
 import css from './EpisodeCards.module.css'
@@ -104,6 +104,30 @@ function usePromptResolved(key: string, useChat: UseChat): boolean {
   })
 }
 
+/** Whitespace-insensitive containment between two model prose fragments. */
+function proseCovers(outer: string, inner: string): boolean {
+  const normalize = (value: string) => value.replace(/\s+/g, ' ').trim()
+  const needle = normalize(inner)
+  return needle !== '' && normalize(outer).includes(needle)
+}
+
+/**
+ * Whether a later diagnosis already states this clarification's text: an
+ * intake note restated verbatim by the conclusion is model output absorbed
+ * into the final answer, so the earlier row hides instead of repeating it.
+ */
+function useAbsorbedByDiagnosis(key: string, text: string, useChat: UseChat): boolean {
+  return useChat((snapshot) => {
+    const index = snapshot.order.indexOf(key)
+    for (const laterKey of index < 0 ? [] : snapshot.order.slice(index + 1)) {
+      const later = snapshot.nodes.get(laterKey)
+      if (later?.kind === 'errgrind-diagnosis'
+        && proseCovers((later.data as ChatNodeDataMap['errgrind-diagnosis']).summary, text)) return true
+    }
+    return false
+  })
+}
+
 /** Render the Error description alone; the diagnosis outcome flows as an ordinary message. */
 export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
   const [pending, setPending] = useState(false)
@@ -183,14 +207,17 @@ export function GrillQuestionCard({ node, t, useChat }: GrillQuestionProps) {
     : <PromptBlock label={t('question.label')}>{body}</PromptBlock>
 }
 
-/** Render one durable intake clarification at its chronological position. */
-export function IntakeClarificationCard({ node, t }: IntakeClarificationProps) {
+/** Render one durable intake clarification: pending asks keep the prompt
+ * frame, past ones flow, and text the conclusion restated is not repeated. */
+export function IntakeClarificationCard({ node, t, useChat }: IntakeClarificationProps) {
   const labels = useMemo(() => markdownLabels(t), [t])
-  return (
-    <PromptBlock label={t('clarification.label')}>
-      <MarkdownText text={node.data.text} labels={labels} />
-    </PromptBlock>
-  )
+  const resolved = usePromptResolved(node.key, useChat)
+  const absorbed = useAbsorbedByDiagnosis(node.key, node.data.text, useChat)
+  if (absorbed) return null
+  const body = <MarkdownText text={node.data.text} labels={labels} />
+  return resolved
+    ? <div className={css.flow}>{body}</div>
+    : <PromptBlock label={t('clarification.label')}>{body}</PromptBlock>
 }
 
 /** Render one public Teach step as ordinary agent prose — no card chrome. */

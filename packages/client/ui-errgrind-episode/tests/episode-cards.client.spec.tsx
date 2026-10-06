@@ -630,6 +630,67 @@ describe('Prompt card resolution framing', () => {
     expect(screen.getByText(en['drill.answerDraft'])).toBeTruthy()
     expect(screen.getByText(en['drill.answerDraftReview'])).toBeTruthy()
   })
+
+  it('frames a pending clarification and flattens it once the flow moves on', () => {
+    const pending = createChatNode('errgrind-intake-clarification', { text: 'Which step came first?', turn: 1 })
+    const { unmount } = render(
+      <IntakeClarificationCard node={pending} t={tEn} {...chatNodeOwner}
+        useChat={chatWith([pending.key], [pending])} />,
+    )
+    expect(screen.getByText(en['clarification.label'])).toBeTruthy()
+    unmount()
+
+    const resolved = createChatNode('errgrind-intake-clarification', { text: 'Which step came first?', turn: 1 })
+    const later = createChatNode('errgrind-teach-step', { kind: 'hint', text: 'A later hint.' })
+    render(
+      <IntakeClarificationCard node={resolved} t={tEn} {...chatNodeOwner}
+        useChat={chatWith([resolved.key, later.key], [resolved, later])} />,
+    )
+    expect(screen.queryByText(en['clarification.label'])).toBeNull()
+    expect(screen.getByText('Which step came first?')).toBeTruthy()
+  })
+
+  it('hides a clarification the conclusion restates and keeps one it does not cover', () => {
+    const restated = createChatNode('errgrind-intake-clarification', {
+      text: 'Evidence cannot separate the two explanations yet.', turn: 1,
+    })
+    const absorbedBy = diagnosisNode({
+      summary: 'Evidence cannot separate the two explanations yet. One more finding follows.',
+      remainingUncertainty: null,
+    })
+    render(
+      <IntakeClarificationCard node={restated} t={tEn} {...chatNodeOwner}
+        useChat={chatWith([restated.key, absorbedBy.key], [restated, absorbedBy])} />,
+    )
+    expect(screen.queryByText(/Evidence cannot separate/)).toBeNull()
+
+    const distinct = createChatNode('errgrind-intake-clarification', {
+      text: 'A note the conclusion never repeats.', turn: 1,
+    })
+    const unrelated = diagnosisNode({ summary: 'An unrelated conclusion.', remainingUncertainty: null })
+    render(
+      <IntakeClarificationCard node={distinct} t={tEn} {...chatNodeOwner}
+        useChat={chatWith([distinct.key, unrelated.key], [distinct, unrelated])} />,
+    )
+    expect(screen.getByText('A note the conclusion never repeats.')).toBeTruthy()
+  })
+
+  it('keeps a clarification beside an unrelated diagnosis, a missing order entry, and when empty', () => {
+    const stray = createChatNode('errgrind-intake-clarification', { text: 'Off the ordered list.', turn: 1 })
+    const { unmount } = render(
+      <IntakeClarificationCard node={stray} t={tEn} {...chatNodeOwner}
+        useChat={chatWith([], [])} />,
+    )
+    expect(screen.getByText('Off the ordered list.')).toBeTruthy()
+    unmount()
+
+    const blank = createChatNode('errgrind-intake-clarification', { text: '', turn: 1 })
+    const diagnosis = diagnosisNode({ remainingUncertainty: null })
+    render(
+      <IntakeClarificationCard node={blank} t={tEn} {...chatNodeOwner}
+        useChat={chatWith([blank.key, diagnosis.key], [blank, diagnosis])} />,
+    )
+  })
 })
 
 function errorCardNode(overrides: Partial<ChatNodeDataMap['errgrind-error-card']> = {}) {
