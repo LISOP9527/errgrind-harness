@@ -85,7 +85,7 @@
   },
   "drill_prepare": {
     "description": [
-      "Prepare a structured specification for one new independent mathematics practice problem from a completed Error diagnosis. An isolated model call then drafts the private reference answer and public question from this specification. Do not accept or provide question or referenceAnswer here.",
+      "Prepare a structured specification for one new independent mathematics practice problem inside this dedicated practice Session, from the confirmed Error diagnosis it was seeded with. An isolated model call then drafts the private reference answer and public question from this specification. Do not accept or provide question or referenceAnswer here.",
       "Specify targetMechanism, trigger, failureBehavior, desiredBehavior, successSignal, domain, taskType, setting, taskGoal, essentialTrigger, solutionStrategy, avoid, difficultyLevel, reasoningDepth, and calculationLoad. Change surface structure rather than merely numbers or letters. Keep difficulty reasonably comparable with the source Error unless the learner requests otherwise, and do not substitute calculation burden for reasoning depth. Describe the new problem positively; no original distinctive content may enter the specification, because the isolated Draft receives this specification verbatim. If draft generation fails or is interrupted, invoking drill_prepare again resumes the saved specification to retry."
     ],
     "parameters": {

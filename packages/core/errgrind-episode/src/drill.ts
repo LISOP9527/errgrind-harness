@@ -548,6 +548,9 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
         || episode.confirmedRevision !== episode.diagnosis.anchoredRevision) {
         throw new Error('Drill requires a current completed Error diagnosis')
       }
+      if (episode.origin.kind !== 'drill') {
+        throw new Error('drill_prepare only runs inside a dedicated Drill Session')
+      }
 
       const state = drillState(ctx, exec.agent.session)
       if (state.active !== null) throw new Error('Finish the current Drill first')
@@ -578,10 +581,8 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
 
       try {
         if (state.pendingSpec !== null) {
-          if (state.pendingSpec.sourceRevision !== episode.confirmedRevision
-            || state.pendingSpec.sourceDiagnosisRound !== episode.diagnosisRound) {
-            throw new Error('Pending Drill specification anchor is no longer current')
-          }
+          // A Drill Session's confirmedRevision and diagnosisRound are seeded
+          // immutable, so a staged specification can never outlive its anchor.
           pending = state.pendingSpec
         } else {
           if (!Number.isInteger(args.difficultyLevel) || args.difficultyLevel < 1 || args.difficultyLevel > 5) {

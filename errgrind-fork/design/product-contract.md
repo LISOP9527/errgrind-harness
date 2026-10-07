@@ -104,7 +104,9 @@ real usage telemetry.
 - Image Drill answers use the `drill_answer_draft` event/tool and a
   reviewable draft; the learner must reply `确认` or `修正：...` to complete
   the response before judgment.
-- Drill generation is isolated from the original Error conversation. A
+- Drill generation is isolated from the original Error conversation.
+  `drill_prepare` runs only inside a dedicated Drill Session (rejected at the
+  episode gate elsewhere); an Error Session's model cannot open practice. A
   spec-only `drill_prepare` call persists the exact 15-field specification
   before model I/O, retries that saved spec after failure, and logs provider,
   model, prompt, and usage internally. The public result contains only the

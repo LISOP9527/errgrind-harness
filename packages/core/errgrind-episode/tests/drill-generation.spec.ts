@@ -102,21 +102,31 @@ const validSpecArgs = {
   calculationLoad: 1,
 }
 
-function setupCompletedEpisode(session: Session, sentinel: string = 'SENTINEL_INPUT'): void {
+/** Seed a dedicated Drill Session; its episode context is the confirmed source outcome. */
+function setupDrillSession(session: Session, sentinel: string = 'SENTINEL_INPUT'): void {
+  session.append('errgrind/drill-open', {
+    text: `Practice generated for: ${sentinel}`,
+    sourceSessionId: 'source-session',
+    sourceRevision: 1,
+    description: `Draft description containing ${sentinel}`,
+    diagnosisStatus: 'undetermined',
+    diagnosisSummary: `Diagnosis summary with ${sentinel}`,
+    remainingUncertainty: `Uncertainty with ${sentinel}`,
+    whatWouldChangeJudgment: `Evidence that would change the judgment about ${sentinel}`,
+  })
+}
+
+/** Seed an ordinary Error Session reaching a confirmed diagnosis. */
+function setupErrorSession(session: Session): void {
   session.append('errgrind/error-open', {
-    text: `My mistake: ${sentinel}`,
+    text: 'My mistake',
     turn: 1,
-    hasImage: true,
-    attachments: [{
-      sha256: 'sentinel-hash-1234',
-      mediaType: 'image/png',
-      bytes: 1024,
-      name: `${sentinel}_image.png`,
-    }],
+    hasImage: false,
+    attachments: [],
   })
   session.append('errgrind/error-draft', {
     revision: 1,
-    text: `Draft description containing ${sentinel}`,
+    text: 'Draft description',
   })
   session.append('errgrind/error-confirm', {
     revision: 1,
@@ -125,18 +135,36 @@ function setupCompletedEpisode(session: Session, sentinel: string = 'SENTINEL_IN
   session.append('errgrind/grill-conclude', {
     anchorRevision: 1,
     diagnosisStatus: 'undetermined',
-    summary: `Diagnosis summary with ${sentinel}`,
-    remainingUncertainty: `Uncertainty with ${sentinel}`,
+    summary: 'Diagnosis summary',
+    remainingUncertainty: 'Uncertainty',
     turn: 1,
   })
 }
 
 describe('Isolated Drill Generation', () => {
+  it('rejects drill_prepare outside a dedicated Drill Session', async () => {
+    const { ctx } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-in-error-session'))
+    const agent = createTestAgent(ctx, session)
+    setupErrorSession(session)
+
+    const result = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-not-drill'), name: 'drill_prepare', agent,
+      arguments: validSpecArgs,
+    })
+    expect(result.isError).toBe(true)
+    expect(result.error?.message).toContain('dedicated Drill Session')
+    expect(session.snapshotEvents().filter(
+      e => e.type === 'errgrind/drill-spec-prepared' || e.type === 'errgrind/drill-draft-finished'))
+      .toHaveLength(0)
+  })
+
   it('rejects copied source text before a specification can reach the Draft model', async () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-source-leak'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session, 'TOP_SECRET_SENTINEL')
+    setupDrillSession(session, 'TOP_SECRET_SENTINEL')
     let called = false
     mockLlm.streamHandler = () => { called = true; throw new Error('must not run') }
 
@@ -163,7 +191,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-early-failures'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     const invalid = await ctx.tools.execute({
       signal: new AbortController().signal,
@@ -191,10 +219,11 @@ describe('Isolated Drill Generation', () => {
     expect(markers()[1]?.data.preparationId).toBe(pending?.id)
     expect(markers()[1]?.data.status).toBe('failed')
 
-    // A stale pending anchor still settles against the retained specification.
+    // A staged specification persists across a failed attempt and the retry
+    // settles against it even when its recorded anchor fields cannot recur.
     const stale = ctx.sessions.create(SessionId('drill-stale-anchor'))
     const staleAgent = createTestAgent(ctx, stale)
-    setupCompletedEpisode(stale)
+    setupDrillSession(stale)
     stale.append('errgrind/drill-spec-prepared', {
       id: 'stale-pending',
       spec: {
@@ -224,7 +253,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-in-flight'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     let resolveEntered = false
     let releaseResolve!: () => void
@@ -269,7 +298,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-aborted-mid-flight'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     let resolveEntered = false
     let rejectResolve!: (error: Error) => void
@@ -301,7 +330,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-mechanism-wording'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session, '我把分子和分母分别相加')
+    setupDrillSession(session, '我把分子和分母分别相加')
     mockLlm.streamHandler = async function* () {
       const answer = JSON.stringify({ question: '计算 2/3 + 1/4', referenceAnswer: '11/12' })
       yield { type: 'block-start', index: 0, blockType: 'text' }
@@ -321,7 +350,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-sentinel-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session, 'TOP_SECRET_SENTINEL')
+    setupDrillSession(session, 'TOP_SECRET_SENTINEL')
 
     let capturedOptions: GenerateOptions | undefined
     mockLlm.streamHandler = (options: GenerateOptions) => {
@@ -378,7 +407,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-persisted-before-stream'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     let eventsBeforeStream: ReturnType<Session['snapshotEvents']> = []
     mockLlm.streamHandler = () => {
@@ -417,7 +446,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-bounds-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     // difficultyLevel out of bounds
     const resDifficulty = await ctx.tools.execute({
@@ -474,7 +503,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-bypass-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     const resQuestion = await ctx.tools.execute({
       signal: new AbortController().signal,
@@ -511,7 +540,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-success-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     mockLlm.streamHandler = () => {
       async function* generate() {
@@ -553,7 +582,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-tex-delimiters-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     mockLlm.streamHandler = () => {
       async function* generate() {
@@ -584,7 +613,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-malformed-json-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     mockLlm.streamHandler = () => {
       async function* generate() {
@@ -621,7 +650,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-provider-error-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     mockLlm.streamHandler = () => {
       async function* generate() {
@@ -650,7 +679,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-truncation-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     mockLlm.streamHandler = () => {
       async function* generate() {
@@ -680,7 +709,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-abort-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     mockLlm.streamHandler = () => {
       async function* generate() {
@@ -715,7 +744,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-resume-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     // First attempt fails due to provider error
     mockLlm.streamHandler = () => {
@@ -777,50 +806,11 @@ describe('Isolated Drill Generation', () => {
     }
   })
 
-  it('rejects resume if diagnosis anchor is no longer current', async () => {
-    const { ctx, mockLlm } = await setupTestApp()
-    const session = ctx.sessions.create(SessionId('drill-anchor-stale-test'))
-    const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
-
-    // First attempt fails, saving pendingSpec anchored at revision 1
-    mockLlm.streamHandler = () => {
-      async function* generate() {
-        yield { type: 'finish' as const, reason: { kind: 'error' as const, failure: { message: 'Network error', code: 'NETWORK' } } }
-      }
-      return generate()
-    }
-
-    await ctx.tools.execute({
-      signal: new AbortController().signal,
-      callId: ToolCallId('call-fail-1'),
-      name: 'drill_prepare',
-      arguments: validSpecArgs,
-      agent,
-    })
-
-    // Advance episode to revision 2
-    session.append('errgrind/error-draft', { revision: 2, text: 'Updated error description' })
-    session.append('errgrind/error-confirm', { revision: 2, commandId: 'cmd-confirm-2' })
-
-    // Retry should reject because anchor is no longer current
-    const retryResult = await ctx.tools.execute({
-      signal: new AbortController().signal,
-      callId: ToolCallId('call-retry-stale'),
-      name: 'drill_prepare',
-      arguments: validSpecArgs,
-      agent,
-    })
-
-    expect(retryResult.isError).toBe(true)
-    expect(retryResult.error?.message).toContain('Drill requires a current completed Error diagnosis')
-  })
-
   it('prevents overlapping generation on the same session', async () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-concurrency-test'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     let resolveStream: () => void
     const streamGate = new Promise<void>((resolve) => {
@@ -867,7 +857,7 @@ describe('Isolated Drill Generation', () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-judge-after-generation'))
     const agent = createTestAgent(ctx, session)
-    setupCompletedEpisode(session)
+    setupDrillSession(session)
 
     mockLlm.streamHandler = () => {
       async function* generate() {

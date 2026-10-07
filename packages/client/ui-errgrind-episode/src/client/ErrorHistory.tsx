@@ -61,7 +61,10 @@ export function ErrorHistory({
     const episode = session?.projectionValues?.errgrindEpisode
     if (session === undefined || episode == null || archived.has(id)) return []
     const description = episode.description?.trim() || session.displayTitle
-    if (needle && !`${description} ${session.displayTitle}`.toLocaleLowerCase().includes(needle)) return []
+    // The search field names Error descriptions; practice Sessions stay listed
+    // but never match it.
+    if (needle && (episode.kind === 'drill'
+      || !`${description} ${session.displayTitle}`.toLocaleLowerCase().includes(needle))) return []
     return [{ sessionId: id, description, episode, title: session.displayTitle, updatedAt: session.updatedAt }]
   }), [list, needle, archived])
   // The header counts Errors; practice Sessions share the list but are not Errors.
@@ -264,7 +267,7 @@ export function ErrorHistory({
                       sessionId,
                       () => practiceFromError(
                         sessionId,
-                        index => t(index === 0 ? 'history.practiceSessionTitle' : 'history.practiceSessionTitleIndexed', {
+                        index => t('history.practiceSessionTitleIndexed', {
                           index: index + 1,
                           description: Array.from(description).slice(0, 40).join(''),
                         }),

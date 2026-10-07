@@ -154,10 +154,9 @@ describe('ui-errgrind-episode browser plugin', () => {
     apply(harness.ctx)
 
     expect(harness.locale.register).toHaveBeenCalledWith(NS, { zh, en })
-    expect(harness.locale.registerOverride).toHaveBeenCalledWith('conversation', expect.objectContaining({
-      zh: expect.objectContaining({ 'input.commands': '添加题目图片或文件' }),
-      en: expect.objectContaining({ 'input.commands': 'Add a problem image or file' }),
-    }))
+    const zhOverride: unknown = expect.objectContaining({ 'input.commands': '添加题目图片或文件' })
+    const enOverride: unknown = expect.objectContaining({ 'input.commands': 'Add a problem image or file' })
+    expect(harness.locale.registerOverride).toHaveBeenCalledWith('conversation', { zh: zhOverride, en: enOverride })
 
     const registeredKinds = harness.events.entries().map(d => d.kind)
     expect(registeredKinds).toContain('errgrind-episode-card')
@@ -212,7 +211,7 @@ describe('Drill draft event assembly and visibility', () => {
     expect(viewNode).not.toBeNull()
     expect(viewNode?.kind).toBe('errgrind-drill-draft-card')
     expect(viewNode?.visibility).toBe('visible')
-    expect(viewNode?.data).toEqual({ preparationId: 'prep-failed-1', status: 'failed', activity: 'practice' })
+    expect(viewNode?.data).toEqual({ preparationId: 'prep-failed-1', status: 'failed' })
   })
 
   it('assembles aborted drill draft events into visible timeline nodes', () => {
@@ -250,7 +249,7 @@ describe('Drill draft event assembly and visibility', () => {
     expect(viewNode).not.toBeNull()
     expect(viewNode?.kind).toBe('errgrind-drill-draft-card')
     expect(viewNode?.visibility).toBe('visible')
-    expect(viewNode?.data).toEqual({ preparationId: 'prep-aborted-1', status: 'aborted', activity: 'practice' })
+    expect(viewNode?.data).toEqual({ preparationId: 'prep-aborted-1', status: 'aborted' })
   })
 
   it('hides successful drill draft events with no extra timeline card', () => {
@@ -359,7 +358,7 @@ describe('Drill draft event assembly and visibility', () => {
 
     const drillCards = assembledNodes.filter(n => n.kind === 'errgrind-drill-draft-card')
     expect(drillCards).toHaveLength(1)
-    expect(drillCards[0]?.data).toEqual({ preparationId: 'prep-fail', status: 'failed', activity: 'practice' })
+    expect(drillCards[0]?.data).toEqual({ preparationId: 'prep-fail', status: 'failed' })
   })
 })
 

@@ -28,7 +28,7 @@ function props(): ErrorHistoryProps {
       [second]: { displayTitle: 'second', updatedAt: 1_000, projectionValues: {
         errgrindEpisode: { description: '忘记检查定义域', status: 'teach', drillEligible: true, kind: 'error' },
       } },
-      [drillSession]: { displayTitle: '练习 · 定义域错误', updatedAt: 1_000, projectionValues: {
+      [drillSession]: { displayTitle: '练习 1 · 定义域错误', updatedAt: 1_000, projectionValues: {
         errgrindEpisode: { description: '通分时忘了找公共分母', status: 'teach', drillEligible: false, kind: 'drill' },
       } },
       [unrelated]: { displayTitle: 'unrelated', updatedAt: 1_000, projectionValues: { errgrindEpisode: null } },
@@ -64,7 +64,7 @@ describe('ErrGrind Error history', () => {
       expect(input.practiceFromError).toHaveBeenCalledWith(second, expect.any(Function))
     })
     const title = vi.mocked(input.practiceFromError).mock.calls[0]![1]
-    expect(title(0)).toBe('Practice · 忘记检查定义域')
+    expect(title(0)).toBe('Practice 1 · 忘记检查定义域')
     expect(title(1)).toBe('Practice 2 · 忘记检查定义域')
     expect(input.practiceFromError).not.toHaveBeenCalledWith(first, expect.anything())
   })
@@ -72,7 +72,7 @@ describe('ErrGrind Error history', () => {
   it('labels Drill Sessions as practice and gates archiving to them', async () => {
     const input = props()
     render(<ErrorHistory {...input} />)
-    const drillCard = screen.getByText('练习 · 定义域错误').closest('article')
+    const drillCard = screen.getByText('练习 1 · 定义域错误').closest('article')
     expect(drillCard?.textContent).toContain('Practice')
     expect(within(drillCard as HTMLElement).queryByRole('button', { name: 'Practice from this Error' })).toBeNull()
     expect(screen.getAllByRole('button', { name: 'Archive' })).toHaveLength(1)
@@ -135,7 +135,7 @@ describe('ErrGrind Error history', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Show archived/ }))
     expect(screen.getByText('first')).toBeTruthy()
-    expect(screen.queryByText('练习 · 定义域错误')).toBeNull()
+    expect(screen.queryByText('练习 1 · 定义域错误')).toBeNull()
     expect(screen.queryByText('通分时忘了找公共分母')).toBeNull()
   })
 
@@ -168,5 +168,9 @@ describe('ErrGrind Error history', () => {
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: '定义域' } })
     expect(screen.getByText('忘记检查定义域')).toBeTruthy()
     expect(screen.queryByText('原来把分母相加')).toBeNull()
+    // The field names Error descriptions: practice Sessions never match it even
+    // when their own title or description would.
+    expect(screen.queryByText('通分时忘了找公共分母')).toBeNull()
+    expect(screen.queryByText('练习 1 · 定义域错误')).toBeNull()
   })
 })

@@ -19,13 +19,8 @@ import { ModelOnboarding } from './ModelOnboarding.tsx'
 import type { ErrorCardProps, EpisodeCardInjected, TeachStepProps, DrillDraftCardProps } from './EpisodeCards.tsx'
 import { ErrorHistory } from './ErrorHistory.tsx'
 
-/** Activity ids an ErrGrind node publishes for the shared Turn-tail label. */
-export type TurnActivity =
-  'recorded' | 'asked' | 'clarified' | 'diagnosed' | 'explained' | 'practice' | 'drafted' | 'scored'
-
 /** Safe fields displayed in the Error card. */
 export interface ErrorCardData {
-  readonly activity?: TurnActivity
   readonly revision: number
   readonly description: string
   readonly confirmed: boolean
@@ -34,20 +29,17 @@ export interface ErrorCardData {
 
 /** Safe fields displayed by one diagnosis conclusion row. */
 export interface DiagnosisData {
-  readonly activity?: TurnActivity
   readonly summary: string
   readonly remainingUncertainty: string | null
 }
 
 /** Safe question displayed in a Grill timeline row. */
 export interface GrillQuestionData {
-  readonly activity?: TurnActivity
   readonly question: string
 }
 
 /** Safe intake question displayed before the first Grill probe. */
 export interface IntakeClarificationData {
-  readonly activity?: TurnActivity
   readonly text: string
   readonly turn: number
 }
@@ -57,32 +49,27 @@ export type TeachStepKind = 'question' | 'hint' | 'explanation'
 
 /** Safe Teach step displayed in a Teach timeline row. */
 export interface TeachStepData {
-  readonly activity?: TurnActivity
   readonly kind: TeachStepKind
   readonly text: string
 }
 
 /** Public practice question text shown to the learner. */
 export interface DrillQuestionData {
-  readonly activity?: TurnActivity
   readonly question: string
 }
 /** Model-transcribed image answer awaiting the learner's explicit review. */
 export interface DrillAnswerDraftData {
-  readonly activity?: TurnActivity
   readonly revision: number
   readonly preparationId: string
   readonly text: string
 }
 /** Verdict of one judged practice answer; the rationale stays on the Host. */
 export interface DrillJudgmentData {
-  readonly activity?: TurnActivity
   readonly preparationId: string
   readonly isCorrect: boolean
 }
 /** Opening snapshot of an Error derived from a wrong practice answer. */
 export interface DerivedErrorData {
-  readonly activity?: TurnActivity
   readonly question: string
   readonly userResponse: string
 }
@@ -90,7 +77,6 @@ export interface DerivedErrorData {
 export type DrillDraftCardStatus = 'failed' | 'aborted'
 /** Failure notice of one answer-draft generation. */
 export interface DrillDraftCardData {
-  readonly activity?: TurnActivity
   readonly preparationId: string
   readonly status: DrillDraftCardStatus
 }
@@ -128,30 +114,23 @@ interface QuestionState {
   readonly question: string
 }
 
-/** Turn-tail activity each ErrGrind node kind reports for the shared process label. */
-const KIND_TURN_ACTIVITY: {
-  readonly [Kind in keyof Pick<ChatNodeDataMap,
-    'errgrind-error-card' | 'errgrind-diagnosis' | 'errgrind-grill-question' | 'errgrind-intake-clarification' | 'errgrind-teach-step'
-    | 'errgrind-drill-question' | 'errgrind-drill-answer-draft' | 'errgrind-drill-judgment'
-    | 'errgrind-derived-error' | 'errgrind-drill-draft-card'>]: TurnActivity
-} = {
-  'errgrind-error-card': 'recorded',
-  'errgrind-diagnosis': 'diagnosed',
-  'errgrind-grill-question': 'asked',
-  'errgrind-intake-clarification': 'clarified',
-  'errgrind-teach-step': 'explained',
-  'errgrind-drill-question': 'practice',
-  'errgrind-drill-answer-draft': 'drafted',
-  'errgrind-drill-judgment': 'scored',
-  'errgrind-derived-error': 'recorded',
-  'errgrind-drill-draft-card': 'practice',
+/** Opening actions must surface failure even when the transport drops the request unanswered. */
+const OPEN_SESSION_TIMEOUT_MS = 30_000
+
+/** Reject when a Session-opening request stays unanswered beyond {@link OPEN_SESSION_TIMEOUT_MS}. */
+function withOpenTimeout<T>(promise: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => { reject(new Error('Open request timed out')) }, OPEN_SESSION_TIMEOUT_MS)
+  })
+  return Promise.race([promise, deadline]).finally(() => { if (timer !== undefined) clearTimeout(timer) })
 }
 
 /** Convert one assembled Context into a final Chat node at its first matched event. */
-function chatNode<Kind extends keyof typeof KIND_TURN_ACTIVITY>(
+function chatNode<Kind extends keyof ChatNodeDataMap>(
   context: ConversationNodeContext,
   kind: Kind,
-  data: Omit<ChatNodeDataMap[Kind], 'activity'>,
+  data: ChatNodeDataMap[Kind],
 ): ChatConversationViewNode & { readonly kind: Kind; readonly data: ChatNodeDataMap[Kind] } {
   const anchor = context.start?.event ?? context.matches[0]?.event
   return {
@@ -163,7 +142,7 @@ function chatNode<Kind extends keyof typeof KIND_TURN_ACTIVITY>(
     // Domain cards stay at their event position without joining Chat's foldable Turn process.
     location: { kind: 'unresolved' },
     visibility: 'visible',
-    data: { ...data, activity: KIND_TURN_ACTIVITY[kind] } as ChatNodeDataMap[Kind],
+    data,
   }
 }
 
@@ -491,7 +470,7 @@ export function apply(ctx: ClientContext): void {
       inject: () => ({
         openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
         practiceFromError: async (sessionId: SessionId, title: (index: number) => string): Promise<void> => {
-          const result = await ctx.remote.session.openDrill({ sourceSessionId: sessionId })
+          const result = await withOpenTimeout(ctx.remote.session.openDrill({ sourceSessionId: sessionId }))
           if (!result.ok) throw new Error(`Drill request failed: ${result.error.code}`)
           await ctx.sessions.refresh()
           // Pin the practice title on first materialization only; an adopted
@@ -573,7 +552,7 @@ export function apply(ctx: ClientContext): void {
     name: 'conversation.chat.node', key: 'errgrind-drill-judgment', locale: NS,
     inject: (sessionId: SessionId) => ({
       openDerivedError: async (preparationId: string): Promise<boolean> => {
-        const result = await ctx.remote.session.openDerivedError({ sourceSessionId: sessionId, preparationId })
+        const result = await withOpenTimeout(ctx.remote.session.openDerivedError({ sourceSessionId: sessionId, preparationId }))
         if (!result.ok) {
           return false
         }

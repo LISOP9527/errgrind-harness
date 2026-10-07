@@ -55,7 +55,7 @@ Grill 开放期间，agent 可调用 `error_clarify` 显示事实澄清问题，
 
 #### 模型看到什么
 
-本包不注册系统提示词。启用时，模型可以看到 `error_clarify`、`error_draft`、`grill_probe`、`grill_conclude`、`teach_step`、`drill_prepare`、`drill_answer_draft` 和 `drill_judge` 的工具 schema 与描述。工具描述和参数指导在插件启动时从 `errgrind-fork/prompts/tools.json` 加载；ErrGrind Web 的系统提示词在 `errgrind-fork/prompts/system.md`。`teach_step` 在当前诊断完成后公开教学问题、提示或解释。Drill 只公开题目与判定，参考答案、判分反馈和衍生 Error 快照留在 Host。ErrGrind Web 组合会隐藏普通 assistant 文本；浏览器视图也使探针预测、工具参数、assistant 推理与内部 Grill 事件留在宿主。
+本包不注册系统提示词。启用时，模型可以看到 `error_clarify`、`error_draft`、`grill_probe`、`grill_conclude`、`teach_step`、`drill_prepare`、`drill_answer_draft` 和 `drill_judge` 的工具 schema 与描述。工具描述和参数指导在插件启动时从 `errgrind-fork/prompts/tools.json` 加载；ErrGrind Web 的系统提示词在 `errgrind-fork/prompts/system.md`。`drill_prepare` 在专用 Drill Session 之外的会话中调用会被拒绝。`teach_step` 在当前诊断完成后公开教学问题、提示或解释。Drill 只公开题目与判定，参考答案、判分反馈和衍生 Error 快照留在 Host。ErrGrind Web 组合会隐藏普通 assistant 文本；浏览器视图也使探针预测、工具参数、assistant 推理与内部 Grill 事件留在宿主。
 
 当前 Web 组合将新会话默认设为只读权限，并关闭 PTC 执行、Shell 设置、文件／会话引用以及可能暴露附件哈希与诊断状态的 `/error-status`。图片附件和绑定修订号的 `/error-confirm <revision>` 仍可用；standard preset 向模型提供八个 ErrGrind 工具，包括 Teach、Drill 和 `drill_answer_draft`。
 
