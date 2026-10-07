@@ -8,8 +8,8 @@
     - tab "Trajectory"
 - text: Reply with a one-sentence description of event sourcing, then stop. {{clock}}
 - button "Copy"
-- status: Deep diving...
-- button "Deep diving for {{duration}}" [disabled] [expanded]
+- status: Thinking...
+- button "Thinking for {{duration}}" [disabled] [expanded]
 - paragraph: partial
 - textbox "Message or run a task, / commands, @ files or sessions"
 - button "Add files or run commands"

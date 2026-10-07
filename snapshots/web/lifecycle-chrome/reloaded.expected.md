@@ -8,8 +8,8 @@
     - tab "Trajectory"
 - text: Reply with the single word LIGHTHOUSE and stop. {{clock}}
 - button "Copy"
-- status: Worked
-- button "Took {{duration}}"
+- status: Thought
+- button "Thought for {{duration}}"
 - paragraph: LIGHTHOUSE
 - button "Copy"
 - button "Good response"

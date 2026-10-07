@@ -7,8 +7,8 @@
     - tab "Trajectory"
 - text: Show the Markdown image policy. {{clock}}
 - button "Copy"
-- status: Worked
-- button "Took {{duration}}" [disabled]
+- status: Thought
+- button "Thought for {{duration}}" [disabled]
 - heading "Markdown images" [level=2]
 - paragraph:
   - img "Remote test image"

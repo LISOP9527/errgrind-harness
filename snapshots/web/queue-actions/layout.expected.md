@@ -11,8 +11,8 @@
 - button "Continuing goal {{clock}}":
   - text: Continuing goal
   - time: {{clock}}
-- status: Deep diving...
-- button "Deep diving for {{duration}}" [disabled] [expanded]
+- status: Thinking...
+- button "Thinking for {{duration}}" [disabled] [expanded]
 - paragraph: partial
 - region "To-dos":
   - button "To-dos 1 completed · 1 in progress"
