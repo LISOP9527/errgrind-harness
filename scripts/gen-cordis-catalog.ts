@@ -809,6 +809,7 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   DerivedErrorOpenValue: 'derived Error Session identity is owned by packages/api/session-controller/README.md',
   DrillOpenRequest: 'Drill Session request is owned by packages/api/session-controller/README.md',
   DrillOpenValue: 'Drill Session identity is owned by packages/api/session-controller/README.md',
+  DrillRetireRequest: 'Drill Session retire request is owned by packages/api/session-controller/README.md',
   ConnectionFetchHandler: 'shared Fetch dispatch is owned by packages/client/connection/src/rpc.ts',
   ConnectionRequestRejection: 'transport rejection status is owned by packages/client/connection/src/rpc.ts',
   ConnectionTrustRequest: 'transport authentication input is owned by packages/client/connection/src/rpc.ts',

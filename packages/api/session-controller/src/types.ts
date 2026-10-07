@@ -426,6 +426,11 @@ export interface DrillOpenValue {
   readonly created: boolean
 }
 
+/** Request to retire one judged Drill Session after the learner left it. */
+export interface DrillRetireRequest {
+  readonly sessionId: SessionId
+}
+
 /** Durable identity selecting an ordinary Session or one direct subagent child. */
 export type SessionAddress =
   | { readonly kind: 'session'; readonly sessionId: SessionId }

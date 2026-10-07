@@ -122,7 +122,7 @@
     ],
     "parameters": {
       "isCorrect": "Whether the persisted answer is mathematically correct; insufficient mechanism evidence alone is not mathematical failure.",
-      "feedback": "Concise Chinese feedback that distinguishes mathematical error from missing reasoning evidence."
+      "feedback": "Concise Chinese judgment rationale recorded with the attempt; the practice Session shows only the verdict, so this text stays internal."
     }
   }
 }

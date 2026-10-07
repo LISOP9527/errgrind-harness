@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@errgrind/ui-errgrind-episode` shows Error history in the sidebar and renders Error, Grill, Teach, and Drill content in the conversation. Learners can reopen, rename, restore, or start a dedicated Drill Session from a completed Error; only Drill rows offer archive and archived practice Sessions leave no trace (archived Errors stay restorable). Model-authored content renders as ordinary assistant Markdown; prompts awaiting input keep a light frame. The Error card holds only the description and confirmation status; the Grill conclusion and a clarification it restates are ordinary messages. Confirmation calls `/error-confirm <revision>`; a model-onboarding card docks while a blank Error has no provider.
+`@errgrind/ui-errgrind-episode` renders Error history in the sidebar and Error, Grill, Teach, and Drill content in the conversation. Learners can reopen, rename, restore, or start a dedicated Drill Session from a completed Error; only Drill rows offer archive, and archived practice Sessions leave no trace. The Drill verdict shows correctness only; the judged practice retires on leave. Model output renders as ordinary assistant Markdown; pending prompts keep a light frame. The Error card holds only the description and confirmation status; the Grill conclusion and restated clarifications are ordinary messages. Confirmation calls `/error-confirm <revision>`; a providerless blank Error docks a model-onboarding card.
 
 ## Table of Contents
 

@@ -46,6 +46,7 @@ import type {
   DerivedErrorOpenValue,
   DrillOpenRequest,
   DrillOpenValue,
+  DrillRetireRequest,
   SessionFollowFrame,
   SessionFollowRequest,
   SessionForkRequest,
@@ -247,13 +248,14 @@ export class SessionController extends TypertRemoteService {
     void task.finally(() => { this.promotions.delete(task) })
   }
 
-  /** Drill Sessions judged correct while running archive on the next idle transition or Agent disposal. */
-  private readonly pendingDrillArchives = new Set<SessionId>()
+  /** Drill Sessions awaiting archive (correct verdict or learner departure), retried on idle or disposal. */
+  private readonly pendingDrillArchives = new Map<SessionId, string>()
 
   /**
    * Close out a judged Drill Session: archive a correct practice, materialize an incorrect one.
    * The archived Drill leaves no product-visible trace — the history panel hides archived
-   * practice Sessions — so the archival records only this Host log line.
+   * practice Sessions — so the archival records only this Host log line. An incorrect verdict
+   * keeps the Session until the learner leaves it, when `retireDrill` archives it the same way.
    * @param session - Session that committed the Drill judgment event.
    * @param attempt - Folded Drill attempt carrying the verdict and derived Error payload.
    */
@@ -269,7 +271,28 @@ export class SessionController extends TypertRemoteService {
       this.ctx.logger.info(`session-controller: Drill Session "${session.id}" archived after a correct verdict`)
     } catch (error) {
       if (!(error instanceof WorkspaceActiveSessionError)) throw error
-      this.pendingDrillArchives.add(session.id)
+      this.pendingDrillArchives.set(session.id, 'a correct verdict')
+    }
+  }
+
+  /**
+   * Archive one judged Drill Session once the learner has moved on; a still-active
+   * Session archives on its next idle transition like a settled correct verdict.
+   * @param request - the Drill Session whose transcript the learner just left.
+   */
+  @Remote('retireDrill')
+  async retireDrill(request: DrillRetireRequest): Promise<void> {
+    const session = this.ctx.sessions.get(request.sessionId)
+    if (session === undefined) return
+    if (this.ctx.sessionProjections.stateOf(session, 'errgrindEpisode')?.origin.kind !== 'drill') return
+    const drill = this.ctx.sessionProjections.stateOf(session, 'errgrindDrill')
+    if (drill === undefined || drill.attempts.length === 0) return
+    try {
+      await this.ctx.workspaceRegistry.archiveSession(request.sessionId)
+      this.ctx.logger.info(`session-controller: Drill Session "${request.sessionId}" archived after the learner left`)
+    } catch (error) {
+      if (!(error instanceof WorkspaceActiveSessionError)) throw error
+      this.pendingDrillArchives.set(request.sessionId, 'the learner left')
     }
   }
 
@@ -279,12 +302,14 @@ export class SessionController extends TypertRemoteService {
    * @param sessionId - Drill Session awaiting its turn-final archive.
    */
   private attemptPendingDrillArchive(sessionId: SessionId): void {
-    if (!this.pendingDrillArchives.delete(sessionId)) return
+    const reason = this.pendingDrillArchives.get(sessionId)
+    if (reason === undefined) return
+    this.pendingDrillArchives.delete(sessionId)
     void this.ctx.workspaceRegistry.archiveSession(sessionId).then(() => {
-      this.ctx.logger.info(`session-controller: Drill Session "${sessionId}" archived after a correct verdict`)
+      this.ctx.logger.info(`session-controller: Drill Session "${sessionId}" archived after ${reason}`)
     }).catch((error: unknown) => {
       if (error instanceof WorkspaceActiveSessionError) {
-        this.pendingDrillArchives.add(sessionId)
+        this.pendingDrillArchives.set(sessionId, reason)
         return
       }
       this.ctx.logger.error(`session-controller: Drill Session archive for "${sessionId}" failed: ${errorChain(error)}`)

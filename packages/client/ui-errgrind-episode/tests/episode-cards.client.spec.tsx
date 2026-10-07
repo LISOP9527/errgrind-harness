@@ -537,12 +537,12 @@ describe('Existing conversation cards assembly and presentation', () => {
     const judgmentNode = createChatNode('errgrind-drill-judgment', {
       preparationId: 'prep-1',
       isCorrect: true,
-      feedback: 'Good work on distribution.',
     })
     const { unmount: unmountJudge } = render(
-      <DrillJudgmentCard node={judgmentNode} t={tEn} openDerivedError={vi.fn().mockResolvedValue(true)} {...chatNodeOwner} />,
+      <DrillJudgmentCard node={judgmentNode} t={tEn} retireDrill={vi.fn()}
+        openDerivedError={vi.fn().mockResolvedValue(true)} {...chatNodeOwner} />,
     )
-    expect(screen.getByText('Good work on distribution.')).toBeTruthy()
+    expect(screen.getByText(en['drill.correct'])).toBeTruthy()
     unmountJudge()
 
     const derivedNode = createChatNode('errgrind-derived-error', {
@@ -602,7 +602,7 @@ describe('Prompt card resolution framing', () => {
       revision: 1, preparationId: 'prep-1', text: '7',
     })
     const judgment = createChatNode('errgrind-drill-judgment', {
-      preparationId: 'prep-1', isCorrect: true, feedback: 'Right.',
+      preparationId: 'prep-1', isCorrect: true,
     })
     const useChat = chatWith(
       [question.key, draft.key, judgment.key],
@@ -845,12 +845,10 @@ describe('DrillJudgmentCard derived-error action', () => {
     const node = createChatNode('errgrind-drill-judgment', {
       preparationId: 'prep-7',
       isCorrect: false,
-      feedback: 'You combined like terms incorrectly.',
     })
-    render(<DrillJudgmentCard node={node} t={tEn} openDerivedError={openDerivedError} {...chatNodeOwner} />)
+    render(<DrillJudgmentCard node={node} t={tEn} openDerivedError={openDerivedError} retireDrill={vi.fn()} {...chatNodeOwner} />)
 
     expect(screen.getByText(en['drill.incorrect'])).toBeTruthy()
-    expect(screen.getByText('You combined like terms incorrectly.')).toBeTruthy()
 
     let settle: (value: boolean) => void = () => {}
     openDerivedError.mockImplementation(() => new Promise<boolean>((resolve) => { settle = resolve }))
@@ -866,17 +864,42 @@ describe('DrillJudgmentCard derived-error action', () => {
     const node = createChatNode('errgrind-drill-judgment', {
       preparationId: 'prep-8',
       isCorrect: false,
-      feedback: 'Incorrect.',
     })
-    const { unmount } = render(<DrillJudgmentCard node={node} t={tEn} openDerivedError={openDerivedError} {...chatNodeOwner} />)
+    const { unmount } = render(<DrillJudgmentCard node={node} t={tEn} retireDrill={vi.fn()}
+      openDerivedError={openDerivedError} {...chatNodeOwner} />)
     fireEvent.click(screen.getByRole('button', { name: en['drill.openDerived'] }))
     await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe(en['drill.openFailed']) })
     unmount()
 
     const rejecting = vi.fn().mockRejectedValue(new Error('gone'))
-    render(<DrillJudgmentCard node={node} t={tEn} openDerivedError={rejecting} {...chatNodeOwner} />)
+    render(<DrillJudgmentCard node={node} t={tEn} openDerivedError={rejecting} retireDrill={vi.fn()} {...chatNodeOwner} />)
     fireEvent.click(screen.getByRole('button', { name: en['drill.openDerived'] }))
     await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe(en['drill.openFailed']) })
+  })
+
+  it('retires the practice Session only once the learner leaves its page', async () => {
+    const retireDrill = vi.fn()
+    const node = createChatNode('errgrind-drill-judgment', {
+      preparationId: 'prep-9',
+      isCorrect: false,
+    })
+    const { unmount } = render(
+      <DrillJudgmentCard node={node} t={tEn} openDerivedError={vi.fn()}
+        retireDrill={retireDrill} {...chatNodeOwner} />,
+    )
+    expect(retireDrill).not.toHaveBeenCalled()
+    unmount()
+    expect(retireDrill).toHaveBeenCalledOnce()
+
+    const correct = createChatNode('errgrind-drill-judgment', {
+      preparationId: 'prep-10',
+      isCorrect: true,
+    })
+    const settle = render(
+      <DrillJudgmentCard node={correct} t={tEn} openDerivedError={vi.fn()} retireDrill={retireDrill} {...chatNodeOwner} />,
+    )
+    settle.unmount()
+    expect(retireDrill).toHaveBeenCalledTimes(2)
   })
 })
 

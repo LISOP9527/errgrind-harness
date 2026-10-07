@@ -74,12 +74,11 @@ export interface DrillAnswerDraftData {
   readonly preparationId: string
   readonly text: string
 }
-/** Verdict and feedback of one judged practice answer. */
+/** Verdict of one judged practice answer; the rationale stays on the Host. */
 export interface DrillJudgmentData {
   readonly activity?: TurnActivity
   readonly preparationId: string
   readonly isCorrect: boolean
-  readonly feedback: string
 }
 /** Opening snapshot of an Error derived from a wrong practice answer. */
 export interface DerivedErrorData {
@@ -385,7 +384,6 @@ const drillJudgmentDefinition: ConversationNodeDefinition<DrillJudgmentData> = {
     return {
       preparationId: match.event.data.preparationId,
       isCorrect: match.event.data.isCorrect,
-      feedback: match.event.data.feedback,
     }
   },
   update({ state }) { return state },
@@ -582,6 +580,11 @@ export function apply(ctx: ClientContext): void {
         await ctx.sessions.refresh()
         ctx.uiWorkspace.openSession(result.value.sessionId)
         return true
+      },
+      retireDrill: () => {
+        void ctx.remote.session.retireDrill({ sessionId }).then((result) => {
+          if (!result.ok) ctx.logger.warn(`ui-errgrind-episode: Drill retire refused: ${result.error.code}`)
+        })
       },
     }),
   }, DrillJudgmentCard))

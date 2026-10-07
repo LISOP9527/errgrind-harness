@@ -260,6 +260,60 @@ describe('Drill Session settle', () => {
   })
 })
 
+describe('retireDrill', () => {
+  it('archives a judged Drill Session once the learner leaves it', async () => {
+    const { ctx, archives, episodes } = await harness()
+    const loggerInfo = vi.spyOn(ctx.logger, 'info')
+    const drill = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-left')))
+    episodes.set(`${drill.id}:errgrindEpisode`, { origin: { kind: 'drill' } })
+    episodes.set(`${drill.id}:errgrindDrill`, { attempts: [attempt(false)] })
+
+    await ctx.sessionController.retireDrill({ sessionId: drill.id })
+    expect(archives).toEqual([drill.id])
+    expect(loggerInfo).toHaveBeenCalledWith(expect.stringContaining('learner left'))
+  })
+
+  it('ignores retire calls for non-Drill, unjudged, and unknown Sessions', async () => {
+    const { ctx, archives, episodes } = await harness()
+    const plain = await liveAgent(ctx, ctx.sessions.create(SessionId('plain')))
+    const unjudged = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-unjudged')))
+    episodes.set(`${unjudged.id}:errgrindEpisode`, { origin: { kind: 'drill' } })
+    episodes.set(`${unjudged.id}:errgrindDrill`, { attempts: [] })
+
+    await ctx.sessionController.retireDrill({ sessionId: plain.id })
+    await ctx.sessionController.retireDrill({ sessionId: unjudged.id })
+    await ctx.sessionController.retireDrill({ sessionId: SessionId('missing') })
+    expect(archives).toEqual([])
+  })
+
+  it('defers a learner-departure archive while the Drill Session is still active', async () => {
+    const { ctx, archives, archiveAttempts, failArchive, episodes } = await harness()
+    const loggerInfo = vi.spyOn(ctx.logger, 'info')
+    const drill = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-busy-left')))
+    episodes.set(`${drill.id}:errgrindEpisode`, { origin: { kind: 'drill' } })
+    episodes.set(`${drill.id}:errgrindDrill`, { attempts: [attempt(false)] })
+    failArchive.value = 'active'
+
+    await ctx.sessionController.retireDrill({ sessionId: drill.id })
+    expect(archiveAttempts).toEqual([drill.id])
+    expect(archives).toEqual([])
+
+    ctx.emit('agent/status', { agent: drill, status: 'idle' })
+    await vi.waitFor(() => { expect(archives).toEqual([drill.id]) })
+    expect(loggerInfo).toHaveBeenCalledWith(expect.stringContaining('learner left'))
+  })
+
+  it('propagates a non-active archive failure from retireDrill', async () => {
+    const { ctx, failArchive, episodes } = await harness()
+    const drill = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-fail-left')))
+    episodes.set(`${drill.id}:errgrindEpisode`, { origin: { kind: 'drill' } })
+    episodes.set(`${drill.id}:errgrindDrill`, { attempts: [attempt(false)] })
+    failArchive.value = 'generic'
+
+    await expect(ctx.sessionController.retireDrill({ sessionId: drill.id })).rejects.toThrow('registry unavailable')
+  })
+})
+
 /** The confirmed-Error projection state that satisfies the Drill gate. */
 function confirmedEpisode(): unknown {
   return {

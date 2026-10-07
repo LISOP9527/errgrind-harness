@@ -1784,6 +1784,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Host service backing the generated `ctx.remote.session` namespace.',
     methods: [
       {
+        signature: '@Remote(\'retireDrill\') async retireDrill(request: DrillRetireRequest): Promise<void>',
+        description: 'Archive one judged Drill Session once the learner has moved on; a still-active Session archives on its next idle transition like a settled correct verdict.',
+        parameters: [{ name: 'request', description: 'the Drill Session whose transcript the learner just left.' }],
+      },
+      {
         signature: 'resolveAgent(sessionId: SessionId): Promise<ApiSessionAgentResult>',
         description: 'Resolve or resume one ordinary Session for another Host API domain.',
         parameters: [{ name: 'sessionId', description: 'Session identity whose Agent owns the operation.' }],
@@ -4900,6 +4905,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DrillOpenValue',
     declaration: 'export interface DrillOpenValue {\n    readonly sessionId: SessionId;\n    readonly index: number;\n    readonly created: boolean;\n}',
+  },
+  {
+    name: 'DrillRetireRequest',
+    declaration: 'export interface DrillRetireRequest {\n    readonly sessionId: SessionId;\n}',
   },
   {
     name: 'DshEnvironment',

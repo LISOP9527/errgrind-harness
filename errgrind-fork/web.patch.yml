@@ -252,7 +252,7 @@
         errgrind/drill-prepared: [id, question]
         errgrind/drill-answer-draft: [revision, preparationId, text]
         errgrind/drill-draft-finished: [preparationId, status]
-        errgrind/drill-judged: [preparationId, isCorrect, feedback]
+        errgrind/drill-judged: [preparationId, isCorrect]
       allowedProjectionKeys:
         - modelSelection
         - title

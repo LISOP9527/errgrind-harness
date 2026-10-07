@@ -837,7 +837,7 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
       schema: { type: 'object', additionalProperties: false, properties: {
         isCorrect: { type: 'boolean', required: true }, feedback: { type: 'string', required: true },
       } },
-      render: (_args, value) => [{ type: 'text', text: value.feedback }],
+      render: (_args, value) => [{ type: 'text', text: value.isCorrect ? 'verdict: correct' : 'verdict: incorrect' }],
     },
     execute(args, exec) {
       if (!exec.agent) throw new Error('drill_judge requires an agent session')
@@ -865,6 +865,6 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
       exec.agent.session.append('errgrind/drill-judged', attempt)
       return Promise.resolve({ isCorrect: args.isCorrect, feedback })
     },
-    presentCall: args => ({ card: 'generic', title: 'Drill Judgment', kind: 'other', rawInput: args.feedback }),
+    presentCall: () => ({ card: 'generic', title: 'Drill Judgment', kind: 'other' }),
   }))
 }

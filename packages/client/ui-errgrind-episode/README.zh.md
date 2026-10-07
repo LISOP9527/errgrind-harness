@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现 Error、Grill、Teach 与 Drill 内容。学习者可以重新打开、重命名、恢复，或针对已完成的 Error 打开独立的 Drill 会话；仅 Drill 行提供归档，已归档的练习会话不留痕迹（已归档 Error 仍可恢复）。模型产出的内容按普通 assistant Markdown 渲染，仅等待输入的提示保留轻量边框。Error 卡片只显示描述与确认状态；Grill 结论与被其复述的澄清均为普通消息。确认操作调用 `/error-confirm <revision>`；空白 Error 无 provider 时显示模型引导卡片。
+`@errgrind/ui-errgrind-episode` 在侧栏显示 Error 历史，并在对话中呈现 Error、Grill、Teach 与 Drill 内容。学习者可以重新打开、重命名、恢复，或针对已完成的 Error 打开独立的 Drill 会话；仅 Drill 行提供归档，已归档的练习会话不留痕迹。判分卡只显示对错，已判分的练习在学习者离开时归档。模型产出的内容按普通 assistant Markdown 渲染，待答提示保留轻量边框。Error 卡片只显示描述与确认状态；Grill 结论与被复述的澄清均为普通消息。确认操作调用 `/error-confirm <revision>`；空白 Error 无 provider 时显示模型引导卡片。
 
 ## 目录
 

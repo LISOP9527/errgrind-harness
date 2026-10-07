@@ -533,7 +533,8 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(drill?.attempts[0]?.derivedError?.referenceAnswer).toContain(SENTINEL)
     expect(drillPersisted.filter(event => event.type === 'errgrind/drill-judged')).toHaveLength(1)
     await page.getByText('Incorrect').first().waitFor({ state: 'visible' })
-    await page.getByText(DRILL_FEEDBACK).waitFor()
+    // The Drill page shows only the verdict; judgment feedback stays internal.
+    expect(await page.getByText(DRILL_FEEDBACK).count()).toBe(0)
     // The incorrect verdict materializes the derived Error Session by itself.
     const derivedAgent = scaffold.ctx.agents.get(derivedId)
     if (derivedAgent === undefined) throw new Error('incorrect Drill did not materialize its derived Error')
@@ -548,9 +549,38 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
       .rejects.toThrow('Only a confirmed Error')
     await expect(scaffold.ctx.sessionController.openDrill({ sourceSessionId: SessionId('errgrind-missing') }))
       .rejects.toThrow()
-    // The transcript checks below read the source Error Session; the Practice
-    // click navigated the page to the Drill Session, so return first.
+    // The verdict card's Investigate button navigates into the materialized
+    // derived Error Session while the learner still reads the judgment page.
+    await page.getByRole('button', { name: 'Investigate this new Error' }).click()
+    try {
+      await page.getByText('New Error from practice').waitFor({ state: 'visible', timeout: 10_000 })
+    } catch {
+      throw new Error(`Derived Error card missing: ${JSON.stringify({ body: (await page.locator('body').innerText()).slice(-800), pageErrors, consoleErrors })}`)
+    }
+    await page.getByText(DRILL_QUESTION).first().waitFor({ state: 'visible' })
+    await page.getByText(DRILL_ANSWER).first().waitFor({ state: 'visible' })
+    const retry = await scaffold.ctx.sessionController.openDerivedError({
+      sourceSessionId: drillId,
+      preparationId,
+    })
+    expect(retry.sessionId).toBe(derivedId)
+    expect(derivedAgent.session.snapshotEvents().filter(event => event.type === 'errgrind/derived-error-open'))
+      .toHaveLength(1)
+    const derivedPersisted = await readPersistedEvents(scaffold, derivedId)
+    const coldDerived = Session.create(derivedId, derivedPersisted)
+    expect(scaffold.ctx.sessionProjections.stateOf(coldDerived, 'errgrindEpisode')?.origin.kind)
+      .toBe('derived_drill')
+    expect(inboundFrames.join('\n')).not.toContain(SENTINEL)
+    await page.reload({ waitUntil: 'load' })
+    await page.getByText('New Error from practice').waitFor({ state: 'visible', timeout: 15_000 })
+    expect((await page.locator('body').innerText())).not.toContain(SENTINEL)
+
+    // Returning to the source Error leaves the judged Drill Session, which
+    // retires it: the row leaves Error history and the registry archives it.
     await errorRow.locator('button').first().click()
+    await expect.poll(() => scaffold.ctx.workspaceRegistry.archivedSessionIds.includes(drillId))
+      .toBe(true)
+    await expect.poll(() => page.locator(`[data-error-session-id="${drillId}"]`).count()).toBe(0)
     const persisted = await readPersistedEvents(scaffold, sessionId)
     const coldSession = Session.create(sessionId, persisted)
     const episode = scaffold.ctx.sessionProjections.stateOf(coldSession, 'errgrindEpisode')
@@ -628,37 +658,9 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(mobileLayout.documentWidth).toBeLessThanOrEqual(mobileLayout.viewportWidth)
     expect(mobileLayout.composerWidth).toBeGreaterThan(0)
 
-    // The verdict card's Investigate button still navigates into the
-    // already-materialized derived Error Session.
-    await page.setViewportSize({ width: 1280, height: 800 })
-    await page.locator(`[data-error-session-id="${drillId}"]`).locator('button').first().click()
-    await page.getByText(DRILL_FEEDBACK).waitFor()
-    await page.getByRole('button', { name: 'Investigate this new Error' }).click()
-    try {
-      await page.getByText('New Error from practice').waitFor({ state: 'visible', timeout: 10_000 })
-    } catch {
-      throw new Error(`Derived Error card missing: ${JSON.stringify({ body: (await page.locator('body').innerText()).slice(-800), pageErrors, consoleErrors })}`)
-    }
-    await page.getByText(DRILL_QUESTION).first().waitFor({ state: 'visible' })
-    await page.getByText(DRILL_ANSWER).first().waitFor({ state: 'visible' })
-    const retry = await scaffold.ctx.sessionController.openDerivedError({
-      sourceSessionId: drillId,
-      preparationId,
-    })
-    expect(retry.sessionId).toBe(derivedId)
-    expect(derivedAgent.session.snapshotEvents().filter(event => event.type === 'errgrind/derived-error-open'))
-      .toHaveLength(1)
-    const derivedPersisted = await readPersistedEvents(scaffold, derivedId)
-    const coldDerived = Session.create(derivedId, derivedPersisted)
-    expect(scaffold.ctx.sessionProjections.stateOf(coldDerived, 'errgrindEpisode')?.origin.kind)
-      .toBe('derived_drill')
-    expect(inboundFrames.join('\n')).not.toContain(SENTINEL)
-    await page.reload({ waitUntil: 'load' })
-    await page.getByText('New Error from practice').waitFor({ state: 'visible', timeout: 15_000 })
-    expect((await page.locator('body').innerText())).not.toContain(SENTINEL)
-
     // A second Practice request allocates the next deterministic Drill index;
     // its row carries the practice label in Error history.
+    await page.setViewportSize({ width: 1280, height: 800 })
     const drillBId = SessionId(`errgrind-drill-${createHash('sha256')
       .update(`${sessionId}\u00001`).digest('hex').slice(0, 32)}`)
     const drillBTurn = settleFor(drillBId)
@@ -675,16 +677,17 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     await input.fill('Converted to eighths first: 6/8 + 1/8 = 7/8.')
     await input.press('Enter')
     expect(await judgeBTurn).toBe(drillBId)
-    // A correct verdict archives the Drill Session once its turn settles;
-    // the incorrect one stays open beside its derived Error. The verdict card
-    // itself was already exercised on the incorrect path; here the log owns the
-    // fact because archival can unmount the transcript before it renders.
+    // A correct verdict archives the Drill Session once its turn settles; the
+    // incorrect one was retired earlier when the learner left its page. The
+    // verdict card itself was already exercised on the incorrect path; here
+    // the log owns the fact because archival can unmount the transcript before
+    // it renders.
     const drillBPersisted = await readPersistedEvents(scaffold, drillBId)
     expect(drillBPersisted.some(event => event.type === 'errgrind/drill-judged'
       && event.data.isCorrect)).toBe(true)
     await expect.poll(() => scaffold.ctx.workspaceRegistry.archivedSessionIds.includes(drillBId))
       .toBe(true)
-    expect(scaffold.ctx.workspaceRegistry.archivedSessionIds.includes(drillId)).toBe(false)
+    expect(scaffold.ctx.workspaceRegistry.archivedSessionIds.includes(drillId)).toBe(true)
     await expect.poll(() => page.locator(`[data-error-session-id="${drillBId}"]`).count()).toBe(0)
     expect(pageErrors).toEqual([])
     expect(remoteSocket).toBeDefined()

@@ -776,6 +776,13 @@ Host service backing the generated `ctx.remote.session` namespace.
 
 ```ts cordis-catalog
 /**
+ * Archive one judged Drill Session once the learner has moved on; a still-active
+ * Session archives on its next idle transition like a settled correct verdict.
+ * @param request - the Drill Session whose transcript the learner just left.
+ */
+@Remote('retireDrill') async retireDrill(request: DrillRetireRequest): Promise<void>
+
+/**
  * Resolve or resume one ordinary Session for another Host API domain.
  * @param sessionId - Session identity whose Agent owns the operation.
  * @returns the live Agent or the stable Session-domain failure.

@@ -29,7 +29,7 @@ kind: "package-reference"
 
 已注册的 `errgrindEpisode` 投影折叠 Error、Grill 和 `errgrind/teach-step` 事件，以及来自 `user/message` 的依据摘录。它的 Host 状态维护真实的首次输入、附件引用、来源信息、描述草稿、已确认版本、诊断历史、证据来源和当前诊断账本；浏览器视图只含公开描述的前 300 个 Unicode 字符、粗粒度阶段、当前能否出 Drill 与行类型（Error 或 Drill），供 Error 历史使用。`errgrind/error-clarify` 与 `errgrind/teach-step` 是持久化的公开对话事件。`latest-probe-answer` 来源别名会先解析到持久化的 `user/message` 来源，再进行依据校验。Teach 开始后的用户回答不会计入 Error 发生时的证据。无关事件会保留现有投影状态。
 
-独立的 `errgrindDrill` 投影保存私有 DrillSpec 与参考答案、公开题目、持久化用户回答引用、可审阅的图片作答草稿以及判分记录。`drill_answer_draft` 将图片转写记录为草稿；学习者须回复 `确认`/`Confirm` 或 `修正：`/`Revise:` 加完整更正作答，才可判分。`drill_judge` 从请求头记录判分所用 provider 和 model。答错时，同一条 `errgrind/drill-judged` 事件保存含题目、作答、参考答案及来源尝试的衍生 Error 快照。在历史 Practice 入口打开的专用 Drill Session（经确定性 `errgrind-drill-*` 身份与 `errgrind/drill-open` 种子事件）内，答对的判分在会话收尾后归档该 Session，答错则通过确定性 `errgrind-derived-*` 身份把快照物化为独立的待 Grill Session。重复打开衍生 Error 复用已物化的会话；重复打开 Drill 按序分配下一个空闲的确定性会话。来源关系保存在持久化日志中。每次通过前置守卫的 `drill_prepare` 调用落一条 `errgrind/drill-draft-finished` 结算事件（成功、失败或中止），含规格落盘前被拒的尝试——此时标记不带归属，浏览器据此渲染生成失败卡。
+独立的 `errgrindDrill` 投影保存私有 DrillSpec 与参考答案、公开题目、持久化用户回答引用、可审阅的图片作答草稿以及判分记录。`drill_answer_draft` 将图片转写记录为草稿；学习者须回复 `确认`/`Confirm` 或 `修正：`/`Revise:` 加完整更正作答，才可判分。`drill_judge` 从请求头记录判分所用 provider 和 model。答错时，同一条 `errgrind/drill-judged` 事件保存含题目、作答、参考答案及来源尝试的衍生 Error 快照。在历史 Practice 入口打开的专用 Drill Session（经确定性 `errgrind-drill-*` 身份与 `errgrind/drill-open` 种子事件）内，答对的判分在会话收尾后归档该 Session，答错则通过确定性 `errgrind-derived-*` 身份把快照物化为独立的待 Grill Session，并在学习者离开练习会话后归档它。重复打开衍生 Error 复用已物化的会话；重复打开 Drill 按序分配下一个空闲的确定性会话。来源关系保存在持久化日志中。每次通过前置守卫的 `drill_prepare` 调用落一条 `errgrind/drill-draft-finished` 结算事件（成功、失败或中止），含规格落盘前被拒的尝试——此时标记不带归属，浏览器据此渲染生成失败卡。
 
 `error_draft` 工具接收一份完整描述（1–12,000 个字符），递增草稿版本。Grill 同时负责收集形成准确描述所需的信息。`grill_conclude` 只保存锚定当前草稿的暂定诊断，Grill 仍保持开放。用户使用 `/error-confirm <revision>` 确认该版本时，才一起提交诊断并完成 Grill；不确认则可继续澄清、追问和修订，旧提案随之失效。Teach 和 Drill 都要求这一共同完成。已完成诊断后的更正会将诊断标记为陈旧待复核；重新探针会将旧账本归档至 `diagnosisHistory`。
 
@@ -55,7 +55,7 @@ Grill 开放期间，agent 可调用 `error_clarify` 显示事实澄清问题，
 
 #### 模型看到什么
 
-本包不注册系统提示词。启用时，模型可以看到 `error_clarify`、`error_draft`、`grill_probe`、`grill_conclude`、`teach_step`、`drill_prepare`、`drill_answer_draft` 和 `drill_judge` 的工具 schema 与描述。工具描述和参数指导在插件启动时从 `errgrind-fork/prompts/tools.json` 加载；ErrGrind Web 的系统提示词在 `errgrind-fork/prompts/system.md`。`teach_step` 在当前诊断完成后公开教学问题、提示或解释。Drill 只公开题目与反馈，参考答案和衍生 Error 快照留在 Host。ErrGrind Web 组合会隐藏普通 assistant 文本；浏览器视图也使探针预测、工具参数、assistant 推理与内部 Grill 事件留在宿主。
+本包不注册系统提示词。启用时，模型可以看到 `error_clarify`、`error_draft`、`grill_probe`、`grill_conclude`、`teach_step`、`drill_prepare`、`drill_answer_draft` 和 `drill_judge` 的工具 schema 与描述。工具描述和参数指导在插件启动时从 `errgrind-fork/prompts/tools.json` 加载；ErrGrind Web 的系统提示词在 `errgrind-fork/prompts/system.md`。`teach_step` 在当前诊断完成后公开教学问题、提示或解释。Drill 只公开题目与判定，参考答案、判分反馈和衍生 Error 快照留在 Host。ErrGrind Web 组合会隐藏普通 assistant 文本；浏览器视图也使探针预测、工具参数、assistant 推理与内部 Grill 事件留在宿主。
 
 当前 Web 组合将新会话默认设为只读权限，并关闭 PTC 执行、Shell 设置、文件／会话引用以及可能暴露附件哈希与诊断状态的 `/error-status`。图片附件和绑定修订号的 `/error-confirm <revision>` 仍可用；standard preset 向模型提供八个 ErrGrind 工具，包括 Teach、Drill 和 `drill_answer_draft`。
 

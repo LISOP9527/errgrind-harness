@@ -50,10 +50,12 @@ Teach begins only after joint confirmation. It is an intervention and may
 continue in the same conversation. An independent Drill runs in its own
 Session, opened on demand from a completed Error's history entry. It stores a
 private specification and reference answer. Judgment binds to a persisted
-learner response. A correct verdict retires the Drill Session — archived and
-hidden from history entirely, recorded only in the Host log; a wrong
-judgment atomically records an attempt and a lineage-bound derived Error,
-which the Host materializes as a separate pending episode. Neither Teach nor
+learner response. The Drill Session shows only the verdict — correctness, no
+analysis — and every judged practice leaves no product-visible trace: a
+correct verdict archives it at settle; a wrong judgment atomically records an
+attempt and a lineage-bound derived Error, materialized as a separate pending
+episode, and archives the practice Session once the learner leaves it.
+Archival records only a Host log line. Neither Teach nor
 Drill responses become retrospective evidence about the original Error.
 
 The DSH Session log is the durable fact source for this fork. Core projections

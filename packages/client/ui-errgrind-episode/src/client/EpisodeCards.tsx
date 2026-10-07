@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatNodeDataMap, UseChat } from '@deepseek-ai/dsh-client-ui-chat/client'
@@ -31,7 +31,10 @@ export type DrillQuestionProps = PropsRuntime<'conversation.chat.node', 'errgrin
 export type DrillAnswerDraftProps = PropsRuntime<'conversation.chat.node', 'errgrind-drill-answer-draft'> & PropsLocale<typeof NS>
 export type DrillJudgmentProps = PropsRuntime<'conversation.chat.node', 'errgrind-drill-judgment'>
   & PropsLocale<typeof NS>
-  & { openDerivedError: (preparationId: string) => Promise<boolean> }
+  & {
+    openDerivedError: (preparationId: string) => Promise<boolean>
+    retireDrill: () => void
+  }
 export type DerivedErrorProps = PropsRuntime<'conversation.chat.node', 'errgrind-derived-error'> & PropsLocale<typeof NS>
 export type DrillDraftCardProps = PropsRuntime<'conversation.chat.node', 'errgrind-drill-draft-card'> & PropsLocale<typeof NS>
 /** Complete props for a diagnosis conclusion row. */
@@ -250,11 +253,13 @@ export function DrillAnswerDraftCard({ node, t, useChat }: DrillAnswerDraftProps
     : <PromptBlock label={t('drill.answerDraft')} hint={t('drill.answerDraftReview')}>{body}</PromptBlock>
 }
 
-/** Show the recorded verdict and feedback after the learner has answered. */
-export function DrillJudgmentCard({ node, t, openDerivedError }: DrillJudgmentProps) {
+/** Show only the recorded verdict; the judged practice retires once the learner leaves it. */
+export function DrillJudgmentCard({ node, t, openDerivedError, retireDrill }: DrillJudgmentProps) {
   const [pending, setPending] = useState(false)
   const [failed, setFailed] = useState(false)
-  const labels = useMemo(() => markdownLabels(t), [t])
+  const retire = useRef(retireDrill)
+  retire.current = retireDrill
+  useEffect(() => () => { retire.current() }, [])
   async function open(): Promise<void> {
     setPending(true)
     setFailed(false)
@@ -271,7 +276,6 @@ export function DrillJudgmentCard({ node, t, openDerivedError }: DrillJudgmentPr
       <p className={css.verdict} data-correct={node.data.isCorrect || undefined}>
         {node.data.isCorrect ? t('drill.correct') : t('drill.incorrect')}
       </p>
-      <MarkdownText text={node.data.feedback} labels={labels} />
       {!node.data.isCorrect && (
         <button className={css.confirmButton} type="button" disabled={pending} onClick={() => { void open() }}>
           {pending ? t('drill.openingDerived') : t('drill.openDerived')}
