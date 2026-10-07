@@ -127,6 +127,18 @@ describe('ErrGrind Error history', () => {
     expect(screen.queryByText('Archived')).toBeNull()
   })
 
+  it('leaves no trace of archived practice Sessions in the archived section', () => {
+    const input = props()
+    input.useWorkspaces = <T,>(selector: (state: WorkspaceState) => T): T =>
+      selector(workspaces([first, drillSession]))
+    render(<ErrorHistory {...input} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /^Show archived/ }))
+    expect(screen.getByText('first')).toBeTruthy()
+    expect(screen.queryByText('练习 · 定义域错误')).toBeNull()
+    expect(screen.queryByText('通分时忘了找公共分母')).toBeNull()
+  })
+
   it('surfaces an unarchive failure without dropping the row', async () => {
     const input = props()
     input.useWorkspaces = <T,>(selector: (state: WorkspaceState) => T): T =>

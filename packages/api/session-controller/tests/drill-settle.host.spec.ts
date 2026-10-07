@@ -168,10 +168,13 @@ describe('Drill Session settle', () => {
 
   it('archives a correct Drill verdict immediately or after the turn idles', async () => {
     const { ctx, archives, failArchive, episodes } = await harness()
+    const loggerInfo = vi.spyOn(ctx.logger, 'info')
     const immediate = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-immediate')))
     episodes.set(`${immediate.id}:errgrindEpisode`, { origin: { kind: 'drill' } })
     immediate.session.append('errgrind/drill-judged', attempt(true))
     await vi.waitFor(() => { expect(archives).toEqual([immediate.id]) })
+    // The archived Drill leaves no product trace, so the internal Host log records it.
+    expect(loggerInfo).toHaveBeenCalledWith(expect.stringContaining('archived after a correct verdict'))
 
     // A judgment committed mid-turn defers the archive until the Agent idles.
     const busy = await liveAgent(ctx, ctx.sessions.create(SessionId('drill-busy')))
@@ -183,6 +186,7 @@ describe('Drill Session settle', () => {
     expect(archives).toHaveLength(1)
     ctx.emit('agent/status', { agent: busy, status: 'idle' })
     await vi.waitFor(() => { expect(archives).toEqual([immediate.id, busy.id]) })
+    expect(loggerInfo).toHaveBeenCalledTimes(2)
   })
 
   it('ignores an idle transition with no pending Drill archive', async () => {

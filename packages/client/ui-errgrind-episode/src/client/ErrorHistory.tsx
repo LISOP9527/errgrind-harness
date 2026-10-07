@@ -77,10 +77,12 @@ export function ErrorHistory({
   }), [list, needle, archived])
   // Archived Errors stay reachable here because this panel replaces the
   // Workspace browser, which carries the only other unarchive affordance.
+  // Archived practice Sessions are throwaway by contract: they leave no trace.
   const archivedEntries = useMemo(() => list.ids.flatMap((id) => {
     const session = list.byId[id]
     if (session === undefined || session.blank || !archived.has(id)) return []
     const episode = session.projectionValues?.errgrindEpisode
+    if (episode?.kind === 'drill') return []
     const description = episode?.description?.trim() || session.displayTitle
     if (needle && !`${description} ${session.displayTitle}`.toLocaleLowerCase().includes(needle)) return []
     return [{ sessionId: id, title: session.displayTitle, updatedAt: session.updatedAt }]

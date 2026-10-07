@@ -252,6 +252,8 @@ export class SessionController extends TypertRemoteService {
 
   /**
    * Close out a judged Drill Session: archive a correct practice, materialize an incorrect one.
+   * The archived Drill leaves no product-visible trace — the history panel hides archived
+   * practice Sessions — so the archival records only this Host log line.
    * @param session - Session that committed the Drill judgment event.
    * @param attempt - Folded Drill attempt carrying the verdict and derived Error payload.
    */
@@ -264,6 +266,7 @@ export class SessionController extends TypertRemoteService {
     }
     try {
       await this.ctx.workspaceRegistry.archiveSession(session.id)
+      this.ctx.logger.info(`session-controller: Drill Session "${session.id}" archived after a correct verdict`)
     } catch (error) {
       if (!(error instanceof WorkspaceActiveSessionError)) throw error
       this.pendingDrillArchives.add(session.id)
@@ -277,7 +280,9 @@ export class SessionController extends TypertRemoteService {
    */
   private attemptPendingDrillArchive(sessionId: SessionId): void {
     if (!this.pendingDrillArchives.delete(sessionId)) return
-    void this.ctx.workspaceRegistry.archiveSession(sessionId).catch((error: unknown) => {
+    void this.ctx.workspaceRegistry.archiveSession(sessionId).then(() => {
+      this.ctx.logger.info(`session-controller: Drill Session "${sessionId}" archived after a correct verdict`)
+    }).catch((error: unknown) => {
       if (error instanceof WorkspaceActiveSessionError) {
         this.pendingDrillArchives.add(sessionId)
         return

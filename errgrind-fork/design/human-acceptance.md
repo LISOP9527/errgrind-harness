@@ -47,9 +47,9 @@ screen size and reproducible step.
 Create a second Error, then use the Error history to find and reopen each one
 after a restart. The unfinished Error must not offer Drill. Select the
 completed Error's Practice action and confirm that the question and attempt
-run in a dedicated Drill Session; a correct verdict archives it, while a wrong
-one materializes a derived pending-Grill Error. Check that an old Session without a cached
-Error classification is still openable.
+run in a dedicated Drill Session; a correct verdict removes it from history
+entirely, while a wrong one materializes a derived pending-Grill Error.
+Check that an old Session without a cached Error classification is still openable.
 
 ## Evidence log
 
