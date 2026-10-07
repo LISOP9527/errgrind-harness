@@ -8,9 +8,6 @@ import { formatLiveRunDuration, formatRunDuration, LIVE_RUN_CLOCK_INTERVAL_MS } 
 import a11yCss from './accessibility.module.css'
 import css from './TurnProcessNodeView.module.css'
 
-/** Node kinds carrying the learner's own input rather than Turn output. */
-const TURN_INPUT_KINDS: ReadonlySet<string> = new Set(['user', 'turn-trigger', 'steering'])
-
 /** Turn-level process disclosure controller. */
 export const TurnProcessNodeView = memo(function TurnProcessNodeView({
   node, turnProcess, t, useChat,
@@ -37,7 +34,6 @@ export const TurnProcessNodeView = memo(function TurnProcessNodeView({
       const candidate = snapshot.nodes.get(key)
       if (candidate === undefined || !isVisibleChatNode(candidate as ChatNode)) continue
       if (TURN_PROCESS_INDEPENDENT_KINDS.has(candidate.kind)) continue
-      if (TURN_INPUT_KINDS.has(candidate.kind)) continue
       const location = candidate.location
       if (location.kind === 'turn' || location.kind === 'step') {
         if (location.turn.turn !== node.data.turn) continue
