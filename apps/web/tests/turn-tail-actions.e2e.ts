@@ -148,7 +148,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     expect(await runningProcess.isDisabled()).toBe(true)
     expect(await runningProcess.getAttribute('aria-expanded')).toBe('true')
     await expect.poll(
-      () => page.getByRole('status').filter({ hasText: 'Deep diving...' }).isVisible(),
+      () => page.getByRole('status').filter({ hasText: 'Thinking...' }).isVisible(),
       { timeout: 10_000 },
     ).toBe(true)
     await page.locator('[data-streaming="true"]')
