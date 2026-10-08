@@ -19,6 +19,10 @@
 
 .pageHead {
   box-sizing: border-box;
+  /* The drawer-mode floating sidebar toggle (ui-sidebar .railOnlyToggle)
+     covers the top-left corner; ui-layout publishes its band as
+     --dsh-frame-leading-clearance, minus this page's own inline padding. */
+  padding-inline-start: max(0px, calc(var(--dsh-frame-leading-clearance, 0px) - clamp(16px, 4vw, 48px)));
 }
 
 :global([data-platform='darwin']) .pageHead {
