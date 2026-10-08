@@ -1249,6 +1249,7 @@ describe('Drill pool selection', () => {
     const session = Session.create(SessionId('errgrind-pool'))
     const state = applyEpisodeEvent(null, openPool(session))
     expect(state?.origin.kind).toBe('drill')
+    expect(state?.origin.poolSessionIds).toEqual(['error-a', 'error-b'])
     expect(state?.drillCandidates).toHaveLength(2)
     expect(state?.confirmedRevision).toBeNull()
     expect(state?.draft).toBeNull()
@@ -1276,6 +1277,7 @@ describe('Drill pool selection', () => {
     state = applyEpisodeEvent(state, session.append('errgrind/drill-source-selected', candidateB))
     expect(state?.drillCandidates).toHaveLength(0)
     expect(state?.origin).toMatchObject({ kind: 'drill', sourceSessionId: 'error-b' })
+    expect(state?.origin.poolSessionIds).toEqual(['error-a', 'error-b'])
     expect(state?.draft).toEqual({ revision: 1, text: 'missed domain check' })
     expect(state?.confirmedRevision).toBe(1)
     expect(state?.diagnosis).toMatchObject({

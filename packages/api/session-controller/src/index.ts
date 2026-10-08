@@ -106,6 +106,11 @@ export interface SessionControllerInternals {
   readonly canOpenPath?: () => boolean
 }
 
+/** The deterministic pool-mode Drill identity: the candidate set, order-insensitive. */
+function poolIdentity(sourceSessionIds: readonly string[]): string {
+  return `pool\x00${[...sourceSessionIds].sort().join('\x01')}`
+}
+
 /** Host service backing the generated `ctx.remote.session` namespace. */
 export class SessionController extends TypertRemoteService {
   static inject = [
@@ -471,6 +476,9 @@ export class SessionController extends TypertRemoteService {
     const seeds: DrillCandidateSeed[] = []
     const agents: Agent[] = []
     for (const candidateId of candidateIds) {
+      if (this.ctx.workspaceRegistry.archivedSessionIds.includes(candidateId)) {
+        throw new RemoteError('gateway/bad-request', 'An archived Session cannot open a Drill Session', {})
+      }
       const source = await this.resolveAgent(candidateId)
       if ('error' in source) throw source.error
       const episode = this.ctx.sessionProjections.stateOf(source.agent.session, 'errgrindEpisode')
@@ -504,7 +512,7 @@ export class SessionController extends TypertRemoteService {
     // request for the same Session.
     const identity = single
       ? first.sourceSessionId
-      : `pool\x00${seeds.map(seed => seed.sourceSessionId).join('\x01')}`
+      : poolIdentity(seeds.map(seed => seed.sourceSessionId))
     const occupied = new Set<SessionId>((await this.listState.list()).map(item => item.sessionId))
     for (const sessionId of this.ctx.workspaceRegistry.archivedSessionIds) occupied.add(sessionId)
     let index = 0
@@ -522,9 +530,11 @@ export class SessionController extends TypertRemoteService {
     const session = target.agent.session
     const existing = this.ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
     const existingIdentity = existing?.origin.kind === 'drill'
-      ? existing.drillCandidates.length > 0 || existing.origin.sourceSessionId === undefined
-        ? `pool\x00${existing.drillCandidates.map(candidate => candidate.sourceSessionId).join('\x01')}`
-        : existing.origin.sourceSessionId
+      ? existing.origin.poolSessionIds !== undefined
+        ? poolIdentity(existing.origin.poolSessionIds)
+        : existing.drillCandidates.length > 0
+          ? poolIdentity(existing.drillCandidates.map(candidate => candidate.sourceSessionId))
+          : existing.origin.sourceSessionId
       : null
     if (existing != null && existingIdentity !== identity) {
       throw new RemoteError('gateway/internal', 'Drill Session identity conflicts with another Session', {})

@@ -47,7 +47,7 @@ The [format references](persistence-changes/historical-formats/README.md) cover 
 | `event:errgrind/error-clarify` | event | `d9f76cbe2d736e650a7e65557e47deec43ce0b0485ccc0e7950ffe72be406911` | [`{ type: "errgrind/error-clarify" }`](#persistence-type-sha256-d9f76cbe2d736e650a7e65557e47deec43ce0b0485ccc0e7950ffe72be406911) |
 | `event:errgrind/error-confirm` | event | `b796530d308a2351d1c4ad53efdcb1f47f2e94d09a918af79fafaba823449dec` | [`{ type: "errgrind/error-confirm" }`](#persistence-type-sha256-b796530d308a2351d1c4ad53efdcb1f47f2e94d09a918af79fafaba823449dec) |
 | `event:errgrind/error-draft` | event | `e16c3b67c6a94b25cfc4eee31453ea6704142f7d1a441d620c15215af35c1dd3` | [`{ type: "errgrind/error-draft" }`](#persistence-type-sha256-e16c3b67c6a94b25cfc4eee31453ea6704142f7d1a441d620c15215af35c1dd3) |
-| `event:errgrind/error-open` | event | `d5eea711454d87ce1222e3fefa33ddde4c656372e508d11da50fae9728541643` | [`{ type: "errgrind/error-open" }`](#persistence-type-sha256-d5eea711454d87ce1222e3fefa33ddde4c656372e508d11da50fae9728541643) |
+| `event:errgrind/error-open` | event | `6afb9889c6e8a425286bec292f992d1b6fe22e1b808793f9b24aba1a69c8656d` | [`{ type: "errgrind/error-open" }`](#persistence-type-sha256-6afb9889c6e8a425286bec292f992d1b6fe22e1b808793f9b24aba1a69c8656d) |
 | `event:errgrind/grill-conclude` | event | `7647a33d5e8a0f159ddcb15a4a7b7f12e8e8a559d520875f8cbff4fba91b1f5a` | [`{ type: "errgrind/grill-conclude" }`](#persistence-type-sha256-7647a33d5e8a0f159ddcb15a4a7b7f12e8e8a559d520875f8cbff4fba91b1f5a) |
 | `event:errgrind/grill-probe` | event | `52a6af21e9b7269a8ac0cf7ada9af2eaff522507b132ee6b6875c6fa02e03b4e` | [`{ type: "errgrind/grill-probe" }`](#persistence-type-sha256-52a6af21e9b7269a8ac0cf7ada9af2eaff522507b132ee6b6875c6fa02e03b4e) |
 | `event:errgrind/teach-step` | event | `bbac7e333f3f83ecada97567f0b7a11093b98bc5369d2e21c800fcf5e917f10f` | [`{ type: "errgrind/teach-step" }`](#persistence-type-sha256-bbac7e333f3f83ecada97567f0b7a11093b98bc5369d2e21c800fcf5e917f10f) |
@@ -537,7 +537,7 @@ Source: [`packages/core/session/src/types.ts:311`](../packages/core/session/src/
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:187`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:189`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinddrill-answer-draft--log-only"></a>
 
@@ -608,7 +608,7 @@ Source: [`packages/core/errgrind-episode/src/drill.ts:175`](../packages/core/err
   }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:197`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:199`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinddrill-prepared--log-only"></a>
 
@@ -638,7 +638,7 @@ Source: [`packages/core/errgrind-episode/src/drill.ts:171`](../packages/core/err
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:215`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:217`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinddrill-spec-prepared--log-only"></a>
 
@@ -660,7 +660,7 @@ Source: [`packages/core/errgrind-episode/src/drill.ts:165`](../packages/core/err
 'errgrind/error-clarify': { text: string; turn: number }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:227`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:229`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinderror-confirm--log-only"></a>
 
@@ -671,7 +671,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:227`](../packages/core/err
 'errgrind/error-confirm': { revision: number; commandId: string }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:229`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:231`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinderror-draft--log-only"></a>
 
@@ -682,7 +682,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:229`](../packages/core/err
 'errgrind/error-draft': { revision: number; text: string }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:225`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:227`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinderror-open--log-only"></a>
 
@@ -699,7 +699,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:225`](../packages/core/err
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:179`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:181`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrindgrill-conclude--log-only"></a>
 
@@ -722,7 +722,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:179`](../packages/core/err
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:241`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:243`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrindgrill-probe--log-only"></a>
 
@@ -741,7 +741,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:241`](../packages/core/err
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:231`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:233`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrindteach-step--log-only"></a>
 
@@ -758,7 +758,7 @@ Source: [`packages/core/errgrind-episode/src/types.ts:231`](../packages/core/err
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/types.ts:255`](../packages/core/errgrind-episode/src/types.ts)
+Source: [`packages/core/errgrind-episode/src/types.ts:257`](../packages/core/errgrind-episode/src/types.ts)
 
 ### `feedback/*`
 
@@ -3836,13 +3836,13 @@ Sources: [`packages/web/web-search-deepseek/src/provider.ts:55`](../packages/web
 
 <a id="persistence-type-deriveddrillerror"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtsderiveddrillerror"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltsderiveddrillerror"></a>
 
 ### `DerivedDrillError`
 
 SHA-256: `8d12f977d7c817207a9e5c9b3ab802b347494984f969af87677cdc99a6c310b1`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:92`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:128`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -3880,13 +3880,13 @@ Attribution-only additions: `tmux-context`.
 
 <a id="persistence-type-diagnosticevidence"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsdiagnosticevidence"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestsdiagnosticevidence"></a>
 
 ### `DiagnosticEvidence`
 
 SHA-256: `e815f85d951be458a9af3e43e15e9d68baae71e2b1c155a8bddfea5c6276989e`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:68`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:82`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -3910,13 +3910,13 @@ Array of [`DiagnosticEvidence`](#persistence-type-sha256-e815f85d951be458a9af3e4
 
 <a id="persistence-type-diagnosticprobe"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsdiagnosticprobe"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestsdiagnosticprobe"></a>
 
 ### `DiagnosticProbe`
 
 SHA-256: `ff038adc0a971f8222d7950eb6b47374277e89210042ebe3e27a700111b19ef8`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:56`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:69`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -3934,13 +3934,13 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:56`](../packages/
 
 <a id="persistence-type-drillanswerdraft"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtsdrillanswerdraft"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltsdrillanswerdraft"></a>
 
 ### `DrillAnswerDraft`
 
 SHA-256: `bbba9eb72203dbb966e0fb6d421674f0a4882f5afb9c100672657032961b39f9`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:85`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:120`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -3953,13 +3953,13 @@ Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:85`](../packages/
 
 <a id="persistence-type-drillattempt"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtsdrillattempt"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltsdrillattempt"></a>
 
 ### `DrillAttempt`
 
 SHA-256: `148c1199a15afdf36d1a15e0e94468749567812a94b30fc767490541e56fc7ea`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:101`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:138`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -3978,13 +3978,13 @@ Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:101`](../packages
 
 <a id="persistence-type-drillcandidateseed"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsdrillcandidateseed"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestsdrillcandidateseed"></a>
 
 ### `DrillCandidateSeed`
 
 SHA-256: `a544a39dfc8eeecba4e0a37d20d29766b9da7beab7cb73d8feb9863251d3814e`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:105`](../packages/core/errgrind-episode/lib/types/types.d.ts) · [`packages/core/errgrind-episode/lib/types/types.d.ts:194`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:123`](../packages/core/errgrind-episode/src/types.ts) · [`packages/core/errgrind-episode/src/types.ts:217`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -4008,13 +4008,13 @@ Array of [`DrillCandidateSeed`](#persistence-type-sha256-a544a39dfc8eeecba4e0a37
 
 <a id="persistence-type-drilldraftfinished"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtsdrilldraftfinished"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltsdrilldraftfinished"></a>
 
 ### `DrillDraftFinished`
 
 SHA-256: `c597aaa37ef3ca613795afa6fde4cd6f9d27c19dadfcdbff3d4a12b95c217373`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:54`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:85`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -4026,13 +4026,13 @@ Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:54`](../packages/
 
 <a id="persistence-type-drilldraftrequested"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtsdrilldraftrequested"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltsdrilldraftrequested"></a>
 
 ### `DrillDraftRequested`
 
 SHA-256: `28c0b2682273ed1c48b98492c5637dd978a67a2bbf58dd8dbd5b142e17097ab1`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:45`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:74`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -4045,13 +4045,13 @@ Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:45`](../packages/
 
 <a id="persistence-type-drilldraftstatus"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtsdrilldraftstatus"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltsdrilldraftstatus"></a>
 
 ### `DrillDraftStatus`
 
 SHA-256: `73350d65eed7b12cd1fb12e5a7cd5ea7cda7ec0f8bcbf1c61e571e6b6631d2bf`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:52`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:82`](../packages/core/errgrind-episode/src/drill.ts)
 
 One of:
 
@@ -4063,13 +4063,13 @@ One of:
 
 <a id="persistence-type-drillpreparation"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtsdrillpreparation"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltsdrillpreparation"></a>
 
 ### `DrillPreparation`
 
 SHA-256: `dfa6cb36cd482734c18fa636afe15e22d115bf1d75f6dedc47385b8bdc131a04`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:60`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:92`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -4088,13 +4088,13 @@ Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:60`](../packages/
 
 <a id="persistence-type-drillspec"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtsdrillspec"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltsdrillspec"></a>
 
 ### `DrillSpec`
 
 SHA-256: `4da445e4317e8aa2740796f012ba5b02b80000d504bbdae87591a6f2ac88cccd`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:10`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:36`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -4137,13 +4137,13 @@ Sources: [`packages/core/session/src/types.ts:240`](../packages/core/session/src
 
 <a id="persistence-type-errorattachment"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtserrorattachment"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestserrorattachment"></a>
 
 ### `ErrorAttachment`
 
 SHA-256: `557e7bd198911abefb2f4b4098caad89697a61007b88c9ed1e9c2f57763faa87`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:15`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:18`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -4473,13 +4473,13 @@ One of:
 
 <a id="persistence-type-hypothesis"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtshypothesis"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestshypothesis"></a>
 
 ### `Hypothesis`
 
 SHA-256: `5beeada03db7dcf84e26e4efc1be70cefd5f3503e0e1c67488c7ac80049aa52f`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:43`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:53`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -4491,13 +4491,13 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:43`](../packages/
 
 <a id="persistence-type-hypothesisstatus"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtshypothesisstatus"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestshypothesisstatus"></a>
 
 ### `HypothesisStatus`
 
 SHA-256: `9375891f836b2a5206a6691b5b14d3285739f2356254d9c50f723237b0703fda`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:41`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:50`](../packages/core/errgrind-episode/src/types.ts)
 
 One of:
 
@@ -4520,15 +4520,13 @@ Array of [`Hypothesis`](#persistence-type-sha256-5beeada03db7dcf84e26e4efc1be70c
 
 <a id="persistence-type-packagesattachmentattachmentsrctypestsimageattachmentref"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsimageattachmentref"></a>
-
 <a id="persistence-type-packagescoreerrgrind-episodesrctypestsimageattachmentref"></a>
 
 ### `ImageAttachmentRef`
 
 SHA-256: `61e22ffeec5c53b1204a9de128d30a5a6810a4e2915e3b4bce8a48c1469c4023`
 
-Sources: [`packages/attachment/attachment/src/types.ts:11`](../packages/attachment/attachment/src/types.ts) · [`packages/core/errgrind-episode/lib/types/types.d.ts:4`](../packages/core/errgrind-episode/lib/types/types.d.ts) · [`packages/core/errgrind-episode/src/types.ts:6`](../packages/core/errgrind-episode/src/types.ts)
+Sources: [`packages/attachment/attachment/src/types.ts:11`](../packages/attachment/attachment/src/types.ts) · [`packages/core/errgrind-episode/src/types.ts:6`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -4620,22 +4618,23 @@ One of:
 - `"next-step"`
 - `"next-turn"`
 
-<a id="persistence-type-sha256-b132e128c482d10f594cb10a88b636d25c81bc67416ca4b66755992fac485777"></a>
+<a id="persistence-type-sha256-1ec0541a959671340c47e47e1269700b4522eb8c0b64d6eb83eb87e5a8316629"></a>
 
 <a id="persistence-type-inputorigin"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsinputorigin"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestsinputorigin"></a>
 
 ### `InputOrigin`
 
-SHA-256: `b132e128c482d10f594cb10a88b636d25c81bc67416ca4b66755992fac485777`
+SHA-256: `1ec0541a959671340c47e47e1269700b4522eb8c0b64d6eb83eb87e5a8316629`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:26`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:31`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
 | `clientTimeZone` | optional | `string` |
 | `kind` | required | [`InputOriginKind`](#persistence-type-sha256-6c19ec3de134d13feddfe88b25dba832459203105a906ee19caf2ded6ebe350d) |
+| `poolSessionIds` | optional | [`string[]`](#persistence-type-sha256-93c33d9687613293f8c95d46c4d922fe9ceae83b84c384beff5c3315abe005f2) |
 | `rpcId` | optional | `string` |
 | `senderSessionId` | optional | `string` |
 | `sourceAnswerRef` | optional | `string` |
@@ -4646,13 +4645,13 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:26`](../packages/
 
 <a id="persistence-type-inputoriginkind"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsinputoriginkind"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestsinputoriginkind"></a>
 
 ### `InputOriginKind`
 
 SHA-256: `6c19ec3de134d13feddfe88b25dba832459203105a906ee19caf2ded6ebe350d`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:24`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:28`](../packages/core/errgrind-episode/src/types.ts)
 
 One of:
 
@@ -4694,13 +4693,13 @@ Array of [`JsonValue`](#persistence-type-sha256-c592ce75aab73fcab19c1d7845684c72
 
 <a id="persistence-type-legacydrillspec"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtslegacydrillspec"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltslegacydrillspec"></a>
 
 ### `LegacyDrillSpec`
 
 SHA-256: `1a7882f01642979edb8666aefb0fe664b02770c2dbcf446e44226c2316f434b6`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:28`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:55`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -5127,7 +5126,7 @@ One of:
 
 <a id="persistence-type-sha256-3f8d17f9e7d09f529d98a2250a885f52ca9d492284068e6c75a1bafb03117dc0"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypesdrilldtspendingdrillspec"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrcdrilltspendingdrillspec"></a>
 
 <a id="persistence-type-pendingdrillspec"></a>
 
@@ -5135,7 +5134,7 @@ One of:
 
 SHA-256: `3f8d17f9e7d09f529d98a2250a885f52ca9d492284068e6c75a1bafb03117dc0`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:37`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:65`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -5172,7 +5171,7 @@ Array of [`PresentedFile`](#persistence-type-sha256-b8fc636a2121df9d8423c242e03c
 
 <a id="persistence-type-sha256-5cb87ae4c7d63ddbaecb7b4cc441705735988bba77d45f166395654f55a312cb"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsprobeprediction"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestsprobeprediction"></a>
 
 <a id="persistence-type-probeprediction"></a>
 
@@ -5180,7 +5179,7 @@ Array of [`PresentedFile`](#persistence-type-sha256-b8fc636a2121df9d8423c242e03c
 
 SHA-256: `5cb87ae4c7d63ddbaecb7b4cc441705735988bba77d45f166395654f55a312cb`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:49`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:60`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -5197,7 +5196,7 @@ Array of [`ProbePrediction`](#persistence-type-sha256-5cb87ae4c7d63ddbaecb7b4cc4
 
 <a id="persistence-type-sha256-c9cb632d7ab12f1870baef049f361de4e96e4886194566dc656ea2bcd02e8f17"></a>
 
-<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsprobetype"></a>
+<a id="persistence-type-packagescoreerrgrind-episodesrctypestsprobetype"></a>
 
 <a id="persistence-type-probetype"></a>
 
@@ -5205,7 +5204,7 @@ Array of [`ProbePrediction`](#persistence-type-sha256-5cb87ae4c7d63ddbaecb7b4cc4
 
 SHA-256: `c9cb632d7ab12f1870baef049f361de4e96e4886194566dc656ea2bcd02e8f17`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:54`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:66`](../packages/core/errgrind-episode/src/types.ts)
 
 One of:
 
@@ -6650,7 +6649,7 @@ Sources: [`packages/subagent/tool-subagent/src/model-selection-state.ts:17`](../
 
 SHA-256: `a46c3e3c5716b848fa06f1948a4cb0ca072050543c930c38fca671d527185998`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:249`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:257`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -6666,7 +6665,7 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:249`](../packages
 
 SHA-256: `a8529baa023ccb6489ce3e02d1e3ccba7a371a885b80a2cd62ab2e606b6c7329`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:232`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:243`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -6687,7 +6686,7 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:232`](../packages
 
 SHA-256: `c25683ba2428d8bcb54e57a92b5a6541e810ce1d8eb8c68e6343c5b8162438cf`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:219`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:233`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -6729,19 +6728,19 @@ Sources: [`packages/core/session/src/types.ts:361`](../packages/core/session/src
 | `step` | required | `number` |
 | `turn` | required | `number` |
 
-<a id="persistence-type-sha256-9cc035a16f1f6a8524918d19b30ace5bba83cb5a697c40030ac754f255425523"></a>
+<a id="persistence-type-sha256-e8099297bf3e22c591e508f97fc269e15e45b8f753d152d0a185651d4765eb73"></a>
 
 ### `{ attachments?, hasImage?, origin?, text, … }`
 
-SHA-256: `9cc035a16f1f6a8524918d19b30ace5bba83cb5a697c40030ac754f255425523`
+SHA-256: `e8099297bf3e22c591e508f97fc269e15e45b8f753d152d0a185651d4765eb73`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:160`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:181`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
 | `attachments` | optional | [`ErrorAttachment[]`](#persistence-type-sha256-b554e350da644e063daa120f310453f082dc94fd2d47852dfd5b2858d5d454f3) |
 | `hasImage` | optional | `boolean` |
-| `origin` | optional | [`InputOrigin`](#persistence-type-sha256-b132e128c482d10f594cb10a88b636d25c81bc67416ca4b66755992fac485777) |
+| `origin` | optional | [`InputOrigin`](#persistence-type-sha256-1ec0541a959671340c47e47e1269700b4522eb8c0b64d6eb83eb87e5a8316629) |
 | `text` | required | `string` |
 | `turn` | required | `number` |
 
@@ -6751,7 +6750,7 @@ Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:160`](../packages
 
 SHA-256: `dfece67a014c660e02a6d36dedb3ca67756ffd659d0989fe74c4370bfcc71b4c`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:6`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:8`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -6795,7 +6794,7 @@ Sources: [`packages/interaction/user-approval/src/types.ts:44`](../packages/inte
 
 SHA-256: `0a3f170606f2000e054a8f79608888d3946b57d878a4901352658a68cae8261a`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:188`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:211`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -6937,7 +6936,7 @@ Sources: [`packages/interaction/commands/src/types.ts:112`](../packages/interact
 
 SHA-256: `5650197a5378ec48df4dfe9da67bd49bfac7602eac7aa38da66228a10e1beeac`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:214`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:231`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -7079,7 +7078,7 @@ Sources: [`packages/llm/llm-retry/src/types.ts:30`](../packages/llm/llm-retry/sr
 
 SHA-256: `a0b56dcec852c84c9d4c6c73d9647cde9f413cd251228a15f6ae6a13f8bc59a5`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:178`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:200`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -7272,7 +7271,7 @@ Sources: [`packages/interaction/user-approval/src/types.ts:55`](../packages/inte
 
 SHA-256: `acfb56674033b54bb907326da1753aba853b8dff3baa9f00a613787ff31a472c`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:224`](../packages/core/errgrind-episode/lib/types/types.d.ts) · [`packages/core/errgrind-episode/lib/types/types.d.ts:241`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:238`](../packages/core/errgrind-episode/src/types.ts) · [`packages/core/errgrind-episode/src/types.ts:252`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -7533,7 +7532,7 @@ Sources: [`packages/api/session-controller/src/types.ts:403`](../packages/api/se
 
 SHA-256: `43c95cf1315fc323c8c14cc6a886b987fa39a6dfce52a7bc78ea124d1f7df17f`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:147`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:188`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -7546,7 +7545,7 @@ Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:147`](../packages
 
 SHA-256: `3c024aed95321724ba1138630a5bad345a83db643407bd76d07b728d4318e7e3`
 
-Sources: [`packages/core/errgrind-episode/lib/types/drill.d.ts:152`](../packages/core/errgrind-episode/lib/types/drill.d.ts)
+Sources: [`packages/core/errgrind-episode/src/drill.ts:190`](../packages/core/errgrind-episode/src/drill.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -8784,7 +8783,7 @@ Sources: [`packages/interaction/permission-presets/src/index.ts:59`](../packages
 
 SHA-256: `48fbd71615a0199a115d4fb11e80c10b46e9bfca259da929cd9ca57015536988`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:168`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:189`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -8815,7 +8814,7 @@ Sources: [`packages/core/session/src/types.ts:297`](../packages/core/session/src
 
 SHA-256: `88f3bc7176ce1855c92cf2322b32acf20812a141cf5d5ff27dee11271ce6b9a1`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:204`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:227`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -8922,7 +8921,7 @@ Sources: [`packages/experimental/agent-team/src/types.ts:212`](../packages/exper
 
 SHA-256: `42bc4ea83df93ff7e3bf63ee1bf6acbde381feb0059686fc7a2e27efe29aeb07`
 
-Sources: [`packages/core/errgrind-episode/lib/types/types.d.ts:209`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+Sources: [`packages/core/errgrind-episode/src/types.ts:229`](../packages/core/errgrind-episode/src/types.ts)
 
 | Property | Presence | Type |
 |---|---|---|
@@ -9430,17 +9429,17 @@ SHA-256: `e16c3b67c6a94b25cfc4eee31453ea6704142f7d1a441d620c15215af35c1dd3`
 | `time` | required | `number` |
 | `type` | required | `"errgrind/error-draft"` |
 
-<a id="persistence-type-sha256-d5eea711454d87ce1222e3fefa33ddde4c656372e508d11da50fae9728541643"></a>
+<a id="persistence-type-sha256-6afb9889c6e8a425286bec292f992d1b6fe22e1b808793f9b24aba1a69c8656d"></a>
 
 <a id="persistence-type-eventerrgrinderror-open"></a>
 
 ### `{ type: "errgrind/error-open" }`
 
-SHA-256: `d5eea711454d87ce1222e3fefa33ddde4c656372e508d11da50fae9728541643`
+SHA-256: `6afb9889c6e8a425286bec292f992d1b6fe22e1b808793f9b24aba1a69c8656d`
 
 | Property | Presence | Type |
 |---|---|---|
-| `data` | required | [`{ attachments?, hasImage?, origin?, text, … }`](#persistence-type-sha256-9cc035a16f1f6a8524918d19b30ace5bba83cb5a697c40030ac754f255425523) |
+| `data` | required | [`{ attachments?, hasImage?, origin?, text, … }`](#persistence-type-sha256-e8099297bf3e22c591e508f97fc269e15e45b8f753d152d0a185651d4765eb73) |
 | `ignorable` | optional | `true` |
 | `seq` | required | `number` |
 | `time` | required | `number` |

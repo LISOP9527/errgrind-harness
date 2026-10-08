@@ -19,6 +19,7 @@ const defaults = {
 interface Harness {
   ctx: Context
   archives: SessionId[]
+  archivedSessionIds: SessionId[]
   failArchive: { value: 'active' | 'generic' | false }
   episodes: Map<string, unknown>
   followups: Map<string, { count: number; kinds: string[] }>
@@ -46,8 +47,9 @@ async function harness(): Promise<Harness> {
   const archiveAttempts: SessionId[] = []
   const failArchive: Harness['failArchive'] = { value: false }
   const workspaces: Harness['workspaces'] = []
+  const archivedSessionIds: SessionId[] = []
   ctx.provide('workspaceRegistry', {
-    archivedSessionIds: [] as SessionId[],
+    archivedSessionIds,
     list: () => workspaces,
     get: (id: string) => workspaces.find(workspace => workspace.id === id),
     archiveSession: vi.fn(async (sessionId: SessionId) => {
@@ -110,7 +112,10 @@ async function harness(): Promise<Harness> {
   }
   ctx.agents.setFactory(factory)
   createSessionTestController(ctx, defaults)
-  return { ctx, archives, archiveAttempts, failArchive, episodes, followups, renames, failRename, standingTitleKind, workspaces }
+  return {
+    ctx, archives, archiveAttempts, failArchive, archivedSessionIds, episodes,
+    followups, renames, failRename, standingTitleKind, workspaces,
+  }
 }
 
 function attempt(isCorrect: boolean): DrillAttempt {
@@ -333,7 +338,7 @@ function drillSessionId(sourceId: SessionId, index: number): SessionId {
 }
 
 function poolDrillSessionId(sourceIds: readonly SessionId[], index: number): SessionId {
-  const identity = `pool\x00${sourceIds.join('\x01')}`
+  const identity = `pool\x00${[...sourceIds].sort().join('\x01')}`
   return SessionId(`errgrind-drill-${createHash('sha256')
     .update(`${identity}\0${index}`).digest('hex').slice(0, 32)}`)
 }
@@ -585,6 +590,10 @@ describe('openDrill', () => {
     const single = await ctx.sessionController.openDrill({ sourceSessionId: sourceA.id })
     const pool = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id, sourceB.id] })
     const poolAgain = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id, sourceB.id] })
+    // Candidate order is not part of the pool identity: a reordered request
+    // shares the same deterministic index space as the original set.
+    const reordered = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceB.id, sourceA.id] })
+    expect(reordered.sessionId).toBe(poolDrillSessionId([sourceA.id, sourceB.id], 2))
 
     // A pool holding one Session still hashes differently from a single-Error Drill.
     const solo = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id] })
@@ -618,6 +627,40 @@ describe('openDrill', () => {
     expect(ctx.agents.get(expectedId)!.session.snapshotEvents()
       .filter(event => event.type === 'errgrind/drill-open')).toHaveLength(0)
     expect(followups.get(expectedId)?.kinds).toEqual(['errgrind-drill-request'])
+  })
+
+  it('adopts a locked pool Session whose pick already emptied the pool', async () => {
+    const { ctx, episodes } = await harness()
+    const sourceA = await liveAgent(ctx, ctx.sessions.create(SessionId('error-a')))
+    const sourceB = await liveAgent(ctx, ctx.sessions.create(SessionId('error-b')))
+    episodes.set(`${sourceA.id}:errgrindEpisode`, confirmedEpisode())
+    episodes.set(`${sourceB.id}:errgrindEpisode`, confirmedEpisode())
+    const expectedId = poolDrillSessionId([sourceA.id, sourceB.id], 0)
+    // After errgrind/drill-source-selected the pool is empty and
+    // origin.sourceSessionId names the pick; origin.poolSessionIds still
+    // identifies the seeded set for adoption.
+    episodes.set(`${expectedId}:errgrindEpisode`, {
+      origin: { kind: 'drill', sourceSessionId: sourceA.id, poolSessionIds: [sourceA.id, sourceB.id] },
+      drillCandidates: [],
+      derivedContextConsumed: true,
+    })
+
+    const result = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id, sourceB.id] })
+
+    expect(result.sessionId).toBe(expectedId)
+    expect(result.created).toBe(false)
+  })
+
+  it('rejects archived Sessions as Drill candidates', async () => {
+    const { ctx, episodes, archivedSessionIds } = await harness()
+    const source = await liveAgent(ctx, ctx.sessions.create(SessionId('error-a')))
+    episodes.set(`${source.id}:errgrindEpisode`, confirmedEpisode())
+    archivedSessionIds.push(source.id)
+
+    await expect(ctx.sessionController.openDrill({ sourceSessionId: source.id }))
+      .rejects.toThrow('An archived Session cannot open a Drill Session')
+    await expect(ctx.sessionController.openDrill({ candidateSessionIds: [source.id] }))
+      .rejects.toThrow('An archived Session cannot open a Drill Session')
   })
 
   it('rejects a pool identity already claimed by a different candidate set', async () => {

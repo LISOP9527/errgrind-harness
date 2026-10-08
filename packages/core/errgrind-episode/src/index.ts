@@ -162,6 +162,7 @@ const originSchema = zod.object({
   sourceSessionId: zod.string().optional(),
   sourcePreparationId: zod.string().optional(),
   sourceAnswerRef: zod.string().optional(),
+  poolSessionIds: zod.array(zod.string()).optional(),
 }).strict()
 
 const episodeSchema: ZodType<ErrorEpisode | null> = zod.union([
@@ -614,12 +615,17 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         }
         // Pool mode: the practiced Error stays unselected until the model's
         // drill_prepare(sourceSessionId) emits errgrind/drill-source-selected.
+        // poolSessionIds pins the sorted candidate set so the deterministic
+        // Session identity stays derivable after the pick empties the pool.
         return {
           firstInput: data.text,
           firstInputHasImage: false,
           firstInputTurn: 1,
           latestTurn: 1,
-          origin: { kind: 'drill' },
+          origin: {
+            kind: 'drill',
+            poolSessionIds: [...data.candidates.map(candidate => candidate.sourceSessionId)].sort(),
+          },
           attachments: [],
           draft: null,
           confirmedRevision: null,

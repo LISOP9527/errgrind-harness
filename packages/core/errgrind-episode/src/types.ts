@@ -36,6 +36,11 @@ export interface InputOrigin {
   readonly sourceSessionId?: string | undefined
   readonly sourcePreparationId?: string | undefined
   readonly sourceAnswerRef?: string | undefined
+  /**
+   * Pool-mode Drill Sessions only: the candidate set this Session was seeded
+   * from, sorted; kept after the pick so the Session identity stays derivable.
+   */
+  readonly poolSessionIds?: readonly string[] | undefined
 }
 
 /** The current public description is model authored until the user confirms it. */

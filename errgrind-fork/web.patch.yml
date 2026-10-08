@@ -244,7 +244,7 @@
         errgrind/error-draft: [revision, text]
         errgrind/error-open: [text, turn]
         errgrind/derived-error-open: [question, userResponse, text]
-        errgrind/drill-open: [description, diagnosisStatus, sourceRevision, text, candidates]
+        errgrind/drill-open: [description, diagnosisStatus, sourceRevision, candidates]
         errgrind/drill-source-selected: [description, sourceRevision, diagnosisStatus]
         errgrind/error-confirm: [revision]
         errgrind/error-clarify: [text, turn]
@@ -262,6 +262,11 @@
         - sessionListMetadata
       redactDataKeys:
         - errgrindOriginal
+        # Only the pool's length reaches the browser card; the picked seed's
+        # conclusion internals never leave the Host (equivalent public fields
+        # remain whitelisted on the source Session's own events).
+        - diagnosisSummary
+        - whatWouldChangeJudgment
       redactToolArguments: true
       redactAssistantReasoning: true
       hideAssistantStream: true
