@@ -239,6 +239,21 @@ describe('Isolated Drill Generation', () => {
     expect(result.error?.message).toContain('locked practice source')
   })
 
+  it('treats an empty sourceSessionId as omitted', async () => {
+    const { ctx, mockLlm } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-empty-pick'))
+    const agent = createTestAgent(ctx, session)
+    setupDrillSession(session)
+    stubDraftStream(mockLlm, 'q', 'a')
+
+    const result = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-empty-pick'), name: 'drill_prepare', agent,
+      arguments: { ...validSpecArgs, sourceSessionId: '' },
+    })
+    expect(result.isError).toBe(false)
+  })
+
   it('accepts a resubmitted locked pick when a pool attempt retries', async () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-pool-retry'))

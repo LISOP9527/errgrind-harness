@@ -547,11 +547,13 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
       if (episode === undefined || episode === null || episode.origin.kind !== 'drill') {
         throw new Error('drill_prepare only runs inside a dedicated Drill Session')
       }
+      // Models send "" or null where the schema says "omit"; treat them as omitted.
+      const pickArg = args.sourceSessionId || undefined
       if (episode.drillCandidates.length > 0) {
         // Pool mode: this call's pick becomes the practiced Error for the
         // whole Session; the selection event pins it in the log.
         const candidate = episode.drillCandidates
-          .find(entry => entry.sourceSessionId === args.sourceSessionId)
+          .find(entry => entry.sourceSessionId === pickArg)
         if (candidate === undefined) {
           throw new Error('Pick one listed practice candidate: pass its session id as sourceSessionId')
         }
@@ -565,8 +567,8 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
           whatWouldChangeJudgment: candidate.whatWouldChangeJudgment,
         })
         episode = ctx.sessionProjections.stateOf(exec.agent.session, 'errgrindEpisode') ?? episode
-      } else if (args.sourceSessionId !== undefined
-        && args.sourceSessionId !== episode.origin.sourceSessionId) {
+      } else if (pickArg !== undefined
+        && pickArg !== episode.origin.sourceSessionId) {
         // Once the pick is locked, retries keep resubmitting it; only a
         // different id is a real conflict.
         throw new Error('sourceSessionId must match the locked practice source for this Drill Session')
