@@ -828,8 +828,8 @@ inspect( sessionId: SessionId, signal?: AbortSignal, ): Promise<SessionInspectio
 @Remote('openDerivedError') async openDerivedError(request: DerivedErrorOpenRequest): Promise<DerivedErrorOpenValue>
 
 /**
- * Open a dedicated Drill Session for one confirmed Error.
- * @param request - Source Session whose concluded diagnosis seeds the practice.
+ * Open a dedicated Drill Session for one confirmed Error or a learner-picked pool of them.
+ * @param request - Single source Session or the candidate pool whose concluded diagnoses seed the practice.
  * @returns the Drill Session identity, its allocation index, and whether this call materialized it.
  */
 @Remote('openDrill') async openDrill(request: DrillOpenRequest): Promise<DrillOpenValue>
