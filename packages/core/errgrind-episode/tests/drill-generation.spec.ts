@@ -102,6 +102,18 @@ const validSpecArgs = {
   calculationLoad: 1,
 }
 
+/** Stub the isolated Draft request to return one prepared problem. */
+function stubDraftStream(mockLlm: MockLlmService, question: string, referenceAnswer: string): void {
+  mockLlm.streamHandler = () => {
+    async function* generate() {
+      yield { type: 'text-delta' as const, index: 0, text: JSON.stringify({ question, referenceAnswer }) }
+      yield { type: 'usage' as const, usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 } }
+      yield { type: 'finish' as const, reason: { kind: 'stop' as const } }
+    }
+    return generate()
+  }
+}
+
 /** Seed a dedicated Drill Session; its episode context is the confirmed source outcome. */
 function setupDrillSession(session: Session, sentinel: string = 'SENTINEL_INPUT'): void {
   session.append('errgrind/drill-open', {
@@ -212,7 +224,7 @@ describe('Isolated Drill Generation', () => {
       .toHaveLength(0)
   })
 
-  it('rejects sourceSessionId in a single-source Drill Session', async () => {
+  it('rejects a sourceSessionId foreign to the locked practice source', async () => {
     const { ctx } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-single-arg'))
     const agent = createTestAgent(ctx, session)
@@ -224,7 +236,35 @@ describe('Isolated Drill Generation', () => {
       arguments: { ...validSpecArgs, sourceSessionId: 'error-a' },
     })
     expect(result.isError).toBe(true)
-    expect(result.error?.message).toContain('outside a candidate pool')
+    expect(result.error?.message).toContain('locked practice source')
+  })
+
+  it('accepts a resubmitted locked pick when a pool attempt retries', async () => {
+    const { ctx, mockLlm } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-pool-retry'))
+    const agent = createTestAgent(ctx, session)
+    setupPoolDrillSession(session)
+
+    // The first attempt picks a candidate and is rejected at specification
+    // validation; retries resubmit the same locked pick and must not deadlock.
+    const rejected = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-pool-leak'), name: 'drill_prepare', agent,
+      arguments: { ...validSpecArgs, trigger: '引用原题的触发条件', sourceSessionId: 'error-b' },
+    })
+    expect(rejected.isError).toBe(true)
+    expect(rejected.error?.message).toContain('without referring to the original')
+
+    stubDraftStream(mockLlm, 'q', 'a')
+
+    const retried = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-pool-retry'), name: 'drill_prepare', agent,
+      arguments: { ...validSpecArgs, sourceSessionId: 'error-b' },
+    })
+    expect(retried.isError).toBe(false)
+    expect(session.snapshotEvents().filter(e => e.type === 'errgrind/drill-source-selected'))
+      .toHaveLength(1)
   })
 
   it('folds the picked candidate into the episode before generating', async () => {
@@ -233,14 +273,7 @@ describe('Isolated Drill Generation', () => {
     const agent = createTestAgent(ctx, session)
     setupPoolDrillSession(session)
 
-    mockLlm.streamHandler = () => {
-      async function* generate() {
-        yield { type: 'text-delta' as const, index: 0, text: JSON.stringify({ question: 'q', referenceAnswer: 'a' }) }
-        yield { type: 'usage' as const, usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 } }
-        yield { type: 'finish' as const, reason: { kind: 'stop' as const } }
-      }
-      return generate()
-    }
+    stubDraftStream(mockLlm, 'q', 'a')
 
     const result = await ctx.tools.execute({
       signal: new AbortController().signal,

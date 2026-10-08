@@ -565,8 +565,11 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
           whatWouldChangeJudgment: candidate.whatWouldChangeJudgment,
         })
         episode = ctx.sessionProjections.stateOf(exec.agent.session, 'errgrindEpisode') ?? episode
-      } else if (args.sourceSessionId !== undefined) {
-        throw new Error('drill_prepare does not accept sourceSessionId outside a candidate pool')
+      } else if (args.sourceSessionId !== undefined
+        && args.sourceSessionId !== episode.origin.sourceSessionId) {
+        // Once the pick is locked, retries keep resubmitting it; only a
+        // different id is a real conflict.
+        throw new Error('sourceSessionId must match the locked practice source for this Drill Session')
       }
       if (episode.diagnosis.status === 'active'
         || episode.diagnosis.stale || episode.confirmedRevision === null
