@@ -42,8 +42,9 @@
 | `event:errgrind/drill-draft-finished` | event | `a0b5a9d4b160ab4864af8a93eb86ea4341e66fd797b997a40ef71d2fb211b9ff` | [`{ type: "errgrind/drill-draft-finished" }`](#persistence-type-sha256-a0b5a9d4b160ab4864af8a93eb86ea4341e66fd797b997a40ef71d2fb211b9ff) |
 | `event:errgrind/drill-draft-requested` | event | `671b4791106f29cb000fc70ff54a84a1d400f8deeca2682265aa0a183cf80d38` | [`{ type: "errgrind/drill-draft-requested" }`](#persistence-type-sha256-671b4791106f29cb000fc70ff54a84a1d400f8deeca2682265aa0a183cf80d38) |
 | `event:errgrind/drill-judged` | event | `6ffa0bbd3528d591b5e16b80105cad2fd6e175c16d31622239ae44b6a2e32969` | [`{ type: "errgrind/drill-judged" }`](#persistence-type-sha256-6ffa0bbd3528d591b5e16b80105cad2fd6e175c16d31622239ae44b6a2e32969) |
-| `event:errgrind/drill-open` | event | `9d1cc64613eb2b7fb84966b5eab1396c7ab6d856c706cf0f81227c31ff544b90` | [`{ type: "errgrind/drill-open" }`](#persistence-type-sha256-9d1cc64613eb2b7fb84966b5eab1396c7ab6d856c706cf0f81227c31ff544b90) |
+| `event:errgrind/drill-open` | event | `b8d0c9dec9cee454bc90f8a50faf5e316578d7a9822c871ed9f2977e3b33d2a5` | [`{ type: "errgrind/drill-open" }`](#persistence-type-sha256-b8d0c9dec9cee454bc90f8a50faf5e316578d7a9822c871ed9f2977e3b33d2a5) |
 | `event:errgrind/drill-prepared` | event | `0b4465eddec7a7657bd1ac34c5b3b3ee9db9cd67ae1f41dca1d3494e9201d502` | [`{ type: "errgrind/drill-prepared" }`](#persistence-type-sha256-0b4465eddec7a7657bd1ac34c5b3b3ee9db9cd67ae1f41dca1d3494e9201d502) |
+| `event:errgrind/drill-source-selected` | event | `36cf566ebd8ce53b1dcaa0436fa97872064b83ca52fb44dba93bdf15925978ca` | [`{ type: "errgrind/drill-source-selected" }`](#persistence-type-sha256-36cf566ebd8ce53b1dcaa0436fa97872064b83ca52fb44dba93bdf15925978ca) |
 | `event:errgrind/drill-spec-prepared` | event | `cf63629aeb7aac8216fc5e458df842f141d783d2bf82f5cab77ff9a12df297f5` | [`{ type: "errgrind/drill-spec-prepared" }`](#persistence-type-sha256-cf63629aeb7aac8216fc5e458df842f141d783d2bf82f5cab77ff9a12df297f5) |
 | `event:errgrind/error-clarify` | event | `d9f76cbe2d736e650a7e65557e47deec43ce0b0485ccc0e7950ffe72be406911` | [`{ type: "errgrind/error-clarify" }`](#persistence-type-sha256-d9f76cbe2d736e650a7e65557e47deec43ce0b0485ccc0e7950ffe72be406911) |
 | `event:errgrind/error-confirm` | event | `b796530d308a2351d1c4ad53efdcb1f47f2e94d09a918af79fafaba823449dec` | [`{ type: "errgrind/error-confirm" }`](#persistence-type-sha256-b796530d308a2351d1c4ad53efdcb1f47f2e94d09a918af79fafaba823449dec) |
@@ -538,7 +539,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }
 ```
 
-来源：[`packages/core/errgrind-episode/src/types.ts:174`](../packages/core/errgrind-episode/src/types.ts)
+来源：[`packages/core/errgrind-episode/src/types.ts:187`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinddrill-answer-draft--log-only"></a>
 
@@ -589,20 +590,27 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 #### `errgrind/drill-open` — log-only
 
 ```ts persistence-catalog
-/** A dedicated Drill Session seeded from a confirmed Error's public outcome; Grill stages stay locked. */
-'errgrind/drill-open': {
-  text: string
-  sourceSessionId: string
-  sourceRevision: number
-  description: string
-  diagnosisStatus: 'supported' | 'undetermined'
-  diagnosisSummary: string
-  remainingUncertainty: string
-  whatWouldChangeJudgment: string
-}
+/** A dedicated Drill Session seeded from one confirmed Error's public outcome; Grill stages stay locked. */
+'errgrind/drill-open':
+  | {
+    text: string
+    sourceSessionId: string
+    sourceRevision: number
+    description: string
+    diagnosisStatus: 'supported' | 'undetermined'
+    diagnosisSummary: string
+    remainingUncertainty: string
+    whatWouldChangeJudgment: string
+    candidates?: undefined
+  }
+  | {
+    /** Pool mode: the model picks one listed Error via drill_prepare(sourceSessionId). */
+    text: string
+    candidates: readonly DrillCandidateSeed[]
+  }
 ```
 
-来源：[`packages/core/errgrind-episode/src/types.ts:184`](../packages/core/errgrind-episode/src/types.ts)
+来源：[`packages/core/errgrind-episode/src/types.ts:197`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinddrill-prepared--log-only"></a>
 
@@ -614,6 +622,25 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 ```
 
 来源：[`packages/core/errgrind-episode/src/drill.ts:171`](../packages/core/errgrind-episode/src/drill.ts)
+
+<a id="errgrinddrill-source-selected--log-only"></a>
+
+#### `errgrind/drill-source-selected` — log-only
+
+```ts persistence-catalog
+/** Pool-mode Drill Sessions only: the model's pick locks the practiced Error for the rest of the Session. */
+'errgrind/drill-source-selected': {
+  sourceSessionId: string
+  sourceRevision: number
+  description: string
+  diagnosisStatus: 'supported' | 'undetermined'
+  diagnosisSummary: string
+  remainingUncertainty: string
+  whatWouldChangeJudgment: string
+}
+```
+
+来源：[`packages/core/errgrind-episode/src/types.ts:215`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinddrill-spec-prepared--log-only"></a>
 
@@ -635,7 +662,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'errgrind/error-clarify': { text: string; turn: number }
 ```
 
-来源：[`packages/core/errgrind-episode/src/types.ts:197`](../packages/core/errgrind-episode/src/types.ts)
+来源：[`packages/core/errgrind-episode/src/types.ts:227`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinderror-confirm--log-only"></a>
 
@@ -646,7 +673,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'errgrind/error-confirm': { revision: number; commandId: string }
 ```
 
-来源：[`packages/core/errgrind-episode/src/types.ts:199`](../packages/core/errgrind-episode/src/types.ts)
+来源：[`packages/core/errgrind-episode/src/types.ts:229`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinderror-draft--log-only"></a>
 
@@ -657,7 +684,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'errgrind/error-draft': { revision: number; text: string }
 ```
 
-来源：[`packages/core/errgrind-episode/src/types.ts:195`](../packages/core/errgrind-episode/src/types.ts)
+来源：[`packages/core/errgrind-episode/src/types.ts:225`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrinderror-open--log-only"></a>
 
@@ -674,7 +701,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }
 ```
 
-来源：[`packages/core/errgrind-episode/src/types.ts:166`](../packages/core/errgrind-episode/src/types.ts)
+来源：[`packages/core/errgrind-episode/src/types.ts:179`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrindgrill-conclude--log-only"></a>
 
@@ -697,7 +724,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }
 ```
 
-来源：[`packages/core/errgrind-episode/src/types.ts:211`](../packages/core/errgrind-episode/src/types.ts)
+来源：[`packages/core/errgrind-episode/src/types.ts:241`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrindgrill-probe--log-only"></a>
 
@@ -716,7 +743,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }
 ```
 
-来源：[`packages/core/errgrind-episode/src/types.ts:201`](../packages/core/errgrind-episode/src/types.ts)
+来源：[`packages/core/errgrind-episode/src/types.ts:231`](../packages/core/errgrind-episode/src/types.ts)
 
 <a id="errgrindteach-step--log-only"></a>
 
@@ -733,7 +760,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }
 ```
 
-来源：[`packages/core/errgrind-episode/src/types.ts:225`](../packages/core/errgrind-episode/src/types.ts)
+来源：[`packages/core/errgrind-episode/src/types.ts:255`](../packages/core/errgrind-episode/src/types.ts)
 
 ### `feedback/*`
 
@@ -2077,6 +2104,14 @@ SHA-256: `2dd90314e4f1cfa53b2363f6ab591a8c6e288d67f94fc64c23220535e54b6174`
 SHA-256: `0f011b7f63075679dc778e5aa98a7e7d5c1041e8f79a79204a6c01cd42c4f8c5`
 
 `"errgrind/drill-prepared"`
+
+<a id="persistence-type-sha256-108d985602f1fa73547e5f9991cb5c1e5cb349c8ddf9a0f3b07baaa3d07c135d"></a>
+
+### `"errgrind/drill-source-selected"`
+
+SHA-256: `108d985602f1fa73547e5f9991cb5c1e5cb349c8ddf9a0f3b07baaa3d07c135d`
+
+`"errgrind/drill-source-selected"`
 
 <a id="persistence-type-sha256-4b8cfdcfd61f747436d1d1aa9ae4463be4526eb257e7bcf7783fcd23bcda89f7"></a>
 
@@ -3940,6 +3975,36 @@ SHA-256: `148c1199a15afdf36d1a15e0e94468749567812a94b30fc767490541e56fc7ea`
 | `judgedAtTurn` | 必需 | `number` |
 | `preparationId` | 必需 | `string` |
 | `userResponse` | 必需 | `string` |
+
+<a id="persistence-type-sha256-a544a39dfc8eeecba4e0a37d20d29766b9da7beab7cb73d8feb9863251d3814e"></a>
+
+<a id="persistence-type-drillcandidateseed"></a>
+
+<a id="persistence-type-packagescoreerrgrind-episodelibtypestypesdtsdrillcandidateseed"></a>
+
+### `DrillCandidateSeed`
+
+SHA-256: `a544a39dfc8eeecba4e0a37d20d29766b9da7beab7cb73d8feb9863251d3814e`
+
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:105`](../packages/core/errgrind-episode/lib/types/types.d.ts) · [`packages/core/errgrind-episode/lib/types/types.d.ts:194`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `description` | 必需 | `string` |
+| `diagnosisStatus` | 必需 | [`union (2 variants)`](#persistence-type-sha256-c2e4321f5c5e6a27b7b81b740b8fe844f518394ca1e2a8a5923503709610f24e) |
+| `diagnosisSummary` | 必需 | `string` |
+| `remainingUncertainty` | 必需 | `string` |
+| `sourceRevision` | 必需 | `number` |
+| `sourceSessionId` | 必需 | `string` |
+| `whatWouldChangeJudgment` | 必需 | `string` |
+
+<a id="persistence-type-sha256-f5ba1bc6dfc85360e9c0b59fbae5f9cb886e3d2c2576fdb547062c97835059e1"></a>
+
+### `DrillCandidateSeed[]`
+
+SHA-256: `f5ba1bc6dfc85360e9c0b59fbae5f9cb886e3d2c2576fdb547062c97835059e1`
+
+[`DrillCandidateSeed`](#persistence-type-sha256-a544a39dfc8eeecba4e0a37d20d29766b9da7beab7cb73d8feb9863251d3814e) 的数组。
 
 <a id="persistence-type-sha256-c597aaa37ef3ca613795afa6fde4cd6f9d27c19dadfcdbff3d4a12b95c217373"></a>
 
@@ -6386,6 +6451,17 @@ SHA-256: `50cf02d875f8a1f1411f4a6fbcffab9120ccef5f74a47331fbf29480e5f68f48`
 - `"fork"`
 - `"fresh"`
 
+<a id="persistence-type-sha256-6a59fc048ab7eba2d4fe392771b923bb184e9de75f6e03ee2018112e25f470f5"></a>
+
+### `union (2 variants)`
+
+SHA-256: `6a59fc048ab7eba2d4fe392771b923bb184e9de75f6e03ee2018112e25f470f5`
+
+以下类型之一：
+
+- [`{ candidates, text }`](#persistence-type-sha256-0a3f170606f2000e054a8f79608888d3946b57d878a4901352658a68cae8261a)
+- [`{ description, diagnosisStatus, diagnosisSummary, remainingUncertainty, … }`](#persistence-type-sha256-a0b56dcec852c84c9d4c6c73d9647cde9f413cd251228a15f6ae6a13f8bc59a5)
+
 <a id="persistence-type-sha256-7e4aaaeb73a22d219fd7b2f9fc5698c46c3dedc64fa5bae418541d2ca1061336"></a>
 
 ### `union (2 variants)`
@@ -6576,7 +6652,7 @@ SHA-256: `0d47a8f3d847243c4488e755ad4cab7a04ac5d4621b9c81865524cf3f4d8536f`
 
 SHA-256: `a46c3e3c5716b848fa06f1948a4cb0ca072050543c930c38fca671d527185998`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:222`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:249`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -6592,7 +6668,7 @@ SHA-256: `a46c3e3c5716b848fa06f1948a4cb0ca072050543c930c38fca671d527185998`
 
 SHA-256: `a8529baa023ccb6489ce3e02d1e3ccba7a371a885b80a2cd62ab2e606b6c7329`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:205`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:232`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -6613,7 +6689,7 @@ SHA-256: `a8529baa023ccb6489ce3e02d1e3ccba7a371a885b80a2cd62ab2e606b6c7329`
 
 SHA-256: `c25683ba2428d8bcb54e57a92b5a6541e810ce1d8eb8c68e6343c5b8162438cf`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:192`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:219`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -6661,7 +6737,7 @@ SHA-256: `e4c18e294232c3ba6c9f1999f168263cc55956147cfe4121720899be8e52edd1`
 
 SHA-256: `9cc035a16f1f6a8524918d19b30ace5bba83cb5a697c40030ac754f255425523`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:148`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:160`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -6714,6 +6790,19 @@ SHA-256: `45f2a07ea94573123b6ae14db787a40062dec3834f36d8be92c523d40ba28448`
 | `id` | 必需 | `string` |
 | `reason` | 可选 | `string` |
 | `toolName` | 必需 | `string` |
+
+<a id="persistence-type-sha256-0a3f170606f2000e054a8f79608888d3946b57d878a4901352658a68cae8261a"></a>
+
+### `{ candidates, text }`
+
+SHA-256: `0a3f170606f2000e054a8f79608888d3946b57d878a4901352658a68cae8261a`
+
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:188`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `candidates` | 必需 | [`DrillCandidateSeed[]`](#persistence-type-sha256-f5ba1bc6dfc85360e9c0b59fbae5f9cb886e3d2c2576fdb547062c97835059e1) |
+| `text` | 必需 | `string` |
 
 <a id="persistence-type-sha256-4f91f187baeabef5c7950c4780d31bbe39f3345dff591a6cf26ac7e135ac1cf4"></a>
 
@@ -6850,7 +6939,7 @@ SHA-256: `5b6fb1f226ff56402db08a6aae82af76100b14056271875f69ec526a1ae05d51`
 
 SHA-256: `5650197a5378ec48df4dfe9da67bd49bfac7602eac7aa38da66228a10e1beeac`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:187`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:214`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -6992,7 +7081,7 @@ SHA-256: `374fdd68aee5ff844e378c0cbdd961d247a0f22e4ade0bb03d800cd2a46a2b8b`
 
 SHA-256: `a0b56dcec852c84c9d4c6c73d9647cde9f413cd251228a15f6ae6a13f8bc59a5`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:166`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:178`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -7185,7 +7274,7 @@ SHA-256: `93cbbc5a7fd0b1aa1ff1b9a6bb5ec52b073f48e5a5200365c45c0cd54059e1b9`
 
 SHA-256: `acfb56674033b54bb907326da1753aba853b8dff3baa9f00a613787ff31a472c`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:197`](../packages/core/errgrind-episode/lib/types/types.d.ts) · [`packages/core/errgrind-episode/lib/types/types.d.ts:214`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:224`](../packages/core/errgrind-episode/lib/types/types.d.ts) · [`packages/core/errgrind-episode/lib/types/types.d.ts:241`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -8697,7 +8786,7 @@ SHA-256: `8a9c990773f798eac10ca8878e6bcc531ee080bc589cac956730e462cc6a09ad`
 
 SHA-256: `48fbd71615a0199a115d4fb11e80c10b46e9bfca259da929cd9ca57015536988`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:156`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:168`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -8728,7 +8817,7 @@ SHA-256: `e481c46af3813e0010558e93f578b2986acd658404cec2d1679e3ac2a6c48654`
 
 SHA-256: `88f3bc7176ce1855c92cf2322b32acf20812a141cf5d5ff27dee11271ce6b9a1`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:177`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:204`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -8835,7 +8924,7 @@ SHA-256: `a40d12070f6f4a124f32fb3cc86e7857554702e32f0eda3080a25c4b9ac9b18c`
 
 SHA-256: `42bc4ea83df93ff7e3bf63ee1bf6acbde381feb0059686fc7a2e27efe29aeb07`
 
-来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:182`](../packages/core/errgrind-episode/lib/types/types.d.ts)
+来源：[`packages/core/errgrind-episode/lib/types/types.d.ts:209`](../packages/core/errgrind-episode/lib/types/types.d.ts)
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
@@ -9231,17 +9320,17 @@ SHA-256: `6ffa0bbd3528d591b5e16b80105cad2fd6e175c16d31622239ae44b6a2e32969`
 | `time` | 必需 | `number` |
 | `type` | 必需 | `"errgrind/drill-judged"` |
 
-<a id="persistence-type-sha256-9d1cc64613eb2b7fb84966b5eab1396c7ab6d856c706cf0f81227c31ff544b90"></a>
+<a id="persistence-type-sha256-b8d0c9dec9cee454bc90f8a50faf5e316578d7a9822c871ed9f2977e3b33d2a5"></a>
 
 <a id="persistence-type-eventerrgrinddrill-open"></a>
 
 ### `{ type: "errgrind/drill-open" }`
 
-SHA-256: `9d1cc64613eb2b7fb84966b5eab1396c7ab6d856c706cf0f81227c31ff544b90`
+SHA-256: `b8d0c9dec9cee454bc90f8a50faf5e316578d7a9822c871ed9f2977e3b33d2a5`
 
 | 属性 | 存在性 | 类型 |
 |---|---|---|
-| `data` | 必需 | [`{ description, diagnosisStatus, diagnosisSummary, remainingUncertainty, … }`](#persistence-type-sha256-a0b56dcec852c84c9d4c6c73d9647cde9f413cd251228a15f6ae6a13f8bc59a5) |
+| `data` | 必需 | [`union (2 variants)`](#persistence-type-sha256-6a59fc048ab7eba2d4fe392771b923bb184e9de75f6e03ee2018112e25f470f5) |
 | `ignorable` | 可选 | `true` |
 | `seq` | 必需 | `number` |
 | `time` | 必需 | `number` |
@@ -9262,6 +9351,22 @@ SHA-256: `0b4465eddec7a7657bd1ac34c5b3b3ee9db9cd67ae1f41dca1d3494e9201d502`
 | `seq` | 必需 | `number` |
 | `time` | 必需 | `number` |
 | `type` | 必需 | `"errgrind/drill-prepared"` |
+
+<a id="persistence-type-sha256-36cf566ebd8ce53b1dcaa0436fa97872064b83ca52fb44dba93bdf15925978ca"></a>
+
+<a id="persistence-type-eventerrgrinddrill-source-selected"></a>
+
+### `{ type: "errgrind/drill-source-selected" }`
+
+SHA-256: `36cf566ebd8ce53b1dcaa0436fa97872064b83ca52fb44dba93bdf15925978ca`
+
+| 属性 | 存在性 | 类型 |
+|---|---|---|
+| `data` | 必需 | [`DrillCandidateSeed`](#persistence-type-sha256-a544a39dfc8eeecba4e0a37d20d29766b9da7beab7cb73d8feb9863251d3814e) |
+| `ignorable` | 可选 | `true` |
+| `seq` | 必需 | `number` |
+| `time` | 必需 | `number` |
+| `type` | 必需 | `"errgrind/drill-source-selected"` |
 
 <a id="persistence-type-sha256-cf63629aeb7aac8216fc5e458df842f141d783d2bf82f5cab77ff9a12df297f5"></a>
 

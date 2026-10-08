@@ -332,6 +332,12 @@ function drillSessionId(sourceId: SessionId, index: number): SessionId {
     .update(`${sourceId}\0${index}`).digest('hex').slice(0, 32)}`)
 }
 
+function poolDrillSessionId(sourceIds: readonly SessionId[], index: number): SessionId {
+  const identity = `pool\x00${sourceIds.join('\x01')}`
+  return SessionId(`errgrind-drill-${createHash('sha256')
+    .update(`${identity}\0${index}`).digest('hex').slice(0, 32)}`)
+}
+
 describe('openDrill', () => {
   it('rejects an unknown or unconfirmed source Session', async () => {
     const { ctx } = await harness()
@@ -381,6 +387,7 @@ describe('openDrill', () => {
     expect(target).toBeDefined()
     const opened = target!.session.snapshotEvents()
     expect(opened.some(event => event.type === 'errgrind/drill-open'
+      && 'sourceSessionId' in event.data
       && event.data.sourceSessionId === source.id
       && event.data.sourceRevision === 1)).toBe(true)
     expect(followups.get(expectedId)?.kinds).toEqual(['errgrind-drill-request'])
@@ -411,6 +418,7 @@ describe('openDrill', () => {
     const expectedId = drillSessionId(source.id, 0)
     episodes.set(`${expectedId}:errgrindEpisode`, {
       origin: { kind: 'drill', sourceSessionId: source.id },
+      drillCandidates: [],
       derivedContextConsumed: false,
     })
 
@@ -430,6 +438,7 @@ describe('openDrill', () => {
     const expectedId = drillSessionId(source.id, 0)
     episodes.set(`${expectedId}:errgrindEpisode`, {
       origin: { kind: 'drill', sourceSessionId: source.id },
+      drillCandidates: [],
       derivedContextConsumed: true,
     })
 
@@ -519,6 +528,111 @@ describe('openDrill', () => {
     expect(result.sessionId).toBe(targetId)
     // Only the pre-seeded kickoff ran; openDrill did not queue a second one.
     expect(followups.get(targetId)).toEqual({ count: 1, kinds: ['errgrind-drill-request'] })
+  })
+
+  it('rejects an empty pool, repeated candidates, and ineligible candidates', async () => {
+    const { ctx, episodes } = await harness()
+    const source = await liveAgent(ctx, ctx.sessions.create(SessionId('error-source')))
+    episodes.set(`${source.id}:errgrindEpisode`, confirmedEpisode())
+
+    await expect(ctx.sessionController.openDrill({ candidateSessionIds: [] }))
+      .rejects.toThrow('non-empty list without repeats')
+    await expect(ctx.sessionController.openDrill({ candidateSessionIds: [source.id, source.id] }))
+      .rejects.toThrow('non-empty list without repeats')
+
+    const plain = await liveAgent(ctx, ctx.sessions.create(SessionId('plain-candidate')))
+    await expect(ctx.sessionController.openDrill({ candidateSessionIds: [source.id, plain.id] }))
+      .rejects.toThrow('Only a confirmed Error')
+  })
+
+  it('seeds a pool Drill Session and wakes it with a pool followup', async () => {
+    const { ctx, episodes, followups } = await harness()
+    const sourceA = await liveAgent(ctx, ctx.sessions.create(SessionId('error-a')))
+    const sourceB = await liveAgent(ctx, ctx.sessions.create(SessionId('error-b')))
+    episodes.set(`${sourceA.id}:errgrindEpisode`, {
+      ...confirmedEpisode() as Record<string, unknown>,
+      draft: { revision: 1, text: 'added numerators' },
+    })
+    episodes.set(`${sourceB.id}:errgrindEpisode`, {
+      ...confirmedEpisode() as Record<string, unknown>,
+      draft: { revision: 1, text: 'missed domain check' },
+    })
+
+    const result = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id, sourceB.id] })
+
+    expect(result.sessionId).toBe(poolDrillSessionId([sourceA.id, sourceB.id], 0))
+    expect(result.created).toBe(true)
+    const opened = ctx.agents.get(result.sessionId)!.session.snapshotEvents()
+      .filter(event => event.type === 'errgrind/drill-open')
+    expect(opened).toHaveLength(1)
+    const data = opened[0]!.data
+    expect('sourceSessionId' in data).toBe(false)
+    if (!('candidates' in data) || data.candidates === undefined) {
+      throw new Error('expected a pool drill-open')
+    }
+    expect(data.candidates).toHaveLength(2)
+    expect(data.candidates[1]?.description).toBe('missed domain check')
+    expect(followups.get(result.sessionId)?.kinds).toEqual(['errgrind-drill-request'])
+  })
+
+  it('reuses the pool Session for the same candidate set and never collides with a single-Error Drill', async () => {
+    const { ctx, episodes } = await harness()
+    const sourceA = await liveAgent(ctx, ctx.sessions.create(SessionId('error-a')))
+    const sourceB = await liveAgent(ctx, ctx.sessions.create(SessionId('error-b')))
+    episodes.set(`${sourceA.id}:errgrindEpisode`, confirmedEpisode())
+    episodes.set(`${sourceB.id}:errgrindEpisode`, confirmedEpisode())
+
+    const single = await ctx.sessionController.openDrill({ sourceSessionId: sourceA.id })
+    const pool = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id, sourceB.id] })
+    const poolAgain = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id, sourceB.id] })
+
+    // A pool holding one Session still hashes differently from a single-Error Drill.
+    const solo = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id] })
+    expect(solo.sessionId).not.toBe(single.sessionId)
+    expect(pool.sessionId).not.toBe(single.sessionId)
+    // Each call allocates the next deterministic index for that candidate set.
+    expect(poolAgain.sessionId).toBe(poolDrillSessionId([sourceA.id, sourceB.id], 1))
+    expect(poolAgain.created).toBe(true)
+    expect(ctx.agents.get(poolAgain.sessionId)!.session.snapshotEvents()
+      .filter(event => event.type === 'errgrind/drill-open')).toHaveLength(1)
+  })
+
+  it('adopts a persisted pool Session whose identity is still unclaimed', async () => {
+    const { ctx, episodes, followups } = await harness()
+    const sourceA = await liveAgent(ctx, ctx.sessions.create(SessionId('error-a')))
+    const sourceB = await liveAgent(ctx, ctx.sessions.create(SessionId('error-b')))
+    episodes.set(`${sourceA.id}:errgrindEpisode`, confirmedEpisode())
+    episodes.set(`${sourceB.id}:errgrindEpisode`, confirmedEpisode())
+    const expectedId = poolDrillSessionId([sourceA.id, sourceB.id], 0)
+    episodes.set(`${expectedId}:errgrindEpisode`, {
+      origin: { kind: 'drill' },
+      drillCandidates: [
+        { sourceSessionId: sourceA.id }, { sourceSessionId: sourceB.id },
+      ],
+    })
+
+    const result = await ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id, sourceB.id] })
+
+    expect(result.sessionId).toBe(expectedId)
+    expect(result.created).toBe(false)
+    expect(ctx.agents.get(expectedId)!.session.snapshotEvents()
+      .filter(event => event.type === 'errgrind/drill-open')).toHaveLength(0)
+    expect(followups.get(expectedId)?.kinds).toEqual(['errgrind-drill-request'])
+  })
+
+  it('rejects a pool identity already claimed by a different candidate set', async () => {
+    const { ctx, episodes } = await harness()
+    const sourceA = await liveAgent(ctx, ctx.sessions.create(SessionId('error-a')))
+    const sourceB = await liveAgent(ctx, ctx.sessions.create(SessionId('error-b')))
+    episodes.set(`${sourceA.id}:errgrindEpisode`, confirmedEpisode())
+    episodes.set(`${sourceB.id}:errgrindEpisode`, confirmedEpisode())
+    episodes.set(`${poolDrillSessionId([sourceA.id, sourceB.id], 0)}:errgrindEpisode`, {
+      origin: { kind: 'drill' },
+      drillCandidates: [{ sourceSessionId: sourceA.id }],
+    })
+
+    await expect(ctx.sessionController.openDrill({ candidateSessionIds: [sourceA.id, sourceB.id] }))
+      .rejects.toThrow('Drill Session identity conflicts')
   })
 })
 

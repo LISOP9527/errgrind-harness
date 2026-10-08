@@ -42,8 +42,6 @@ function props(): ErrorHistoryProps {
     useSessions: (selector: (state: typeof list) => unknown): unknown => selector(list),
     useWorkspaces: <T,>(selector: (state: WorkspaceState) => T): T => selector(workspaces([])),
     openSession: vi.fn(),
-    practiceFromError: vi.fn().mockResolvedValue(undefined),
-    renameSession: vi.fn().mockResolvedValue(undefined),
     archiveSession: vi.fn().mockResolvedValue(undefined),
     unarchiveSession: vi.fn().mockResolvedValue(undefined),
     t: translate,
@@ -51,47 +49,47 @@ function props(): ErrorHistoryProps {
 }
 
 describe('ErrGrind Error history', () => {
-  it('lists only Errors and offers Drill only for the selected eligible Error', async () => {
+  it('lists Errors and practice Sessions as one-line titled rows', () => {
     const input = props()
     render(<ErrorHistory {...input} />)
-    expect(screen.getByText('原来把分母相加')).toBeTruthy()
-    expect(screen.getByText('忘记检查定义域')).toBeTruthy()
-    expect(screen.queryByText('unrelated')).toBeNull()
-    expect(screen.getAllByRole('button', { name: 'Practice from this Error' })).toHaveLength(1)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Practice from this Error' }))
-    await waitFor(() => {
-      expect(input.practiceFromError).toHaveBeenCalledWith(second, expect.any(Function))
-    })
-    const title = vi.mocked(input.practiceFromError).mock.calls[0]![1]
-    expect(title(0)).toBe('Practice 1 · 忘记检查定义域')
-    expect(title(1)).toBe('Practice 2 · 忘记检查定义域')
-    expect(input.practiceFromError).not.toHaveBeenCalledWith(first, expect.anything())
-  })
-
-  it('labels Drill Sessions as practice and gates archiving to them', async () => {
-    const input = props()
-    render(<ErrorHistory {...input} />)
-    const drillCard = screen.getByText('练习 1 · 定义域错误').closest('article')
-    expect(drillCard?.textContent).toContain('Practice')
-    expect(within(drillCard as HTMLElement).queryByRole('button', { name: 'Practice from this Error' })).toBeNull()
-    expect(screen.getAllByRole('button', { name: 'Archive' })).toHaveLength(1)
+    expect(screen.getByText('first')).toBeTruthy()
+    expect(screen.getByText('second')).toBeTruthy()
+    expect(screen.getByText('练习 1 · 定义域错误')).toBeTruthy()
     // The header counts Errors; practice Sessions share the list but are not Errors.
     expect(document.querySelector('[class*="count"]')?.textContent).toBe('2')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Archive' }))
-    await waitFor(() => { expect(input.archiveSession).toHaveBeenCalledWith(drillSession) })
-    expect(input.archiveSession).not.toHaveBeenCalledWith(first)
+    fireEvent.click(screen.getByText('first'))
+    expect(input.openSession).toHaveBeenCalledWith(first)
   })
 
-  it('renames the session title in place', async () => {
+  it('marks each row status through the shared status dot', () => {
+    render(<ErrorHistory {...props()} />)
+    const article = (title: string): HTMLElement =>
+      screen.getByText(title).closest('article') as HTMLElement
+    // grill → ongoing (spinner), teach → done, practice → idle.
+    expect(article('first').querySelector('[data-state="ongoing"]')).not.toBeNull()
+    expect(article('second').querySelector('[data-state="done"]')).not.toBeNull()
+    expect(article('练习 1 · 定义域错误').querySelector('[data-state="done"]')).toBeNull()
+    expect(article('练习 1 · 定义域错误').querySelector('[data-state="idle"]')).not.toBeNull()
+    // Status names still reach assistive tech through the row's accessible name.
+    const openButton = (title: string): HTMLElement =>
+      article(title).querySelector('button') as HTMLElement
+    expect(openButton('first').getAttribute('aria-label')).toContain('Asking follow-ups')
+    expect(openButton('second').getAttribute('aria-label')).toContain('Diagnosis completed')
+    expect(openButton('练习 1 · 定义域错误').getAttribute('aria-label')).toContain('Practice')
+  })
+
+  it('keeps the archive affordance on practice rows only', async () => {
     const input = props()
     render(<ErrorHistory {...input} />)
-    fireEvent.click(screen.getAllByRole('button', { name: 'Rename' })[0]!)
-    const editor = screen.getByRole('textbox', { name: 'New session title' })
-    fireEvent.change(editor, { target: { value: '新的名字' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => { expect(input.renameSession).toHaveBeenCalledWith(first, '新的名字') })
+    expect(screen.getAllByRole('button', { name: 'Archive' })).toHaveLength(1)
+    const drillRow = screen.getByText('练习 1 · 定义域错误').closest('article') as HTMLElement
+    expect(within(drillRow).getByRole('button', { name: 'Archive' })).toBeTruthy()
+
+    fireEvent.click(within(drillRow).getByRole('button', { name: 'Archive' }))
+    await waitFor(() => { expect(input.archiveSession).toHaveBeenCalledWith(drillSession) })
+    expect(input.archiveSession).not.toHaveBeenCalledWith(first)
+    await waitFor(() => { expect(screen.getByText('Session archived.')).toBeTruthy() })
   })
 
   it('hides archived sessions from the list', () => {
@@ -99,8 +97,8 @@ describe('ErrGrind Error history', () => {
     input.useWorkspaces = <T,>(selector: (state: WorkspaceState) => T): T =>
       selector(workspaces([first]))
     render(<ErrorHistory {...input} />)
-    expect(screen.queryByText('原来把分母相加')).toBeNull()
-    expect(screen.getByText('忘记检查定义域')).toBeTruthy()
+    expect(screen.queryByText('first')).toBeNull()
+    expect(screen.getByText('second')).toBeTruthy()
   })
 
   it('restores an archived Error through the archived section', async () => {
@@ -110,16 +108,15 @@ describe('ErrGrind Error history', () => {
     render(<ErrorHistory {...input} />)
 
     fireEvent.click(screen.getByRole('button', { name: /^Show archived/ }))
-    const archivedCard = screen.getByText('first').closest('article')
-    expect(archivedCard).not.toBeNull()
-    expect(archivedCard?.textContent).toContain('Archived')
+    expect(screen.getByText('Archived')).toBeTruthy()
+    const archivedRow = screen.getByText('first').closest('article') as HTMLElement
     // Archived rows explain instead of opening: archived Sessions cannot be viewed.
-    fireEvent.click(within(archivedCard as HTMLElement).getByRole('button', { name: /first/ }))
+    fireEvent.click(within(archivedRow).getByRole('button', { name: /first/ }))
     expect(screen.getByText('Archived sessions cannot be opened. Unarchive it to view.')).toBeTruthy()
     // An archived Session without a cached Error classification stays listed by title.
     expect(screen.getByText('unrelated')).toBeTruthy()
 
-    fireEvent.click(within(archivedCard as HTMLElement).getByRole('button', { name: 'Unarchive' }))
+    fireEvent.click(within(archivedRow).getByRole('button', { name: 'Unarchive' }))
     await waitFor(() => { expect(input.unarchiveSession).toHaveBeenCalledWith(first) })
     await waitFor(() => { expect(screen.getByText('Session unarchived.')).toBeTruthy() })
 
@@ -136,7 +133,6 @@ describe('ErrGrind Error history', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Show archived/ }))
     expect(screen.getByText('first')).toBeTruthy()
     expect(screen.queryByText('练习 1 · 定义域错误')).toBeNull()
-    expect(screen.queryByText('通分时忘了找公共分母')).toBeNull()
   })
 
   it('surfaces an unarchive failure without dropping the row', async () => {
@@ -162,15 +158,14 @@ describe('ErrGrind Error history', () => {
     expect(screen.queryByRole('button', { name: /^Show archived/ })).toBeNull()
   })
 
-  it('filters public descriptions without searching private Session content', () => {
+  it('filters by title or public description without searching practice Sessions', () => {
     const input = props()
     render(<ErrorHistory {...input} />)
     fireEvent.change(screen.getByRole('searchbox'), { target: { value: '定义域' } })
-    expect(screen.getByText('忘记检查定义域')).toBeTruthy()
-    expect(screen.queryByText('原来把分母相加')).toBeNull()
-    // The field names Error descriptions: practice Sessions never match it even
-    // when their own title or description would.
-    expect(screen.queryByText('通分时忘了找公共分母')).toBeNull()
+    expect(screen.getByText('second')).toBeTruthy()
+    expect(screen.queryByText('first')).toBeNull()
+    // The field names Error descriptions: practice Sessions stay listed but
+    // never match it even when their own title or description would.
     expect(screen.queryByText('练习 1 · 定义域错误')).toBeNull()
   })
 })

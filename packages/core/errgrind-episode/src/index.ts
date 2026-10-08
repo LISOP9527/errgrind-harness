@@ -14,6 +14,7 @@ import type {
   DiagnosticEvidence,
   DiagnosticProbe,
   DiagnosticLedger,
+  DrillCandidateSeed,
   ErrorAttachment,
   ErrorEpisode,
   ErrorListEntry,
@@ -109,6 +110,16 @@ const diagnosticEvidenceSchema = zod.object({
   probeId: zod.preprocess(v => v === '' ? undefined : v, zod.string().regex(PROBE_ID_PATTERN).optional()),
 }).strict()
 
+const drillCandidateSchema: ZodType<DrillCandidateSeed> = zod.object({
+  sourceSessionId: zod.string().min(1),
+  sourceRevision: zod.number().int().positive(),
+  description: zod.string().min(1),
+  diagnosisStatus: zod.enum(['supported', 'undetermined']),
+  diagnosisSummary: zod.string().min(1),
+  remainingUncertainty: zod.string(),
+  whatWouldChangeJudgment: zod.string(),
+}).strict()
+
 const diagnosticLedgerSchema = zod.object({
   status: zod.enum(['active', 'supported', 'undetermined']),
   hypotheses: zod.array(hypothesisSchema),
@@ -175,6 +186,7 @@ const episodeSchema: ZodType<ErrorEpisode | null> = zod.union([
     teachStartedAtTurn: zod.number().int().positive().nullable(),
     drillStartedAtTurn: zod.number().int().positive().nullable(),
     pendingClarification: zod.boolean(),
+    drillCandidates: zod.array(drillCandidateSchema),
   }).strict(),
   zod.null(),
 ])
@@ -554,6 +566,7 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         teachStartedAtTurn: null,
         drillStartedAtTurn: null,
         pendingClarification: false,
+        drillCandidates: [],
       }
     }
     case 'errgrind/derived-error-open': {
@@ -583,11 +596,45 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         teachStartedAtTurn: null,
         drillStartedAtTurn: null,
         pendingClarification: false,
+        drillCandidates: [],
       }
     }
     case 'errgrind/drill-open': {
       if (state !== null) throw new Error('Error episode already open')
       const data = event.data
+      if (data.candidates !== undefined) {
+        if (data.candidates.length === 0
+          || data.candidates.some(candidate => !candidate.sourceSessionId
+            || !candidate.description.trim() || !candidate.diagnosisSummary.trim())) {
+          throw new Error('Drill pool must list confirmed Errors retaining description and diagnosis')
+        }
+        if (new Set(data.candidates.map(candidate => candidate.sourceSessionId)).size
+          !== data.candidates.length) {
+          throw new Error('Drill pool must not repeat a source Error')
+        }
+        // Pool mode: the practiced Error stays unselected until the model's
+        // drill_prepare(sourceSessionId) emits errgrind/drill-source-selected.
+        return {
+          firstInput: data.text,
+          firstInputHasImage: false,
+          firstInputTurn: 1,
+          latestTurn: 1,
+          origin: { kind: 'drill' },
+          attachments: [],
+          draft: null,
+          confirmedRevision: null,
+          diagnosisRound: 1,
+          diagnosisHistory: [],
+          evidenceSources: [],
+          diagnosis: initialDiagnosticLedger(),
+          pendingConclusion: null,
+          derivedContextConsumed: false,
+          teachStartedAtTurn: null,
+          drillStartedAtTurn: 1,
+          pendingClarification: false,
+          drillCandidates: data.candidates,
+        }
+      }
       if (!data.sourceSessionId || !data.description.trim() || !data.diagnosisSummary.trim()) {
         throw new Error('Drill Session must retain its source Error description and diagnosis')
       }
@@ -624,6 +671,44 @@ export function applyEpisodeEvent(state: ErrorEpisode | null, event: SessionEven
         // Drill gate while this marker keeps intake and Grill tools locked.
         drillStartedAtTurn: 1,
         pendingClarification: false,
+        drillCandidates: [],
+      }
+    }
+    case 'errgrind/drill-source-selected': {
+      if (state === null || state.drillCandidates.length === 0) {
+        throw new Error('Drill source selection requires an open drill pool')
+      }
+      const data = event.data
+      const candidate = state.drillCandidates
+        .find(entry => entry.sourceSessionId === data.sourceSessionId)
+      if (candidate === undefined || candidate.description !== data.description
+        || candidate.diagnosisSummary !== data.diagnosisSummary
+        || candidate.sourceRevision !== data.sourceRevision
+        || candidate.diagnosisStatus !== data.diagnosisStatus
+        || candidate.remainingUncertainty !== data.remainingUncertainty
+        || candidate.whatWouldChangeJudgment !== data.whatWouldChangeJudgment) {
+        throw new Error('Selected Drill source must come from the seeded pool')
+      }
+      return {
+        ...state,
+        origin: { ...state.origin, sourceSessionId: data.sourceSessionId },
+        draft: { revision: 1, text: data.description },
+        confirmedRevision: 1,
+        diagnosis: {
+          status: data.diagnosisStatus,
+          hypotheses: [],
+          probes: [],
+          evidence: [],
+          currentProbeId: null,
+          bestHypothesisId: null,
+          remainingUncertainty: data.remainingUncertainty,
+          whatWouldChangeJudgment: data.whatWouldChangeJudgment,
+          summary: data.diagnosisSummary,
+          concludedAtTurn: state.latestTurn,
+          anchoredRevision: 1,
+          stale: false,
+        },
+        drillCandidates: [],
       }
     }
     case 'errgrind/error-draft': {
@@ -885,7 +970,7 @@ export function apply(ctx: Context, config: Config = { statusCommand: true }): v
   ctx.sessionProjections.register({
     key: 'errgrindEpisode',
     stateSchema: episodeSchema,
-    stateVersion: 9,
+    stateVersion: 10,
     init: () => null,
     apply: applyEpisodeEvent,
     wire: { viewSchema: errorListEntrySchema, view: publicErrorListEntry },

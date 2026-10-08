@@ -86,7 +86,7 @@
   flex: 1;
   min-height: 0;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.15rem;
   overflow: auto;
   padding: 0.15rem 0.55rem 0.75rem;
 }
@@ -108,88 +108,71 @@
   color: inherit;
 }
 
-.card {
-  display: grid;
-  /* Auto tracks size to max-content; the rename editor (input + Save + Cancel)
-     is wider than the card, which stretched the track and overflowed every
-     row — including the title/description buttons that lay out against it. */
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.35rem;
-  padding: 0.55rem 0.6rem;
+/* One-line history row: title on the left, status dot on the right. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
   border: 1px solid transparent;
-  border-radius: 0.7rem;
-  background: transparent;
+  border-radius: 0.55rem;
   transition: background-color 0.15s, border-color 0.15s;
 }
 
-.card:hover,
-.card:focus-within {
+.row:hover,
+.row:focus-within {
   border-color: color-mix(in srgb, var(--dsw-alias-label-primary, #20242c) 8%, transparent);
   background: color-mix(in srgb, var(--dsw-alias-label-primary, #20242c) 5%, transparent);
 }
 
-.openButton,
-.practiceButton,
+.rowOpen,
 .railButton,
-.iconAction,
-.actionButton {
+.iconAction {
   border: 0;
   color: inherit;
   font: inherit;
   cursor: pointer;
 }
 
-.openButton {
-  display: grid;
-  gap: 0.45rem;
-  width: 100%;
-  padding: 0.2rem;
+.rowOpen {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 1.9rem;
+  padding: 0.2rem 0.5rem;
   background: transparent;
   text-align: left;
 }
 
-.cardTitle {
+.rowTitle {
+  flex: 1;
+  min-width: 0;
   display: block;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 0.86rem;
-  font-weight: 600;
+  font-size: 0.82rem;
 }
 
-/* Row actions sit left; the rename editor reuses the same row. */
-.actions,
-.renameRow {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .actions {
-    opacity: 0.4;
-    transition: opacity 0.15s;
-  }
-
-  .card:hover .actions,
-  .card:focus-within .actions {
-    opacity: 1;
-  }
+.rowDot {
+  flex: none;
 }
 
 .iconAction {
   display: grid;
+  flex: none;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.6rem;
+  height: 1.6rem;
   padding: 0;
   border-radius: 0.45rem;
-  background: color-mix(in srgb, currentColor 6%, transparent);
-  color: color-mix(in srgb, currentColor 78%, transparent);
+  background: transparent;
+  color: color-mix(in srgb, currentColor 62%, transparent);
 }
 
 .iconAction:hover:not(:disabled) {
-  background: color-mix(in srgb, currentColor 12%, transparent);
+  background: color-mix(in srgb, currentColor 10%, transparent);
   color: inherit;
 }
 
@@ -199,75 +182,8 @@
 }
 
 .iconAction svg {
-  width: 0.95rem;
-  height: 0.95rem;
-}
-
-.renameRow {
-  gap: 0.35rem;
-}
-
-.renameInput {
-  flex: 1;
-  min-width: 0;
-  min-height: 1.9rem;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
-  border-radius: 0.45rem;
-  background: color-mix(in srgb, currentColor 5%, transparent);
-  color: inherit;
-  font: inherit;
-  font-size: 0.84rem;
-}
-
-.actionButton {
-  flex: none;
-  min-height: 1.9rem;
-  padding: 0.25rem 0.6rem;
-  border-radius: 0.45rem;
-  background: color-mix(in srgb, currentColor 8%, transparent);
-  font-size: 0.78rem;
-}
-
-.actionButton:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.description {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-height: 1.4;
-  overflow-wrap: anywhere;
-  color: color-mix(in srgb, var(--dsw-alias-label-primary, #20242c) 72%, transparent);
-  font-size: 0.8rem;
-}
-
-.status {
-  color: color-mix(in srgb, var(--dsw-alias-label-primary, #20242c) 60%, transparent);
-  font-size: 0.72rem;
-}
-
-.practiceButton {
-  min-height: 2rem;
-  padding: 0.35rem 0.55rem;
-  border-radius: 0.45rem;
-  background: color-mix(in srgb, var(--eg-accent) 12%, transparent);
-  color: var(--eg-accent);
-  text-align: left;
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.practiceButton:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--eg-accent) 18%, transparent);
-}
-
-.practiceButton:disabled {
-  cursor: progress;
-  opacity: 0.65;
+  width: 0.9rem;
+  height: 0.9rem;
 }
 
 .empty,
@@ -295,12 +211,9 @@
   font-weight: 700;
 }
 
-.openButton:focus-visible,
-.practiceButton:focus-visible,
+.rowOpen:focus-visible,
 .railButton:focus-visible,
 .iconAction:focus-visible,
-.actionButton:focus-visible,
-.renameInput:focus-visible,
 .archivedToggle:focus-visible {
   outline: 2px solid var(--eg-accent);
   outline-offset: 2px;

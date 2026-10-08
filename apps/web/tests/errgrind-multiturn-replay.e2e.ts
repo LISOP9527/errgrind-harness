@@ -456,7 +456,6 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     expect(confirmedRevision, JSON.stringify({ confirmationText, confirmedRevision, pageErrors })).toBe(2)
     expect(scaffold.ctx.sessionProjections.stateOf(agent.session, 'errgrindEpisode')?.diagnosis.status).toBe('undetermined')
     expect(confirmationText).toContain('Confirmed')
-    await errorRow.getByRole('button', { name: 'Practice from this Error' }).waitFor()
 
     const teachStartTurn = scaffold.whenTurnSettled()
     await input.fill('Please begin teaching this mechanism now.')
@@ -469,8 +468,8 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     await page.getByText(TEACH_FOLLOWUP).first().waitFor({ state: 'visible' })
     const afterTeachAnswer = scaffold.ctx.sessionProjections.stateOf(agent.session, 'errgrindEpisode')
     expect(afterTeachAnswer?.evidenceSources.some(source => source.text === TEACH_ANSWER)).toBe(false)
-    // A sidebar Practice click opens a dedicated Drill Session seeded with the
-    // confirmed Error; the learner answers inside that Session.
+    // A Practice-page row click opens a dedicated Drill Session seeded with
+    // the confirmed Error; the learner answers inside that Session.
     const settleFor = (id: SessionId) => new Promise<SessionId>((resolve, reject) => {
       const timer = setTimeout(() => {
         off()
@@ -486,13 +485,17 @@ describe('web e2e: ErrGrind keyless multi-turn privacy', () => {
     })
     const drillId = SessionId(`errgrind-drill-${createHash('sha256')
       .update(`${sessionId}\u00000`).digest('hex').slice(0, 32)}`)
+    // Practice lives on the dedicated Practice page, reached from the sidebar
+    // panel entry below New Error.
+    await page.getByRole('button', { name: 'Practice', exact: true }).click()
     const drillTurn = settleFor(drillId)
-    await errorRow.getByRole('button', { name: 'Practice from this Error' }).click()
+    await page.getByRole('button', { name: 'Practice this one' }).click()
     expect(await drillTurn).toBe(drillId)
     const drillAgent = scaffold.ctx.agents.get(drillId)
     if (drillAgent === undefined) throw new Error('the Drill Session has no live Agent')
     const drillOpened = drillAgent.session.snapshotEvents()
     expect(drillOpened.some(event => event.type === 'errgrind/drill-open'
+      && 'sourceSessionId' in event.data
       && event.data.sourceSessionId === sessionId
       && event.data.sourceRevision === 2)).toBe(true)
     expect(drillOpened.some(event => event.type === 'user/message'

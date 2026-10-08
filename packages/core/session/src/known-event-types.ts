@@ -42,6 +42,7 @@ export const KNOWN_SESSION_EVENT_TYPES: ReadonlySet<string> = new Set([
   'errgrind/drill-judged',
   'errgrind/drill-open',
   'errgrind/drill-prepared',
+  'errgrind/drill-source-selected',
   'errgrind/drill-spec-prepared',
   'errgrind/error-clarify',
   'errgrind/error-confirm',

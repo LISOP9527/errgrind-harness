@@ -47,7 +47,7 @@ import {
   ErrGrindBrandName,
   ErrGrindHeroBrandMark,
 } from '../src/client/Brand.tsx'
-import { en, NS, zh } from '../src/client/locales.ts'
+import { en, NS, zh, type ErrGrindKey } from '../src/client/locales.ts'
 
 afterEach(() => {
   cleanup()
@@ -126,9 +126,12 @@ function createTestHarness() {
   const locale: {
     register: ReturnType<typeof vi.fn<(namespace: string, dictionaries: { readonly zh: typeof zh; readonly en: typeof en }) => void>>
     registerOverride: ReturnType<typeof vi.fn<(namespace: string, dictionaries: Record<string, Record<string, string>>) => void>>
+    bind: ReturnType<typeof vi.fn<(namespace: string) => (key: ErrGrindKey, params?: Record<string, string | number>) => string>>
   } = {
     register: vi.fn(),
     registerOverride: vi.fn(),
+    bind: vi.fn(() => (key: ErrGrindKey, params?: Record<string, string | number>): string =>
+      en[key].replace(/\{(\w+)\}/g, (match, name: string) => String(params?.[name] ?? match))),
   }
   ctx.provide('locale', locale)
 
@@ -436,6 +439,7 @@ describe('Error episode card assembly', () => {
       description: '根据你目前提供的信息：…',
       confirmed: true,
       diagnosisStatus: 'supported',
+      poolCount: 0,
     })
 
     const diagnosis = assembledNodes.find(n => n.kind === 'errgrind-diagnosis')
@@ -489,6 +493,7 @@ describe('Existing conversation cards assembly and presentation', () => {
       description: 'Misapplied distributive property',
       confirmed: false,
       diagnosisStatus: null,
+      poolCount: 0,
     })
     const { unmount: unmountError } = render(
       <ErrorEpisodeCard node={errorNode} t={tEn} confirmRevision={vi.fn()} {...chatNodeOwner} />,
@@ -697,6 +702,7 @@ function errorCardNode(overrides: Partial<ChatNodeDataMap['errgrind-error-card']
     description: 'Misapplied distributive property',
     confirmed: false,
     diagnosisStatus: null,
+    poolCount: 0,
     ...overrides,
   })
 }

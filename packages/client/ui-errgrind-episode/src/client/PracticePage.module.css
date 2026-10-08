@@ -1,0 +1,140 @@
+/* Practice page: the same centred column the other main panels use. */
+.page {
+  --eg-accent: var(--dsw-alias-link, #4d6bfe);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  box-sizing: border-box;
+  height: 100%;
+  overflow: auto;
+  padding: 28px clamp(16px, 4vw, 48px) 48px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.page > * {
+  width: 100%;
+  max-width: 720px;
+}
+
+.pageHead {
+  box-sizing: border-box;
+}
+
+:global([data-platform='darwin']) .pageHead {
+  padding-top: var(--dsh-frame-top-clearance, 0px);
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+}
+
+.pageIntro {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary, color-mix(in srgb, currentColor 62%, transparent));
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4rem 0.6rem 0.7rem;
+}
+
+.selectedCount {
+  flex: 1;
+  color: color-mix(in srgb, currentColor 62%, transparent);
+  font-size: 0.78rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-label-primary, #20242c) 8%, transparent);
+  border-radius: 0.6rem;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.row:hover,
+.row:focus-within {
+  border-color: color-mix(in srgb, var(--dsw-alias-label-primary, #20242c) 14%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-label-primary, #20242c) 4%, transparent);
+}
+
+.rowCheck {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowCheck span {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rowOpen {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: color-mix(in srgb, currentColor 62%, transparent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.rowOpen:hover:not(:disabled) {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+  color: inherit;
+}
+
+.notice {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  color: color-mix(in srgb, currentColor 78%, transparent);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.empty {
+  margin: 0;
+  padding: 0.9rem 0.65rem;
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.opening {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0 0.65rem;
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  font-size: 0.8rem;
+}
+
+.rowOpen:focus-visible {
+  outline: 2px solid var(--eg-accent);
+  outline-offset: 2px;
+}

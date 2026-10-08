@@ -10360,7 +10360,7 @@
       "kind": "event",
       "event": "errgrind/drill-open",
       "surface": false,
-      "digest": "9d1cc64613eb2b7fb84966b5eab1396c7ab6d856c706cf0f81227c31ff544b90",
+      "digest": "b8d0c9dec9cee454bc90f8a50faf5e316578d7a9822c871ed9f2977e3b33d2a5",
       "schema": {
         "root": 0,
         "nodes": [
@@ -10374,68 +10374,75 @@
               },
               {
                 "name": "ignorable",
-                "type": 7,
+                "type": 11,
                 "optional": true
               },
               {
                 "name": "seq",
-                "type": 6,
+                "type": 7,
                 "optional": false
               },
               {
                 "name": "time",
-                "type": 6,
+                "type": 7,
                 "optional": false
               },
               {
                 "name": "type",
-                "type": 8,
+                "type": 12,
                 "optional": false
               }
             ],
             "indices": []
           },
           {
+            "kind": "union",
+            "types": [
+              2,
+              8
+            ]
+          },
+          {
             "kind": "object",
             "properties": [
               {
                 "name": "description",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "diagnosisStatus",
                 "type": 3,
                 "optional": false
               },
               {
+                "name": "diagnosisStatus",
+                "type": 4,
+                "optional": false
+              },
+              {
                 "name": "diagnosisSummary",
-                "type": 2,
+                "type": 3,
                 "optional": false
               },
               {
                 "name": "remainingUncertainty",
-                "type": 2,
+                "type": 3,
                 "optional": false
               },
               {
                 "name": "sourceRevision",
-                "type": 6,
+                "type": 7,
                 "optional": false
               },
               {
                 "name": "sourceSessionId",
-                "type": 2,
+                "type": 3,
                 "optional": false
               },
               {
                 "name": "text",
-                "type": 2,
+                "type": 3,
                 "optional": false
               },
               {
                 "name": "whatWouldChangeJudgment",
-                "type": 2,
+                "type": 3,
                 "optional": false
               }
             ],
@@ -10448,8 +10455,8 @@
           {
             "kind": "union",
             "types": [
-              4,
-              5
+              5,
+              6
             ]
           },
           {
@@ -10463,6 +10470,67 @@
           {
             "kind": "primitive",
             "type": "number"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "candidates",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "text",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
           },
           {
             "kind": "literal",
@@ -10800,6 +10868,121 @@
           {
             "kind": "literal",
             "value": "errgrind/drill-prepared"
+          }
+        ]
+      }
+    },
+    {
+      "key": "event:errgrind/drill-source-selected",
+      "kind": "event",
+      "event": "errgrind/drill-source-selected",
+      "surface": false,
+      "digest": "36cf566ebd8ce53b1dcaa0436fa97872064b83ca52fb44dba93bdf15925978ca",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "supported"
+          },
+          {
+            "kind": "literal",
+            "value": "undetermined"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "errgrind/drill-source-selected"
           }
         ]
       }
@@ -26430,6 +26613,102 @@
       "sources": []
     },
     {
+      "digest": "0a3f170606f2000e054a8f79608888d3946b57d878a4901352658a68cae8261a",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "candidates",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "text",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 2
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              6
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "supported"
+          },
+          {
+            "kind": "literal",
+            "value": "undetermined"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          }
+        ]
+      },
+      "names": [],
+      "sources": [
+        "packages/core/errgrind-episode/lib/types/types.d.ts:188"
+      ]
+    },
+    {
       "digest": "0a8a062bc9c3c0d97fd97742262f2ea53dd32297f834e81114870d38ac3dc6da",
       "schema": {
         "root": 0,
@@ -27553,6 +27832,20 @@
           {
             "kind": "primitive",
             "type": "string"
+          }
+        ]
+      },
+      "names": [],
+      "sources": []
+    },
+    {
+      "digest": "108d985602f1fa73547e5f9991cb5c1e5cb349c8ddf9a0f3b07baaa3d07c135d",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "literal",
+            "value": "errgrind/drill-source-selected"
           }
         ]
       },
@@ -44326,6 +44619,119 @@
       "sources": []
     },
     {
+      "digest": "36cf566ebd8ce53b1dcaa0436fa97872064b83ca52fb44dba93bdf15925978ca",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 7,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 8,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "supported"
+          },
+          {
+            "kind": "literal",
+            "value": "undetermined"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "errgrind/drill-source-selected"
+          }
+        ]
+      },
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "36d6a9a871d949ea4f3edd919d81d66aa69218bebef38899d2a1282c39420a1f",
       "schema": {
         "root": 0,
@@ -48056,7 +48462,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:182"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:209"
       ]
     },
     {
@@ -49746,7 +50152,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:156"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:168"
       ]
     },
     {
@@ -51873,7 +52279,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:187"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:214"
       ]
     },
     {
@@ -55750,6 +56156,153 @@
       "sources": [
         "packages/api/session-controller/src/types.ts:401"
       ]
+    },
+    {
+      "digest": "6a59fc048ab7eba2d4fe392771b923bb184e9de75f6e03ee2018112e25f470f5",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "union",
+            "types": [
+              1,
+              9
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "candidates",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "text",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 3
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              6,
+              7
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "supported"
+          },
+          {
+            "kind": "literal",
+            "value": "undetermined"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 8,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "text",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 4,
+                "optional": false
+              }
+            ],
+            "indices": []
+          }
+        ]
+      },
+      "names": [],
+      "sources": []
     },
     {
       "digest": "6ab45ac76839722df912f3ba50f1c6b41f2d614bde11f1aabfae04117ccdc80d",
@@ -76481,7 +77034,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:177"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:204"
       ]
     },
     {
@@ -82693,126 +83246,8 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:148"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:160"
       ]
-    },
-    {
-      "digest": "9d1cc64613eb2b7fb84966b5eab1396c7ab6d856c706cf0f81227c31ff544b90",
-      "schema": {
-        "root": 0,
-        "nodes": [
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "data",
-                "type": 1,
-                "optional": false
-              },
-              {
-                "name": "ignorable",
-                "type": 7,
-                "optional": true
-              },
-              {
-                "name": "seq",
-                "type": 6,
-                "optional": false
-              },
-              {
-                "name": "time",
-                "type": 6,
-                "optional": false
-              },
-              {
-                "name": "type",
-                "type": 8,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "object",
-            "properties": [
-              {
-                "name": "description",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "diagnosisStatus",
-                "type": 3,
-                "optional": false
-              },
-              {
-                "name": "diagnosisSummary",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "remainingUncertainty",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "sourceRevision",
-                "type": 6,
-                "optional": false
-              },
-              {
-                "name": "sourceSessionId",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "text",
-                "type": 2,
-                "optional": false
-              },
-              {
-                "name": "whatWouldChangeJudgment",
-                "type": 2,
-                "optional": false
-              }
-            ],
-            "indices": []
-          },
-          {
-            "kind": "primitive",
-            "type": "string"
-          },
-          {
-            "kind": "union",
-            "types": [
-              4,
-              5
-            ]
-          },
-          {
-            "kind": "literal",
-            "value": "supported"
-          },
-          {
-            "kind": "literal",
-            "value": "undetermined"
-          },
-          {
-            "kind": "primitive",
-            "type": "number"
-          },
-          {
-            "kind": "literal",
-            "value": true
-          },
-          {
-            "kind": "literal",
-            "value": "errgrind/drill-open"
-          }
-        ]
-      },
-      "names": [],
-      "sources": []
     },
     {
       "digest": "9d4dd1c84fb7dadc8c2ff31b0eda80f117f1958fcd46b06a681d768fe75957af",
@@ -83568,7 +84003,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:166"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:178"
       ]
     },
     {
@@ -84500,7 +84935,86 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:222"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:249"
+      ]
+    },
+    {
+      "digest": "a544a39dfc8eeecba4e0a37d20d29766b9da7beab7cb73d8feb9863251d3814e",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 5,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 1,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              3,
+              4
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "supported"
+          },
+          {
+            "kind": "literal",
+            "value": "undetermined"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          }
+        ]
+      },
+      "names": [
+        "packages/core/errgrind-episode/lib/types/types.d.ts#DrillCandidateSeed"
+      ],
+      "sources": [
+        "packages/core/errgrind-episode/lib/types/types.d.ts:105",
+        "packages/core/errgrind-episode/lib/types/types.d.ts:194"
       ]
     },
     {
@@ -85348,7 +85862,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:205"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:232"
       ]
     },
     {
@@ -85914,8 +86428,8 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:197",
-        "packages/core/errgrind-episode/lib/types/types.d.ts:214"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:224",
+        "packages/core/errgrind-episode/lib/types/types.d.ts:241"
       ]
     },
     {
@@ -91065,6 +91579,192 @@
       ]
     },
     {
+      "digest": "b8d0c9dec9cee454bc90f8a50faf5e316578d7a9822c871ed9f2977e3b33d2a5",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "data",
+                "type": 1,
+                "optional": false
+              },
+              {
+                "name": "ignorable",
+                "type": 11,
+                "optional": true
+              },
+              {
+                "name": "seq",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "time",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "type",
+                "type": 12,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "union",
+            "types": [
+              2,
+              8
+            ]
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "text",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              5,
+              6
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "supported"
+          },
+          {
+            "kind": "literal",
+            "value": "undetermined"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "candidates",
+                "type": 9,
+                "optional": false
+              },
+              {
+                "name": "text",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "array",
+            "element": 10
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 4,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 7,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 3,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "literal",
+            "value": true
+          },
+          {
+            "kind": "literal",
+            "value": "errgrind/drill-open"
+          }
+        ]
+      },
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "b8fc636a2121df9d8423c242e03c9d23b7ab7c6fdce00e45746932c60b730f97",
       "schema": {
         "root": 0,
@@ -93839,7 +94539,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:192"
+        "packages/core/errgrind-episode/lib/types/types.d.ts:219"
       ]
     },
     {
@@ -105495,6 +106195,84 @@
       "sources": [
         "packages/context/session-reference/src/types.ts:13"
       ]
+    },
+    {
+      "digest": "f5ba1bc6dfc85360e9c0b59fbae5f9cb886e3d2c2576fdb547062c97835059e1",
+      "schema": {
+        "root": 0,
+        "nodes": [
+          {
+            "kind": "array",
+            "element": 1
+          },
+          {
+            "kind": "object",
+            "properties": [
+              {
+                "name": "description",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "diagnosisStatus",
+                "type": 3,
+                "optional": false
+              },
+              {
+                "name": "diagnosisSummary",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "remainingUncertainty",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "sourceRevision",
+                "type": 6,
+                "optional": false
+              },
+              {
+                "name": "sourceSessionId",
+                "type": 2,
+                "optional": false
+              },
+              {
+                "name": "whatWouldChangeJudgment",
+                "type": 2,
+                "optional": false
+              }
+            ],
+            "indices": []
+          },
+          {
+            "kind": "primitive",
+            "type": "string"
+          },
+          {
+            "kind": "union",
+            "types": [
+              4,
+              5
+            ]
+          },
+          {
+            "kind": "literal",
+            "value": "supported"
+          },
+          {
+            "kind": "literal",
+            "value": "undetermined"
+          },
+          {
+            "kind": "primitive",
+            "type": "number"
+          }
+        ]
+      },
+      "names": [],
+      "sources": []
     },
     {
       "digest": "f6169ded3ff10e33875c4666272ae7922e76abd8b21ff4aff1ef1671b3b35912",

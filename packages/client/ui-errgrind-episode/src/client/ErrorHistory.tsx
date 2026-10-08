@@ -1,23 +1,19 @@
 /** Error-centric browser for the safe Session-list episode projection. */
 
 import { useMemo, useState } from 'react'
-import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ErrorListEntry } from '@errgrind/episode'
 import {
-  IconArchiveOutlineRegular, IconEditOutlineRegular, IconUnarchiveOutlineRegular, relativeTime,
+  IconArchiveOutlineRegular, IconUnarchiveOutlineRegular, StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import { NS } from './locales.ts'
 import css from './ErrorHistory.module.css'
 
 export interface ErrorHistoryInjected {
   /** Navigate to the selected existing Session. */
   readonly openSession: (sessionId: SessionId) => void
-  /** Open the dedicated Drill Session and queue the learner-triggered practice; `title` is the localized Session title to pin. */
-  readonly practiceFromError: (sessionId: SessionId, title: (index: number) => string) => Promise<void>
-  /** Rename the Session's display title. */
-  readonly renameSession: (sessionId: SessionId, title: string) => Promise<void>
   /** Archive the Session (the row then leaves this list). */
   readonly archiveSession: (sessionId: SessionId) => Promise<void>
   /** Restore an archived Session to this list. */
@@ -28,9 +24,15 @@ export type ErrorHistoryProps = PropsRuntime<'sidebar.workspaces'>
   & PropsLocale<typeof NS>
   & ErrorHistoryInjected
 
-/** One-line history preview: drop TeX math delimiters so raw \( and $$ stay readable in a single clipped line. */
-function previewText(text: string): string {
-  return text.replace(/\\\(|\\\)|\\\[|\\\]|\$\$/g, '')
+/** Map one list entry onto the shared status-dot palette. */
+function statusDot(episode: ErrorListEntry): StateDotState {
+  // Practice Sessions are throwaway utilities, not tracked Errors: neutral dot.
+  if (episode.kind === 'drill') return 'idle'
+  switch (episode.status) {
+    case 'grill': return 'ongoing'
+    case 'confirm': return 'warning'
+    case 'teach': return 'done'
+  }
 }
 
 /** Replaces the general Workspace browser with the learner's Error history. */
@@ -40,8 +42,6 @@ export function ErrorHistory({
   useSessions,
   useWorkspaces,
   openSession,
-  practiceFromError,
-  renameSession,
   archiveSession,
   unarchiveSession,
   t,
@@ -51,8 +51,6 @@ export function ErrorHistory({
   const archived = useMemo(() => new Set(archivedSessionIds), [archivedSessionIds])
   const [query, setQuery] = useState('')
   const [busySession, setBusySession] = useState<SessionId | null>(null)
-  const [editingSession, setEditingSession] = useState<SessionId | null>(null)
-  const [draft, setDraft] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const needle = query.trim().toLocaleLowerCase()
@@ -60,12 +58,12 @@ export function ErrorHistory({
     const session = list.byId[id]
     const episode = session?.projectionValues?.errgrindEpisode
     if (session === undefined || episode == null || archived.has(id)) return []
-    const description = episode.description?.trim() || session.displayTitle
+    const title = session.displayTitle
     // The search field names Error descriptions; practice Sessions stay listed
     // but never match it.
     if (needle && (episode.kind === 'drill'
-      || !`${description} ${session.displayTitle}`.toLocaleLowerCase().includes(needle))) return []
-    return [{ sessionId: id, description, episode, title: session.displayTitle, updatedAt: session.updatedAt }]
+      || !`${episode.description?.trim() || title} ${title}`.toLocaleLowerCase().includes(needle))) return []
+    return [{ sessionId: id, episode, title }]
   }), [list, needle, archived])
   // The header counts Errors; practice Sessions share the list but are not Errors.
   const errorCount = useMemo(() => errors.filter(entry => entry.episode.kind !== 'drill').length, [errors])
@@ -76,7 +74,7 @@ export function ErrorHistory({
     if (session === undefined || session.blank || archived.has(id)
       || session.projectionValues?.errgrindEpisode !== undefined) return []
     if (needle && !session.displayTitle.toLocaleLowerCase().includes(needle)) return []
-    return [{ sessionId: id, title: session.displayTitle, updatedAt: session.updatedAt }]
+    return [{ sessionId: id, title: session.displayTitle }]
   }), [list, needle, archived])
   // Archived Errors stay reachable here because this panel replaces the
   // Workspace browser, which carries the only other unarchive affordance.
@@ -86,9 +84,9 @@ export function ErrorHistory({
     if (session === undefined || session.blank || !archived.has(id)) return []
     const episode = session.projectionValues?.errgrindEpisode
     if (episode?.kind === 'drill') return []
-    const description = episode?.description?.trim() || session.displayTitle
-    if (needle && !`${description} ${session.displayTitle}`.toLocaleLowerCase().includes(needle)) return []
-    return [{ sessionId: id, title: session.displayTitle, updatedAt: session.updatedAt }]
+    const title = session.displayTitle
+    if (needle && !`${episode?.description?.trim() || title} ${title}`.toLocaleLowerCase().includes(needle)) return []
+    return [{ sessionId: id, title }]
   }), [list, needle, archived])
 
   if (!wide) {
@@ -113,12 +111,7 @@ export function ErrorHistory({
     }
   }
 
-  const timeLabel = (at: number): string => {
-    const { unit, n } = relativeTime(at, Date.now())
-    return unit === 'now' ? t('time.now') : t(`time.${unit}`, { n })
-  }
-
-  const runCardAction = async (
+  const runRowAction = async (
     sessionId: SessionId,
     action: () => Promise<void>,
     done: string,
@@ -135,90 +128,6 @@ export function ErrorHistory({
       setBusySession(null)
     }
   }
-
-  const submitRename = async (sessionId: SessionId): Promise<void> => {
-    const title = draft.trim()
-    if (title === '') {
-      setEditingSession(null)
-      return
-    }
-    setBusySession(sessionId)
-    setNotice(null)
-    try {
-      await renameSession(sessionId, title)
-      setEditingSession(null)
-    } catch {
-      setNotice(t('history.renameFailed'))
-    } finally {
-      setBusySession(null)
-    }
-  }
-
-  const cardActions = (sessionId: SessionId, title: string, canArchive: boolean): ReactNode => (
-    editingSession === sessionId
-      ? (
-        <div className={css.renameRow}>
-          <input
-            className={css.renameInput}
-            value={draft}
-            aria-label={t('history.renameInput')}
-            autoFocus
-            onChange={(event) => { setDraft(event.currentTarget.value) }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') void submitRename(sessionId)
-              if (event.key === 'Escape') setEditingSession(null)
-            }}
-          />
-          <button
-            className={css.actionButton}
-            type="button"
-            disabled={busySession === sessionId}
-            onClick={() => { void submitRename(sessionId) }}
-          >
-            {t('history.renameSave')}
-          </button>
-          <button
-            className={css.actionButton}
-            type="button"
-            onClick={() => { setEditingSession(null) }}
-          >
-            {t('history.renameCancel')}
-          </button>
-        </div>
-      )
-      : (
-        <div className={css.actions}>
-          <button
-            className={css.iconAction}
-            type="button"
-            aria-label={t('history.rename')}
-            title={t('history.rename')}
-            onClick={() => { setEditingSession(sessionId); setDraft(title) }}
-          >
-            <IconEditOutlineRegular />
-          </button>
-          {canArchive && (
-            <button
-              className={css.iconAction}
-              type="button"
-              aria-label={t('history.archive')}
-              title={t('history.archive')}
-              disabled={busySession === sessionId}
-              onClick={() => {
-                void runCardAction(
-                  sessionId,
-                  () => archiveSession(sessionId),
-                  t('history.archived'),
-                  t('history.archiveFailed'),
-                )
-              }}
-            >
-              <IconArchiveOutlineRegular />
-            </button>
-          )}
-        </div>
-      )
-  )
 
   return (
     <section className={css.root} aria-label={t('history.title')}>
@@ -249,35 +158,35 @@ export function ErrorHistory({
       <div className={css.list}>
         {errors.length === 0 && unclassified.length === 0
           ? <p className={css.empty}>{needle ? t('history.emptySearch') : t('history.empty')}</p>
-          : errors.map(({ sessionId, description, episode, title, updatedAt }) => (
-            <article className={css.card} key={sessionId} data-error-session-id={sessionId}>
-              <button className={css.openButton} type="button" onClick={() => { openSession(sessionId) }}>
-                <span className={css.cardTitle}>{title}</span>
-                {description !== title && <span className={css.description}>{previewText(description)}</span>}
-                <span className={css.status}>{statusLabel(episode)} · {timeLabel(updatedAt)}</span>
+          : errors.map(({ sessionId, episode, title }) => (
+            <article className={css.row} key={sessionId} data-error-session-id={sessionId}>
+              <button
+                className={css.rowOpen}
+                type="button"
+                title={statusLabel(episode)}
+                aria-label={`${title} · ${statusLabel(episode)}`}
+                onClick={() => { openSession(sessionId) }}
+              >
+                <span className={css.rowTitle}>{title}</span>
+                <StateDot state={statusDot(episode)} size={10} className={css.rowDot} />
               </button>
-              {cardActions(sessionId, title, episode.kind === 'drill')}
-              {episode.drillEligible && (
+              {episode.kind === 'drill' && (
                 <button
-                  className={css.practiceButton}
+                  className={css.iconAction}
                   type="button"
+                  aria-label={t('history.archive')}
+                  title={t('history.archive')}
                   disabled={busySession === sessionId}
                   onClick={() => {
-                    void runCardAction(
+                    void runRowAction(
                       sessionId,
-                      () => practiceFromError(
-                        sessionId,
-                        index => t('history.practiceSessionTitleIndexed', {
-                          index: index + 1,
-                          description: Array.from(description).slice(0, 40).join(''),
-                        }),
-                      ),
-                      t('history.practiceQueued'),
-                      t('history.practiceFailed'),
+                      () => archiveSession(sessionId),
+                      t('history.archived'),
+                      t('history.archiveFailed'),
                     )
                   }}
                 >
-                  {busySession === sessionId ? t('history.practiceSending') : t('history.practice')}
+                  <IconArchiveOutlineRegular />
                 </button>
               )}
             </article>
@@ -285,43 +194,45 @@ export function ErrorHistory({
         {unclassified.length > 0 && (
           <p className={css.empty}>{t('history.unclassified')}</p>
         )}
-        {unclassified.map(({ sessionId, title, updatedAt }) => (
-          <article className={css.card} key={sessionId}>
-            <button className={css.openButton} type="button" onClick={() => { openSession(sessionId) }}>
-              <span className={css.cardTitle}>{title}</span>
-              <span className={css.status}>{timeLabel(updatedAt)}</span>
+        {unclassified.map(({ sessionId, title }) => (
+          <article className={css.row} key={sessionId} data-error-session-id={sessionId}>
+            <button className={css.rowOpen} type="button" onClick={() => { openSession(sessionId) }}>
+              <span className={css.rowTitle}>{title}</span>
+              <StateDot state="idle" size={10} className={css.rowDot} />
             </button>
-            {cardActions(sessionId, title, false)}
           </article>
         ))}
         {showArchived && archivedEntries.length > 0 && (
           <p className={css.empty}>{t('history.archivedSection')}</p>
         )}
-        {showArchived && archivedEntries.map(({ sessionId, title, updatedAt }) => (
-          <article className={css.card} key={sessionId}>
-            <button className={css.openButton} type="button" onClick={() => { setNotice(t('history.archivedNotOpenable')) }}>
-              <span className={css.cardTitle}>{title}</span>
-              <span className={css.status}>{t('history.status.archived')} · {timeLabel(updatedAt)}</span>
+        {showArchived && archivedEntries.map(({ sessionId, title }) => (
+          <article className={css.row} key={sessionId} data-error-session-id={sessionId}>
+            <button
+              className={css.rowOpen}
+              type="button"
+              title={t('history.status.archived')}
+              onClick={() => { setNotice(t('history.archivedNotOpenable')) }}
+            >
+              <span className={css.rowTitle}>{title}</span>
+              <StateDot state="idle" size={10} className={css.rowDot} />
             </button>
-            <div className={css.actions}>
-              <button
-                className={css.iconAction}
-                type="button"
-                aria-label={t('history.unarchive')}
-                title={t('history.unarchive')}
-                disabled={busySession === sessionId}
-                onClick={() => {
-                  void runCardAction(
-                    sessionId,
-                    () => unarchiveSession(sessionId),
-                    t('history.unarchived'),
-                    t('history.unarchiveFailed'),
-                  )
-                }}
-              >
-                <IconUnarchiveOutlineRegular />
-              </button>
-            </div>
+            <button
+              className={css.iconAction}
+              type="button"
+              aria-label={t('history.unarchive')}
+              title={t('history.unarchive')}
+              disabled={busySession === sessionId}
+              onClick={() => {
+                void runRowAction(
+                  sessionId,
+                  () => unarchiveSession(sessionId),
+                  t('history.unarchived'),
+                  t('history.unarchiveFailed'),
+                )
+              }}
+            >
+              <IconUnarchiveOutlineRegular />
+            </button>
           </article>
         ))}
       </div>

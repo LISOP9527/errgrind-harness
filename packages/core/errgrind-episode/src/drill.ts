@@ -517,6 +517,7 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
       difficultyLevel: { type: 'integer', enum: [1, 2, 3, 4, 5], required: true, description: toolPrompts.parameter('drill_prepare', 'difficultyLevel') },
       reasoningDepth: { type: 'integer', enum: [1, 2, 3, 4, 5], required: true, description: toolPrompts.parameter('drill_prepare', 'reasoningDepth') },
       calculationLoad: { type: 'integer', enum: [1, 2, 3, 4, 5], required: true, description: toolPrompts.parameter('drill_prepare', 'calculationLoad') },
+      sourceSessionId: { type: 'string', description: toolPrompts.parameter('drill_prepare', 'sourceSessionId') },
     },
     output: {
       schema: { type: 'object', additionalProperties: false, properties: {
@@ -534,7 +535,7 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
       const allowedKeys = new Set([
         'targetMechanism', 'trigger', 'failureBehavior', 'desiredBehavior', 'successSignal',
         'domain', 'taskType', 'setting', 'taskGoal', 'essentialTrigger', 'solutionStrategy',
-        'avoid', 'difficultyLevel', 'reasoningDepth', 'calculationLoad',
+        'avoid', 'difficultyLevel', 'reasoningDepth', 'calculationLoad', 'sourceSessionId',
       ])
       for (const key of Object.keys(argsRecord)) {
         if (!allowedKeys.has(key)) {
@@ -542,14 +543,35 @@ export function applyDrill(ctx: Context, toolPrompts: ToolPrompts): void {
         }
       }
 
-      const episode = ctx.sessionProjections.stateOf(exec.agent.session, 'errgrindEpisode')
-      if (episode === undefined || episode === null || episode.diagnosis.status === 'active'
+      let episode = ctx.sessionProjections.stateOf(exec.agent.session, 'errgrindEpisode')
+      if (episode === undefined || episode === null || episode.origin.kind !== 'drill') {
+        throw new Error('drill_prepare only runs inside a dedicated Drill Session')
+      }
+      if (episode.drillCandidates.length > 0) {
+        // Pool mode: this call's pick becomes the practiced Error for the
+        // whole Session; the selection event pins it in the log.
+        const candidate = episode.drillCandidates
+          .find(entry => entry.sourceSessionId === args.sourceSessionId)
+        if (candidate === undefined) {
+          throw new Error('Pick one listed practice candidate: pass its session id as sourceSessionId')
+        }
+        exec.agent.session.append('errgrind/drill-source-selected', {
+          sourceSessionId: candidate.sourceSessionId,
+          sourceRevision: candidate.sourceRevision,
+          description: candidate.description,
+          diagnosisStatus: candidate.diagnosisStatus,
+          diagnosisSummary: candidate.diagnosisSummary,
+          remainingUncertainty: candidate.remainingUncertainty,
+          whatWouldChangeJudgment: candidate.whatWouldChangeJudgment,
+        })
+        episode = ctx.sessionProjections.stateOf(exec.agent.session, 'errgrindEpisode') ?? episode
+      } else if (args.sourceSessionId !== undefined) {
+        throw new Error('drill_prepare does not accept sourceSessionId outside a candidate pool')
+      }
+      if (episode.diagnosis.status === 'active'
         || episode.diagnosis.stale || episode.confirmedRevision === null
         || episode.confirmedRevision !== episode.diagnosis.anchoredRevision) {
         throw new Error('Drill requires a current completed Error diagnosis')
-      }
-      if (episode.origin.kind !== 'drill') {
-        throw new Error('drill_prepare only runs inside a dedicated Drill Session')
       }
 
       const state = drillState(ctx, exec.agent.session)

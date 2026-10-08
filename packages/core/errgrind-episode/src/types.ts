@@ -117,6 +117,17 @@ export interface PendingDiagnosisConclusion {
   readonly anchorRevision: number
 }
 
+/** One confirmed Error offered to a pool-mode Drill Session for the model to pick. */
+export interface DrillCandidateSeed {
+  readonly sourceSessionId: string
+  readonly sourceRevision: number
+  readonly description: string
+  readonly diagnosisStatus: 'supported' | 'undetermined'
+  readonly diagnosisSummary: string
+  readonly remainingUncertainty: string
+  readonly whatWouldChangeJudgment: string
+}
+
 /** One Error investigation in one DSH Session. */
 export interface ErrorEpisode {
   readonly firstInput: string
@@ -124,6 +135,8 @@ export interface ErrorEpisode {
   readonly firstInputTurn: number
   readonly latestTurn: number
   readonly origin: InputOrigin
+  /** Pool-mode Drill Sessions only: confirmed Errors awaiting the model's pick. Empties on `errgrind/drill-source-selected`. */
+  readonly drillCandidates: readonly DrillCandidateSeed[]
   readonly attachments: readonly ErrorAttachment[]
   readonly draft: ErrorDescriptionDraft | null
   readonly confirmedRevision: number | null
@@ -180,9 +193,26 @@ declare module '@deepseek-ai/dsh-session/types' {
       userResponse: string
       referenceAnswer: string
     }
-    /** A dedicated Drill Session seeded from a confirmed Error's public outcome; Grill stages stay locked. */
-    'errgrind/drill-open': {
-      text: string
+    /** A dedicated Drill Session seeded from one confirmed Error's public outcome; Grill stages stay locked. */
+    'errgrind/drill-open':
+      | {
+        text: string
+        sourceSessionId: string
+        sourceRevision: number
+        description: string
+        diagnosisStatus: 'supported' | 'undetermined'
+        diagnosisSummary: string
+        remainingUncertainty: string
+        whatWouldChangeJudgment: string
+        candidates?: undefined
+      }
+      | {
+        /** Pool mode: the model picks one listed Error via drill_prepare(sourceSessionId). */
+        text: string
+        candidates: readonly DrillCandidateSeed[]
+      }
+    /** Pool-mode Drill Sessions only: the model's pick locks the practiced Error for the rest of the Session. */
+    'errgrind/drill-source-selected': {
       sourceSessionId: string
       sourceRevision: number
       description: string

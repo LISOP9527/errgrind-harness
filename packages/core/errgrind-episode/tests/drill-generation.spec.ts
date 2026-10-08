@@ -116,6 +116,30 @@ function setupDrillSession(session: Session, sentinel: string = 'SENTINEL_INPUT'
   })
 }
 
+/** Seed a pool-mode Drill Session waiting for the model's pick. */
+function setupPoolDrillSession(session: Session): void {
+  session.append('errgrind/drill-open', {
+    text: 'Practice pool: 2 confirmed Errors for you to choose from',
+    candidates: [{
+      sourceSessionId: 'error-a',
+      sourceRevision: 1,
+      description: 'added numerators',
+      diagnosisStatus: 'supported',
+      diagnosisSummary: 'diag a',
+      remainingUncertainty: '',
+      whatWouldChangeJudgment: '',
+    }, {
+      sourceSessionId: 'error-b',
+      sourceRevision: 2,
+      description: 'missed domain check',
+      diagnosisStatus: 'undetermined',
+      diagnosisSummary: 'diag b',
+      remainingUncertainty: 'which rule',
+      whatWouldChangeJudgment: 'counterexample',
+    }],
+  })
+}
+
 /** Seed an ordinary Error Session reaching a confirmed diagnosis. */
 function setupErrorSession(session: Session): void {
   session.append('errgrind/error-open', {
@@ -158,6 +182,79 @@ describe('Isolated Drill Generation', () => {
     expect(session.snapshotEvents().filter(
       e => e.type === 'errgrind/drill-spec-prepared' || e.type === 'errgrind/drill-draft-finished'))
       .toHaveLength(0)
+  })
+
+  it('requires a pool candidate pick before generation and rejects foreign or extra picks', async () => {
+    const { ctx, mockLlm } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-pool-pick'))
+    const agent = createTestAgent(ctx, session)
+    setupPoolDrillSession(session)
+    let called = false
+    mockLlm.streamHandler = () => { called = true; throw new Error('must not run') }
+
+    const noPick = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-no-pick'), name: 'drill_prepare', agent,
+      arguments: validSpecArgs,
+    })
+    expect(noPick.isError).toBe(true)
+    expect(noPick.error?.message).toContain('Pick one listed practice candidate')
+
+    const foreignPick = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-foreign-pick'), name: 'drill_prepare', agent,
+      arguments: { ...validSpecArgs, sourceSessionId: 'error-x' },
+    })
+    expect(foreignPick.isError).toBe(true)
+    expect(foreignPick.error?.message).toContain('Pick one listed practice candidate')
+    expect(called).toBe(false)
+    expect(session.snapshotEvents().filter(e => e.type === 'errgrind/drill-source-selected'))
+      .toHaveLength(0)
+  })
+
+  it('rejects sourceSessionId in a single-source Drill Session', async () => {
+    const { ctx } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-single-arg'))
+    const agent = createTestAgent(ctx, session)
+    setupDrillSession(session)
+
+    const result = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-single-pick'), name: 'drill_prepare', agent,
+      arguments: { ...validSpecArgs, sourceSessionId: 'error-a' },
+    })
+    expect(result.isError).toBe(true)
+    expect(result.error?.message).toContain('outside a candidate pool')
+  })
+
+  it('folds the picked candidate into the episode before generating', async () => {
+    const { ctx, mockLlm } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-pool-success'))
+    const agent = createTestAgent(ctx, session)
+    setupPoolDrillSession(session)
+
+    mockLlm.streamHandler = () => {
+      async function* generate() {
+        yield { type: 'text-delta' as const, index: 0, text: JSON.stringify({ question: 'q', referenceAnswer: 'a' }) }
+        yield { type: 'usage' as const, usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 } }
+        yield { type: 'finish' as const, reason: { kind: 'stop' as const } }
+      }
+      return generate()
+    }
+
+    const result = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-pool-pick'), name: 'drill_prepare', agent,
+      arguments: { ...validSpecArgs, sourceSessionId: 'error-b' },
+    })
+
+    expect(result.isError).toBe(false)
+    const selected = session.snapshotEvents().find(e => e.type === 'errgrind/drill-source-selected')
+    expect(selected?.data).toMatchObject({ sourceSessionId: 'error-b', description: 'missed domain check' })
+    const episode = ctx.sessionProjections.stateOf(session, 'errgrindEpisode')
+    expect(episode?.drillCandidates).toHaveLength(0)
+    expect(episode?.origin).toMatchObject({ kind: 'drill', sourceSessionId: 'error-b' })
+    expect(episode?.confirmedRevision).toBe(1)
   })
 
   it('rejects copied source text before a specification can reach the Draft model', async () => {

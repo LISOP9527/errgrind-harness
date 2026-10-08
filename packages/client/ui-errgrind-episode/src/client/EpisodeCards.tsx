@@ -158,6 +158,15 @@ export function ErrorEpisodeCard({ node, t, confirmRevision }: ErrorCardProps) {
     }
   }
 
+  if (description.poolCount > 0) {
+    // A pool-mode Drill Session opens before the model's pick: the card only
+    // says a choice is being made from the selected Errors.
+    return (
+      <article className={css.episodeCard} aria-label={t('card.title')}>
+        <p className={css.hint}>{t('card.picking', { count: description.poolCount })}</p>
+      </article>
+    )
+  }
   const status = description.confirmed
     ? t('card.confirmed')
     : description.diagnosisStatus !== null ? t('card.pending') : null

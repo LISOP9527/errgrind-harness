@@ -1228,3 +1228,78 @@ describe('Error episode event rules', () => {
     expect(state?.derivedContextConsumed).toBe(true)
   })
 })
+
+describe('Drill pool selection', () => {
+  const candidateA = {
+    sourceSessionId: 'error-a', sourceRevision: 1, description: 'added numerators',
+    diagnosisStatus: 'supported' as const, diagnosisSummary: 'diag a',
+    remainingUncertainty: '', whatWouldChangeJudgment: '',
+  }
+  const candidateB = {
+    sourceSessionId: 'error-b', sourceRevision: 2, description: 'missed domain check',
+    diagnosisStatus: 'undetermined' as const, diagnosisSummary: 'diag b',
+    remainingUncertainty: 'which rule', whatWouldChangeJudgment: 'counterexample',
+  }
+  const openPool = (session: Session) => session.append('errgrind/drill-open', {
+    text: 'Practice pool: 2 confirmed Errors for you to choose from',
+    candidates: [candidateA, candidateB],
+  })
+
+  it('opens an unconfirmed pool episode and locks intake and Grill', () => {
+    const session = Session.create(SessionId('errgrind-pool'))
+    const state = applyEpisodeEvent(null, openPool(session))
+    expect(state?.origin.kind).toBe('drill')
+    expect(state?.drillCandidates).toHaveLength(2)
+    expect(state?.confirmedRevision).toBeNull()
+    expect(state?.draft).toBeNull()
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/error-draft', {
+      revision: 1, text: 'rewrite',
+    }))).toThrow('locked after Drill begins')
+    expect(publicErrorListEntry(state)).toEqual({
+      description: null, status: 'teach', drillEligible: false, kind: 'drill',
+    })
+  })
+
+  it('rejects a pool without candidates or with duplicated sources', () => {
+    const session = Session.create(SessionId('errgrind-pool-empty'))
+    expect(() => applyEpisodeEvent(null, session.append('errgrind/drill-open', {
+      text: 'pool', candidates: [],
+    }))).toThrow()
+    expect(() => applyEpisodeEvent(null, session.append('errgrind/drill-open', {
+      text: 'pool', candidates: [candidateA, { ...candidateB, sourceSessionId: candidateA.sourceSessionId }],
+    }))).toThrow()
+  })
+
+  it('folds the picked candidate into a confirmed Drill episode', () => {
+    const session = Session.create(SessionId('errgrind-pool-pick'))
+    let state = applyEpisodeEvent(null, openPool(session))
+    state = applyEpisodeEvent(state, session.append('errgrind/drill-source-selected', candidateB))
+    expect(state?.drillCandidates).toHaveLength(0)
+    expect(state?.origin).toMatchObject({ kind: 'drill', sourceSessionId: 'error-b' })
+    expect(state?.draft).toEqual({ revision: 1, text: 'missed domain check' })
+    expect(state?.confirmedRevision).toBe(1)
+    expect(state?.diagnosis).toMatchObject({
+      status: 'undetermined', summary: 'diag b', anchoredRevision: 1, stale: false,
+    })
+    expect(publicErrorListEntry(state)).toEqual({
+      description: 'missed domain check', status: 'teach', drillEligible: false, kind: 'drill',
+    })
+  })
+
+  it('rejects a selection outside the pool, a tampered seed, or a second selection', () => {
+    const session = Session.create(SessionId('errgrind-pool-bad'))
+    const state = applyEpisodeEvent(null, openPool(session))
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/drill-source-selected', {
+      ...candidateB, sourceSessionId: 'error-x',
+    }))).toThrow('must come from the seeded pool')
+    expect(() => applyEpisodeEvent(state, session.append('errgrind/drill-source-selected', {
+      ...candidateB, description: 'tampered',
+    }))).toThrow('must come from the seeded pool')
+    // No open pool at all: selection is meaningless.
+    expect(() => applyEpisodeEvent(null, session.append('errgrind/drill-source-selected', candidateB)))
+      .toThrow('requires an open drill pool')
+    const picked = applyEpisodeEvent(state, session.append('errgrind/drill-source-selected', candidateA))
+    expect(() => applyEpisodeEvent(picked, session.append('errgrind/drill-source-selected', candidateB)))
+      .toThrow('requires an open drill pool')
+  })
+})

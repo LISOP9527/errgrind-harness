@@ -12,12 +12,17 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type {} from '@errgrind/episode'
+import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { DerivedErrorCard, DiagnosisConclusionCard, DrillAnswerDraftCard, DrillDraftCard, DrillJudgmentCard, DrillQuestionCard, ErrorEpisodeCard, GrillQuestionCard, IntakeClarificationCard, TeachStepCard } from './EpisodeCards.tsx'
 import { ErrGrindBrandMark, ErrGrindBrandName, ErrGrindHeroBrandMark } from './Brand.tsx'
 import { en, NS, zh } from './locales.ts'
 import { ModelOnboarding } from './ModelOnboarding.tsx'
 import type { ErrorCardProps, EpisodeCardInjected, TeachStepProps, DrillDraftCardProps } from './EpisodeCards.tsx'
 import { ErrorHistory } from './ErrorHistory.tsx'
+import { PracticePage, PracticePanelIcon } from './PracticePage.tsx'
+
+/** The id shared by the sidebar Practice entry and the main panel it opens. */
+export const PRACTICE_PANEL_ID = 'practice' as MainPanelId
 
 /** Safe fields displayed in the Error card. */
 export interface ErrorCardData {
@@ -25,6 +30,8 @@ export interface ErrorCardData {
   readonly description: string
   readonly confirmed: boolean
   readonly diagnosisStatus: 'supported' | 'undetermined' | null
+  /** > 0 while a pool-mode Drill Session waits for the model's pick. */
+  readonly poolCount: number
 }
 
 /** Safe fields displayed by one diagnosis conclusion row. */
@@ -108,6 +115,7 @@ interface EpisodeState {
   readonly description: string
   readonly confirmed: boolean
   readonly diagnosisStatus: 'supported' | 'undetermined' | null
+  readonly poolCount: number
 }
 
 interface QuestionState {
@@ -158,13 +166,24 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
       || event.type === 'errgrind/error-confirm'
       || event.type === 'errgrind/error-clarify'
       || event.type === 'errgrind/grill-probe'
-      || event.type === 'errgrind/grill-conclude') return { id: 'episode', role: 'update' }
+      || event.type === 'errgrind/grill-conclude'
+      || event.type === 'errgrind/drill-source-selected') return { id: 'episode', role: 'update' }
     return null
   },
   start(_context, match) {
     // The episode-open event is the only guaranteed lead event: clarifications,
     // probes, and conclusions may all precede the first description draft.
     if (match.event.type === 'errgrind/drill-open') {
+      if (match.event.data.candidates !== undefined) {
+        // Pool mode: no practiced Error yet — the card says the model is picking.
+        return {
+          revision: 0,
+          description: '',
+          confirmed: false,
+          diagnosisStatus: null,
+          poolCount: match.event.data.candidates.length,
+        }
+      }
       // A Drill Session opens already confirmed: the card shows the practiced
       // Error's description with its concluded diagnosis standing.
       return {
@@ -172,6 +191,7 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
         description: match.event.data.description,
         confirmed: true,
         diagnosisStatus: match.event.data.diagnosisStatus,
+        poolCount: 0,
       }
     }
     if (match.event.type !== 'errgrind/error-open' && match.event.type !== 'errgrind/derived-error-open') {
@@ -182,6 +202,7 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
       description: match.event.data.text,
       confirmed: false,
       diagnosisStatus: null,
+      poolCount: 0,
     }
   },
   update({ state }, match) {
@@ -192,6 +213,15 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
           description: match.event.data.text,
           confirmed: false,
           diagnosisStatus: null,
+          poolCount: 0,
+        }
+      case 'errgrind/drill-source-selected':
+        return {
+          revision: match.event.data.sourceRevision,
+          description: match.event.data.description,
+          confirmed: true,
+          diagnosisStatus: match.event.data.diagnosisStatus,
+          poolCount: 0,
         }
       case 'errgrind/error-confirm':
         return match.event.data.revision === state.revision && state.diagnosisStatus !== null
@@ -229,6 +259,7 @@ const episodeDefinition: ConversationNodeDefinition<EpisodeState> = {
       description: context.state.description,
       confirmed: context.state.confirmed,
       diagnosisStatus: context.state.diagnosisStatus,
+      poolCount: context.state.poolCount,
     }
     return chatNode(context, 'errgrind-error-card', data)
   },
@@ -454,47 +485,67 @@ export function apply(ctx: ClientContext): void {
       'error.sessionInUse': 'This Error is open elsewhere. Close the other window or app using it, then try again.',
     },
   }), 'ui-errgrind-episode: composer copy')
-  ctx.slots.inject('sidebar.workspaces', () => {
-    const renameSession = async (sessionId: SessionId, title: string): Promise<void> => {
-      const result = await ctx.sessions.using(
-        sessionId,
-        { source: 'workspaceOperation' },
-        reference => reference.binding.session.rename(title),
-      )
-      if (!result.ok) throw new Error(result.error.message)
+  const t = ctx.locale.bind(NS)
+  const renameSession = async (sessionId: SessionId, title: string): Promise<void> => {
+    const result = await ctx.sessions.using(
+      sessionId,
+      { source: 'workspaceOperation' },
+      reference => reference.binding.session.rename(title),
+    )
+    if (!result.ok) throw new Error(result.error.message)
+  }
+  const openPractice = async (
+    request: { sourceSessionId: SessionId } | { candidateSessionIds: readonly SessionId[] },
+    title: (index: number) => string,
+  ): Promise<void> => {
+    const result = await withOpenTimeout(ctx.remote.session.openDrill(request))
+    if (!result.ok) throw new Error(`Drill request failed: ${result.error.code}`)
+    await ctx.sessions.refresh()
+    // Pin the practice title on first materialization only; an adopted
+    // Session may carry a learner's own rename.
+    if (result.value.created) {
+      try {
+        await renameSession(result.value.sessionId, title(result.value.index))
+      } catch (error) {
+        // A missed practice title still leaves the ordinary title fallback.
+        ctx.logger.warn(`ui-errgrind-episode: practice title rename skipped: ${String(error)}`)
+      }
     }
-    return ctx.slots.register({
-      name: 'sidebar.workspaces',
-      priority: -100,
-      locale: NS,
-      inject: () => ({
-        openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
-        practiceFromError: async (sessionId: SessionId, title: (index: number) => string): Promise<void> => {
-          const result = await withOpenTimeout(ctx.remote.session.openDrill({ sourceSessionId: sessionId }))
-          if (!result.ok) throw new Error(`Drill request failed: ${result.error.code}`)
-          await ctx.sessions.refresh()
-          // Pin the practice title on first materialization only; an adopted
-          // Session may carry a learner's own rename.
-          if (result.value.created) {
-            try {
-              await renameSession(result.value.sessionId, title(result.value.index))
-            } catch (error) {
-              // A missed practice title still leaves the ordinary title fallback.
-              ctx.logger.warn(`ui-errgrind-episode: practice title rename skipped: ${String(error)}`)
-            }
-          }
-          ctx.uiWorkspace.openSession(result.value.sessionId)
-        },
-        renameSession,
-        archiveSession: async (sessionId: SessionId): Promise<void> => {
-          await ctx.uiWorkspace.archiveSession(sessionId)
-        },
-        unarchiveSession: async (sessionId: SessionId): Promise<void> => {
-          await ctx.uiWorkspace.unarchiveSession(sessionId)
-        },
-      }),
-    }, ErrorHistory)
-  })
+    ctx.uiWorkspace.openSession(result.value.sessionId)
+  }
+  ctx.slots.inject('main', () => ctx.slots.register({
+    name: 'main',
+    key: PRACTICE_PANEL_ID,
+    locale: NS,
+    inject: () => ({
+      openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
+      practiceFromError: (sessionId: SessionId, title: (index: number) => string) =>
+        openPractice({ sourceSessionId: sessionId }, title),
+      practiceFromPool: (sessionIds: readonly SessionId[], title: (index: number) => string) =>
+        openPractice({ candidateSessionIds: sessionIds }, title),
+    }),
+  }, PracticePage))
+  ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
+    name: 'sidebar.panellist',
+    id: PRACTICE_PANEL_ID,
+    order: -20,
+    label: () => t('practice.panel'),
+    locale: NS,
+  }, PracticePanelIcon))
+  ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register({
+    name: 'sidebar.workspaces',
+    priority: -100,
+    locale: NS,
+    inject: () => ({
+      openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
+      archiveSession: async (sessionId: SessionId): Promise<void> => {
+        await ctx.uiWorkspace.archiveSession(sessionId)
+      },
+      unarchiveSession: async (sessionId: SessionId): Promise<void> => {
+        await ctx.uiWorkspace.unarchiveSession(sessionId)
+      },
+    }),
+  }, ErrorHistory))
   ctx.effect(() => ctx.uiConversation.events.register(episodeDefinition), 'ui-errgrind-episode: Error card')
   ctx.effect(() => ctx.uiConversation.events.register(diagnosisDefinition), 'ui-errgrind-episode: diagnosis conclusions')
   ctx.effect(() => ctx.uiConversation.events.register(questionDefinition), 'ui-errgrind-episode: Grill questions')

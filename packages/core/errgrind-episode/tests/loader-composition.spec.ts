@@ -392,7 +392,7 @@ describe('ErrGrind episode real Loader composition', () => {
       session.inheritedEventCount,
     )
     expect(restored.checkpoint.errgrindEpisode).toMatchObject({
-      ver: 9,
+      ver: 10,
       val: {
         evidenceSources: [
           { sourceRef: 'initial-input', probeId: null, diagnosisRound: 1, text: episode.firstInput },
@@ -618,7 +618,7 @@ describe('ErrGrind episode real Loader composition', () => {
     legacyUnbound.probeId = ''
     const legacyRow = {
       errgrindEpisode: {
-        ver: 9,
+        ver: 10,
         seq: SessionSeq(session.snapshotEvents().at(-1)?.seq ?? 0),
         val: legacyVal,
       },

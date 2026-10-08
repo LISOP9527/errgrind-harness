@@ -225,6 +225,7 @@
         - errgrind/error-draft
         - errgrind/derived-error-open
         - errgrind/drill-open
+        - errgrind/drill-source-selected
         - errgrind/error-confirm
         - errgrind/error-clarify
         - errgrind/grill-probe
@@ -243,7 +244,8 @@
         errgrind/error-draft: [revision, text]
         errgrind/error-open: [text, turn]
         errgrind/derived-error-open: [question, userResponse, text]
-        errgrind/drill-open: [description, diagnosisStatus, sourceRevision]
+        errgrind/drill-open: [description, diagnosisStatus, sourceRevision, text, candidates]
+        errgrind/drill-source-selected: [description, sourceRevision, diagnosisStatus]
         errgrind/error-confirm: [revision]
         errgrind/error-clarify: [text, turn]
         errgrind/grill-probe: [anchorRevision, turn, probe.id, probe.type, probe.question]

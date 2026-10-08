@@ -35,7 +35,7 @@ describe('step-external episode anchors', () => {
   it('orders the Error card ahead of the first message through the chat builder', () => {
     const ctx = new Context()
     new SlotRegistry(ctx)
-    ctx.provide('locale', { register: vi.fn(), registerOverride: vi.fn() })
+    ctx.provide('locale', { register: vi.fn(), registerOverride: vi.fn(), bind: vi.fn(() => (key: string) => key) })
     const events = new ConversationEventRegistry(ctx)
     ctx.provide('uiConversation', { events })
     ctx.provide('sessions', { refresh: vi.fn() })

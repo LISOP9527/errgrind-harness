@@ -413,10 +413,10 @@ export interface DerivedErrorOpenRequest {
 /** Stable target identity returned by retry-safe derived Error materialization. */
 export interface DerivedErrorOpenValue { readonly sessionId: SessionId }
 
-/** Request to open one dedicated Drill Session for a confirmed Error. */
-export interface DrillOpenRequest {
-  readonly sourceSessionId: SessionId
-}
+/** Request to open one dedicated Drill Session for a confirmed Error or a pool of them. */
+export type DrillOpenRequest =
+  | { readonly sourceSessionId: SessionId }
+  | { readonly candidateSessionIds: readonly SessionId[] }
 
 /** Identity and allocation index of the Drill Session created or adopted for this practice request. */
 export interface DrillOpenValue {

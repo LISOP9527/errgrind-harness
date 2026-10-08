@@ -114,7 +114,7 @@ real usage telemetry.
   containing the validated answer key; browser projections and search omit it.
   Distinctive source text in new-problem fields is rejected before the Draft
   request; this lexical check cannot prove semantic novelty.
-- The `errgrindEpisode` (stateVersion 9) and `errgrindDrill` (stateVersion 3)
+- The `errgrindEpisode` (stateVersion 10) and `errgrindDrill` (stateVersion 3)
   projections are host-only. A stateVersion change refolds the projection
   from the Session log; it is separate from the Session format version. The
   Session Controller public view filters event fields, so private diagnosis
@@ -132,12 +132,16 @@ real usage telemetry.
 - An Error history sidebar lists the fork's Sessions from a narrow public
   episode view. Sessions without cached classification remain openable. The
   old SQLite records entered the fork store through a one-off external
-  importer; the product ships no repeatable import path. An explicit Drill
-  action opens a dedicated Drill Session for one completed Error, where Core
-  checks the current diagnosis before generating practice.
-  The old generic option let the model choose one eligible Error, rather than
-  synthesizing one question across Errors. This fork does not implement a
-  learner-wide or cross-Error model.
+  importer; the product ships no repeatable import path. A dedicated
+  Practice page opens a Drill Session either for one chosen completed Error
+  or for a learner-selected candidate pool; in pool mode the seeded
+  `errgrind/drill-open` candidates gate `drill_prepare` until the model
+  picks one, and the pick lands as `errgrind/drill-source-selected`. In
+  both modes Core checks the current diagnosis before generating practice.
+  The old generic option let the model choose one eligible Error, rather
+  than synthesizing one question across Errors. Pool mode keeps that
+  semantics — the model picks inside a learner-chosen set; this fork does
+  not implement a learner-wide or cross-Error model.
 
 ## Working rules carried from the older project
 
