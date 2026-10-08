@@ -254,6 +254,33 @@ describe('Isolated Drill Generation', () => {
     expect(result.isError).toBe(false)
   })
 
+  it('rejects a foreign sourceSessionId on a locked pool pick', async () => {
+    const { ctx, mockLlm } = await setupTestApp()
+    const session = ctx.sessions.create(SessionId('drill-pool-foreign'))
+    const agent = createTestAgent(ctx, session)
+    setupPoolDrillSession(session)
+
+    stubDraftStream(mockLlm, 'q', 'a')
+    const picked = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-pool-first'), name: 'drill_prepare', agent,
+      arguments: { ...validSpecArgs, sourceSessionId: 'error-b' },
+    })
+    expect(picked.isError).toBe(false)
+
+    // Even another member of the seeded pool is a conflict once the pick is
+    // locked; only the locked id (or an omitted pick) may proceed.
+    const foreign = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId('call-pool-other'), name: 'drill_prepare', agent,
+      arguments: { ...validSpecArgs, sourceSessionId: 'error-a' },
+    })
+    expect(foreign.isError).toBe(true)
+    expect(foreign.error?.message).toContain('locked practice source')
+    expect(session.snapshotEvents().filter(e => e.type === 'errgrind/drill-source-selected'))
+      .toHaveLength(1)
+  })
+
   it('accepts a resubmitted locked pick when a pool attempt retries', async () => {
     const { ctx, mockLlm } = await setupTestApp()
     const session = ctx.sessions.create(SessionId('drill-pool-retry'))
