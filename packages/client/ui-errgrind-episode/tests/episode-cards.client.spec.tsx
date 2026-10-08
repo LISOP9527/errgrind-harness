@@ -554,7 +554,11 @@ describe('Existing conversation cards assembly and presentation', () => {
       userResponse: '6x + 4',
     })
     const { unmount: unmountDerived } = render(<DerivedErrorCard node={derivedNode} t={tEn} {...chatNodeOwner} />)
-    expect(screen.getByText(/6x \+ 4/)).toBeTruthy()
+    expect(screen.getByText(en['derived.title'])).toBeTruthy()
+    expect(screen.getByText(en['derived.origin'])).toBeTruthy()
+    // The Episode description card owns the question and the answer — the
+    // lineage note must not repeat them.
+    expect(screen.queryByText(/6x \+ 4/)).toBeNull()
     unmountDerived()
 
     const clarificationNode = createChatNode('errgrind-intake-clarification', {

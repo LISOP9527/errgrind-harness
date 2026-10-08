@@ -295,17 +295,13 @@ export function DrillJudgmentCard({ node, t, openDerivedError, retireDrill }: Dr
   )
 }
 
-/** Make the Drill origin visible without presenting copied context as a new user message. */
-export function DerivedErrorCard({ node, t }: DerivedErrorProps) {
-  const labels = useMemo(() => markdownLabels(t), [t])
-  return (
-    <PromptBlock label={t('derived.title')} hint={t('derived.origin')}>
-      <MarkdownText
-        text={`**${t('derived.question')}**\n\n${node.data.question}\n\n**${t('derived.answer')}**\n\n${node.data.userResponse}`}
-        labels={labels}
-      />
-    </PromptBlock>
-  )
+/**
+ * Make the Drill origin visible without presenting copied context as a new
+ * user message. The Episode description card already shows the question and
+ * the user's answer, so this stays a lineage note only.
+ */
+export function DerivedErrorCard({ t }: DerivedErrorProps) {
+  return <PromptBlock label={t('derived.title')} hint={t('derived.origin')}>{null}</PromptBlock>
 }
 
 /** Render recovery guidance when an isolated Drill draft call fails or is cancelled. */
