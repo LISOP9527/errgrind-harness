@@ -538,9 +538,6 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: () => ({
       openSession: (sessionId: SessionId) => { ctx.uiWorkspace.openSession(sessionId) },
-      archiveSession: async (sessionId: SessionId): Promise<void> => {
-        await ctx.uiWorkspace.archiveSession(sessionId)
-      },
       unarchiveSession: async (sessionId: SessionId): Promise<void> => {
         await ctx.uiWorkspace.unarchiveSession(sessionId)
       },

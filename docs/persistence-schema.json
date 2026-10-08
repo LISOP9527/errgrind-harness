@@ -26714,7 +26714,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:193"
+        "packages/core/errgrind-episode/src/types.ts:214"
       ]
     },
     {
@@ -28390,10 +28390,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#DrillAttempt"
+        "packages/core/errgrind-episode/src/drill.ts#DrillAttempt"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:101"
+        "packages/core/errgrind-episode/src/drill.ts:138"
       ]
     },
     {
@@ -29411,10 +29411,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#LegacyDrillSpec"
+        "packages/core/errgrind-episode/src/drill.ts#LegacyDrillSpec"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:28"
+        "packages/core/errgrind-episode/src/drill.ts:55"
       ]
     },
     {
@@ -33269,10 +33269,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#InputOrigin"
+        "packages/core/errgrind-episode/src/types.ts#InputOrigin"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:26"
+        "packages/core/errgrind-episode/src/types.ts:31"
       ]
     },
     {
@@ -37369,10 +37369,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#DrillDraftRequested"
+        "packages/core/errgrind-episode/src/drill.ts#DrillDraftRequested"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:45"
+        "packages/core/errgrind-episode/src/drill.ts:74"
       ]
     },
     {
@@ -47736,7 +47736,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:152"
+        "packages/core/errgrind-episode/src/drill.ts:190"
       ]
     },
     {
@@ -48258,10 +48258,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#PendingDrillSpec"
+        "packages/core/errgrind-episode/src/drill.ts#PendingDrillSpec"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:37"
+        "packages/core/errgrind-episode/src/drill.ts:65"
       ]
     },
     {
@@ -48564,7 +48564,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:214"
+        "packages/core/errgrind-episode/src/types.ts:232"
       ]
     },
     {
@@ -48707,7 +48707,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:147"
+        "packages/core/errgrind-episode/src/drill.ts:188"
       ]
     },
     {
@@ -50254,7 +50254,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:173"
+        "packages/core/errgrind-episode/src/types.ts:192"
       ]
     },
     {
@@ -50776,10 +50776,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#DrillSpec"
+        "packages/core/errgrind-episode/src/drill.ts#DrillSpec"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:10"
+        "packages/core/errgrind-episode/src/drill.ts:36"
       ]
     },
     {
@@ -52342,10 +52342,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#ErrorAttachment"
+        "packages/core/errgrind-episode/src/types.ts#ErrorAttachment"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:15"
+        "packages/core/errgrind-episode/src/types.ts:18"
       ]
     },
     {
@@ -52381,7 +52381,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:219"
+        "packages/core/errgrind-episode/src/types.ts:234"
       ]
     },
     {
@@ -53688,10 +53688,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#Hypothesis"
+        "packages/core/errgrind-episode/src/types.ts#Hypothesis"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:48"
+        "packages/core/errgrind-episode/src/types.ts:56"
       ]
     },
     {
@@ -53790,10 +53790,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#ProbePrediction"
+        "packages/core/errgrind-episode/src/types.ts#ProbePrediction"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:54"
+        "packages/core/errgrind-episode/src/types.ts:63"
       ]
     },
     {
@@ -54835,12 +54835,10 @@
       },
       "names": [
         "packages/attachment/attachment/src/types.ts#ImageAttachmentRef",
-        "packages/core/errgrind-episode/lib/types/types.d.ts#ImageAttachmentRef",
         "packages/core/errgrind-episode/src/types.ts#ImageAttachmentRef"
       ],
       "sources": [
         "packages/attachment/attachment/src/types.ts:11",
-        "packages/core/errgrind-episode/lib/types/types.d.ts:4",
         "packages/core/errgrind-episode/src/types.ts:6"
       ]
     },
@@ -56934,10 +56932,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#InputOriginKind"
+        "packages/core/errgrind-episode/src/types.ts#InputOriginKind"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:24"
+        "packages/core/errgrind-episode/src/types.ts:28"
       ]
     },
     {
@@ -60870,10 +60868,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#DrillDraftStatus"
+        "packages/core/errgrind-episode/src/drill.ts#DrillDraftStatus"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:52"
+        "packages/core/errgrind-episode/src/drill.ts:82"
       ]
     },
     {
@@ -77477,7 +77475,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:209"
+        "packages/core/errgrind-episode/src/types.ts:230"
       ]
     },
     {
@@ -78259,10 +78257,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#DerivedDrillError"
+        "packages/core/errgrind-episode/src/drill.ts#DerivedDrillError"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:92"
+        "packages/core/errgrind-episode/src/drill.ts:128"
       ]
     },
     {
@@ -82115,10 +82113,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#HypothesisStatus"
+        "packages/core/errgrind-episode/src/types.ts#HypothesisStatus"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:46"
+        "packages/core/errgrind-episode/src/types.ts:53"
       ]
     },
     {
@@ -84151,7 +84149,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:183"
+        "packages/core/errgrind-episode/src/types.ts:203"
       ]
     },
     {
@@ -85083,7 +85081,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:254"
+        "packages/core/errgrind-episode/src/types.ts:260"
       ]
     },
     {
@@ -85158,11 +85156,11 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#DrillCandidateSeed"
+        "packages/core/errgrind-episode/src/types.ts#DrillCandidateSeed"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:110",
-        "packages/core/errgrind-episode/lib/types/types.d.ts:199"
+        "packages/core/errgrind-episode/src/types.ts:126",
+        "packages/core/errgrind-episode/src/types.ts:220"
       ]
     },
     {
@@ -86010,7 +86008,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:237"
+        "packages/core/errgrind-episode/src/types.ts:246"
       ]
     },
     {
@@ -86576,8 +86574,8 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:229",
-        "packages/core/errgrind-episode/lib/types/types.d.ts:246"
+        "packages/core/errgrind-episode/src/types.ts:241",
+        "packages/core/errgrind-episode/src/types.ts:255"
       ]
     },
     {
@@ -92558,10 +92556,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#DrillAnswerDraft"
+        "packages/core/errgrind-episode/src/drill.ts#DrillAnswerDraft"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:85"
+        "packages/core/errgrind-episode/src/drill.ts:120"
       ]
     },
     {
@@ -94603,7 +94601,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:224"
+        "packages/core/errgrind-episode/src/types.ts:236"
       ]
     },
     {
@@ -95458,10 +95456,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#DrillDraftFinished"
+        "packages/core/errgrind-episode/src/drill.ts#DrillDraftFinished"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:54"
+        "packages/core/errgrind-episode/src/drill.ts:85"
       ]
     },
     {
@@ -98881,10 +98879,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#ProbeType"
+        "packages/core/errgrind-episode/src/types.ts#ProbeType"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:59"
+        "packages/core/errgrind-episode/src/types.ts:69"
       ]
     },
     {
@@ -102561,10 +102559,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts#DrillPreparation"
+        "packages/core/errgrind-episode/src/drill.ts#DrillPreparation"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/drill.d.ts:60"
+        "packages/core/errgrind-episode/src/drill.ts:92"
       ]
     },
     {
@@ -102665,7 +102663,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:6"
+        "packages/core/errgrind-episode/src/types.ts:8"
       ]
     },
     {
@@ -104245,7 +104243,7 @@
       },
       "names": [],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:165"
+        "packages/core/errgrind-episode/src/types.ts:184"
       ]
     },
     {
@@ -104305,10 +104303,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#DiagnosticEvidence"
+        "packages/core/errgrind-episode/src/types.ts#DiagnosticEvidence"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:73"
+        "packages/core/errgrind-episode/src/types.ts:85"
       ]
     },
     {
@@ -110428,10 +110426,10 @@
         ]
       },
       "names": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts#DiagnosticProbe"
+        "packages/core/errgrind-episode/src/types.ts#DiagnosticProbe"
       ],
       "sources": [
-        "packages/core/errgrind-episode/lib/types/types.d.ts:61"
+        "packages/core/errgrind-episode/src/types.ts:72"
       ]
     }
   ]

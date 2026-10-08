@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@errgrind/ui-errgrind-episode` renders one-line Error history rows (title plus status dot) in the sidebar and Error, Grill, Teach, and Drill content in the conversation. The Practice page below New Error opens a dedicated Drill Session for one chosen Error or a learner-selected pool the model picks inside. Archived practice Sessions leave no trace; the Drill verdict shows correctness only. Model output renders as ordinary assistant Markdown; pending prompts keep a light frame. Confirmation calls `/error-confirm <revision>`; a providerless blank Error docks a model-onboarding card.
+`@errgrind/ui-errgrind-episode` renders one-line Error history rows (title plus an optional status dot) in the sidebar, ordered practice Sessions, then follow-up, confirmation, and finished Errors and Error, Grill, Teach, and Drill content in the conversation. The Practice page below New Error opens a dedicated Drill Session for one chosen Error or a learner-selected pool the model picks inside. Archived practice Sessions leave no trace; the Drill verdict shows correctness only. Model output renders as ordinary assistant Markdown; pending prompts keep a light frame. Confirmation calls `/error-confirm <revision>`; a providerless blank Error docks a model-onboarding card.
 
 ## Table of Contents
 

@@ -5,7 +5,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ErrorListEntry } from '@errgrind/episode'
 import {
-  IconArchiveOutlineRegular, IconUnarchiveOutlineRegular, StateDot,
+  IconUnarchiveOutlineRegular, StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import { NS } from './locales.ts'
@@ -14,8 +14,6 @@ import css from './ErrorHistory.module.css'
 export interface ErrorHistoryInjected {
   /** Navigate to the selected existing Session. */
   readonly openSession: (sessionId: SessionId) => void
-  /** Archive the Session (the row then leaves this list). */
-  readonly archiveSession: (sessionId: SessionId) => Promise<void>
   /** Restore an archived Session to this list. */
   readonly unarchiveSession: (sessionId: SessionId) => Promise<void>
 }
@@ -24,14 +22,30 @@ export type ErrorHistoryProps = PropsRuntime<'sidebar.workspaces'>
   & PropsLocale<typeof NS>
   & ErrorHistoryInjected
 
-/** Map one list entry onto the shared status-dot palette. */
-function statusDot(episode: ErrorListEntry): StateDotState {
-  // Practice Sessions are throwaway utilities, not tracked Errors: neutral dot.
-  if (episode.kind === 'drill') return 'idle'
+/**
+ * Map one list entry onto the shared status-dot palette. Finished Errors and
+ * unclassified rows carry no dot; practice rows stay green while they linger
+ * in the list awaiting judgement or retirement.
+ */
+function statusDot(episode: ErrorListEntry): StateDotState | null {
+  if (episode.kind === 'drill') return 'done'
   switch (episode.status) {
     case 'grill': return 'ongoing'
     case 'confirm': return 'warning'
-    case 'teach': return 'done'
+    case 'teach': return null
+  }
+}
+
+/**
+ * List rank: practice Sessions awaiting an answer lead, then Errors pending
+ * follow-ups, Errors pending confirmation, and finished Errors last.
+ */
+function statusRank(episode: ErrorListEntry): number {
+  if (episode.kind === 'drill') return 0
+  switch (episode.status) {
+    case 'grill': return 1
+    case 'confirm': return 2
+    case 'teach': return 3
   }
 }
 
@@ -42,7 +56,6 @@ export function ErrorHistory({
   useSessions,
   useWorkspaces,
   openSession,
-  archiveSession,
   unarchiveSession,
   t,
 }: ErrorHistoryProps) {
@@ -64,7 +77,7 @@ export function ErrorHistory({
     if (needle && (episode.kind === 'drill'
       || !`${episode.description?.trim() || title} ${title}`.toLocaleLowerCase().includes(needle))) return []
     return [{ sessionId: id, episode, title }]
-  }), [list, needle, archived])
+  }).sort((a, b) => statusRank(a.episode) - statusRank(b.episode)), [list, needle, archived])
   // The header counts Errors; practice Sessions share the list but are not Errors.
   const errorCount = useMemo(() => errors.filter(entry => entry.episode.kind !== 'drill').length, [errors])
   // A cold Session can lack a projection-cache hint. Keep it reachable so
@@ -158,39 +171,23 @@ export function ErrorHistory({
       <div className={css.list}>
         {errors.length === 0 && unclassified.length === 0
           ? <p className={css.empty}>{needle ? t('history.emptySearch') : t('history.empty')}</p>
-          : errors.map(({ sessionId, episode, title }) => (
-            <article className={css.row} key={sessionId} data-error-session-id={sessionId}>
-              <button
-                className={css.rowOpen}
-                type="button"
-                title={statusLabel(episode)}
-                aria-label={`${title} · ${statusLabel(episode)}`}
-                onClick={() => { openSession(sessionId) }}
-              >
-                <span className={css.rowTitle}>{title}</span>
-                <StateDot state={statusDot(episode)} size={10} className={css.rowDot} />
-              </button>
-              {episode.kind === 'drill' && (
+          : errors.map(({ sessionId, episode, title }) => {
+            const dot = statusDot(episode)
+            return (
+              <article className={css.row} key={sessionId} data-error-session-id={sessionId}>
                 <button
-                  className={css.iconAction}
+                  className={css.rowOpen}
                   type="button"
-                  aria-label={t('history.archive')}
-                  title={t('history.archive')}
-                  disabled={busySession === sessionId}
-                  onClick={() => {
-                    void runRowAction(
-                      sessionId,
-                      () => archiveSession(sessionId),
-                      t('history.archived'),
-                      t('history.archiveFailed'),
-                    )
-                  }}
+                  title={statusLabel(episode)}
+                  aria-label={`${title} · ${statusLabel(episode)}`}
+                  onClick={() => { openSession(sessionId) }}
                 >
-                  <IconArchiveOutlineRegular />
+                  <span className={css.rowTitle}>{title}</span>
+                  {dot !== null && <StateDot state={dot} size={10} className={css.rowDot} />}
                 </button>
-              )}
-            </article>
-          ))}
+              </article>
+            )
+          })}
         {unclassified.length > 0 && (
           <p className={css.empty}>{t('history.unclassified')}</p>
         )}

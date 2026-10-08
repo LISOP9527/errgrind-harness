@@ -87,7 +87,7 @@
     "description": [
       "Prepare a structured specification for one new independent mathematics practice problem inside this dedicated practice Session, from the confirmed Error diagnosis it was seeded with. An isolated model call then drafts the private reference answer and public question from this specification. Do not accept or provide question or referenceAnswer here.",
       "Specify targetMechanism, trigger, failureBehavior, desiredBehavior, successSignal, domain, taskType, setting, taskGoal, essentialTrigger, solutionStrategy, avoid, difficultyLevel, reasoningDepth, and calculationLoad. Change surface structure rather than merely numbers or letters. Keep difficulty reasonably comparable with the source Error unless the learner requests otherwise, and do not substitute calculation burden for reasoning depth. Describe the new problem positively; no original distinctive content may enter the specification, because the isolated Draft receives this specification verbatim. If draft generation fails or is interrupted, invoking drill_prepare again resumes the saved specification to retry.",
-      "When this Session lists practice candidates (a dedicated pool), pass the chosen Error’s session id as sourceSessionId with your first call; later calls reuse that locked selection, and resubmitting the same id is harmless."
+      "When this Session lists practice candidates (a dedicated pool), pass the chosen Error’s session id as sourceSessionId while the pool is open; the first pick locks the selection, later calls reuse it, and resubmitting the same id is harmless."
     ],
     "parameters": {
       "targetMechanism": "Episode-level mechanism being practiced, without claiming a verified long-term Pattern.",

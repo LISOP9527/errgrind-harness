@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`@errgrind/ui-errgrind-episode` 在侧栏显示单行 Error 历史行（标题加状态色点），并在对话中呈现 Error、Grill、Teach 与 Drill 内容。"新建 Error"下的练习页可对指定的一条 Error 开独立 Drill 会话，或勾选候选（含全选）交给模型挑题。已归档的练习会话不留痕迹；判分卡只显示对错。模型产出的内容按普通 assistant Markdown 渲染，待答提示保留轻量边框。确认操作调用 `/error-confirm <revision>`；空白 Error 无 provider 时显示模型引导卡片。
+`@errgrind/ui-errgrind-episode` 在侧栏显示单行 Error 历史行（标题加可选状态色点，按练习、追问、待确认、已完成排序），并在对话中呈现 Error、Grill、Teach 与 Drill 内容。"新建 Error"下的练习页可对指定的一条 Error 开独立 Drill 会话，或勾选候选（含全选）交给模型挑题。已归档的练习会话不留痕迹；判分卡只显示对错。模型产出的内容按普通 assistant Markdown 渲染，待答提示保留轻量边框。确认操作调用 `/error-confirm <revision>`；空白 Error 无 provider 时显示模型引导卡片。
 
 ## 目录
 
