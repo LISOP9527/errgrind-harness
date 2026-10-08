@@ -254,7 +254,7 @@ export interface BrowserViewPolicy {
 }
 ```
 
-来源： [`packages/api/session-controller/src/index.ts:87`](../packages/api/session-controller/src/index.ts)
+来源： [`packages/api/session-controller/src/index.ts:88`](../packages/api/session-controller/src/index.ts)
 
 <a id="deepseek-aidsh-api-settings-controller"></a>
 
@@ -4224,7 +4224,7 @@ export interface Config {
 }
 ```
 
-来源： [`packages/core/errgrind-episode/src/index.ts:32`](../packages/core/errgrind-episode/src/index.ts)
+来源： [`packages/core/errgrind-episode/src/index.ts:36`](../packages/core/errgrind-episode/src/index.ts)
 
 ## 无配置的可加载插件
 

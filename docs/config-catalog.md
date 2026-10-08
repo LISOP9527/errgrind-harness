@@ -252,7 +252,7 @@ export interface BrowserViewPolicy {
 }
 ```
 
-Source: [`packages/api/session-controller/src/index.ts:87`](../packages/api/session-controller/src/index.ts)
+Source: [`packages/api/session-controller/src/index.ts:88`](../packages/api/session-controller/src/index.ts)
 
 <a id="deepseek-aidsh-api-settings-controller"></a>
 
@@ -4222,7 +4222,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/core/errgrind-episode/src/index.ts:35`](../packages/core/errgrind-episode/src/index.ts)
+Source: [`packages/core/errgrind-episode/src/index.ts:36`](../packages/core/errgrind-episode/src/index.ts)
 
 ## Loadable plugins with no config
 

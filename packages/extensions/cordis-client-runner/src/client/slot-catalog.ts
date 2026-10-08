@@ -1770,6 +1770,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     declaredBy: 'an entry in \'root\' (client-ui-layout), so it exists while that entry is mounted',
     occupants: [
       'client-ui-conversation ConversationPanel key \'conversation\'',
+      '@errgrind/ui-errgrind-episode PracticePage',
       'client-ui-plugin-manager PluginManagerPage',
     ],
     replaceRisk: 'shadows-shipped-ui',
@@ -3044,6 +3045,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'an entry in \'sidebar\' (client-ui-sidebar), so it exists while that entry is mounted',
     occupants: [
+      '@errgrind/ui-errgrind-episode PracticePanelIcon',
       'client-ui-plugin-manager PluginsPanelIcon',
     ],
     replaceRisk: 'none',

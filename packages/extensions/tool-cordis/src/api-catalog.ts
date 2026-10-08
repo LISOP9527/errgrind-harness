@@ -1826,8 +1826,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote(\'openDrill\') async openDrill(request: DrillOpenRequest): Promise<DrillOpenValue>',
-        description: 'Open a dedicated Drill Session for one confirmed Error.',
-        parameters: [{ name: 'request', description: 'Source Session whose concluded diagnosis seeds the practice.' }],
+        description: 'Open a dedicated Drill Session for one confirmed Error or a learner-picked pool of them.',
+        parameters: [{ name: 'request', description: 'Single source Session or the candidate pool whose concluded diagnoses seed the practice.' }],
         returns: 'the Drill Session identity, its allocation index, and whether this call materialized it.',
       },
       {
@@ -4900,7 +4900,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'DrillOpenRequest',
-    declaration: 'export interface DrillOpenRequest {\n    readonly sourceSessionId: SessionId;\n}',
+    declaration: 'export type DrillOpenRequest = {\n    readonly sourceSessionId: SessionId;\n} | {\n    readonly candidateSessionIds: readonly SessionId[];\n};',
   },
   {
     name: 'DrillOpenValue',
