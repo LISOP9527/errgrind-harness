@@ -1,0 +1,19 @@
+{
+  "sourcePath": "/home/ubuntu/Documents/deepseek-harness/ErrGrind",
+  "sessionIds": [
+    "errgrind-drill-ef9a9643bcf77b685830194bd822e8fe",
+    "errgrind-drill-fa1c18df382e2d5b1e55680d00e9bba1",
+    "session-85de6039-cbff-4009-a988-cd301acef6ef",
+    "session-c19fd7b5-f3dc-53fe-804b-aa5ddf4f725d",
+    "session-e2993fbf-6c98-5215-b677-97e77c5de293",
+    "session-fc460b03-e6d9-58f4-b3f4-4351356b46f4",
+    "session-f64a1e80-6e46-548e-ba61-e060dee60a34",
+    "session-f7fa50df-389e-5f07-b73d-1e040c68d428",
+    "session-9c2d2dad-3f5d-5c31-9b43-ad90f43d3997",
+    "session-ebad82d7-8c92-54c9-b5ad-8703bd69b691",
+    "session-a3d201df-fd33-5877-ba8d-e5987ec8bbb0"
+  ],
+  "archivedSessionIds": [
+    "session-85de6039-cbff-4009-a988-cd301acef6ef"
+  ]
+}

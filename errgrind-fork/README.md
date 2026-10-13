@@ -21,5 +21,6 @@ Model-visible ErrGrind guidance is in `prompts/system.md` and `prompts/tools.jso
 - [Human acceptance plan](design/human-acceptance.md): checks that need a human learner; real-model acceptance does not replace them.
 - [Design index](design/README.md): engineering rules, audits, evaluation findings, and research.
 - [Local migration inventory](history/python-product-2026-09-27/inventory.md): the original fork decision and all predecessor design, agent, progress, and prompt sources. Historical fork handoffs are in [history/handoffs](history/handoffs/2026-09-23.md).
+- [Imported sessions](import/README.md): the migrated learner records and the restore script that plants them into a fresh `~/.errgrind`.
 
 Git history records the exact DeepSeek Harness base; the upstream MIT license applies.

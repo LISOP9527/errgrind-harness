@@ -21,5 +21,6 @@
 - [真人验收计划](design/human-acceptance.md)：需要真人学习者完成的检查；真实模型验收不能代替这些检查。
 - [设计索引](design/README.zh.md)：工程规则、审计、评估结论和研究。
 - [本地迁移清单](history/python-product-2026-09-27/inventory.md)：原始 fork 决策及全部前驱设计、agent 指令、进度和 Prompt 来源。fork 早期的历史交接在 [history/handoffs](history/handoffs/2026-09-23.md)。
+- [导入会话数据](import/README.zh.md)：迁移过来的学习者记录，以及把它们植入新 `~/.errgrind` 的恢复脚本。
 
 Git 历史记录了准确的 DeepSeek Harness 基点；本 fork 遵循上游 MIT 许可。
