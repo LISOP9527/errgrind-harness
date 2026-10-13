@@ -21,5 +21,6 @@
 - [Pattern State 提案](research/pattern-state-proposal.md)：观察、候选、独立证据、版本和可证伪性。
 - [验证策略](research/evaluation-strategy.md)：诊断质量、盲法关联、学习机会分母和效果声明限制。
 - [版本规划](research/version-plan.md)：V1 可靠性与可用性、MCP 共享 Core 和推迟的 V2 研究。
+- [Related Work 调研](research/related-work-2026-10.md)：GitHub 852 个去重候选扫描结论（无同款闭环；Diagnos 最接近且已实测，含其只用单轴进度的缺陷实锤）；原始数据在同目录 `candidates.tsv` / `results.jsonl` / `queries.txt`。
 
 产品决策变化时同步其主题文档和本索引。保留替代关系及历史理由；共享基础设施决策遵守 Harness 文档规则。

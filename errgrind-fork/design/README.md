@@ -21,5 +21,6 @@ These documents preserve principles and deferred proposals. They do not claim th
 - [Pattern State proposal](research/pattern-state-proposal.md): observations, candidates, independent evidence, revisions, and falsification.
 - [Evaluation strategy](research/evaluation-strategy.md): diagnostic quality, blind association, opportunity denominators, and limits on effect claims.
 - [Version plan](research/version-plan.md): V1 reliability and usability, shared Core for MCP, and deferred V2 research.
+- [Related work survey](research/related-work-2026-10.md): 852-candidate GitHub scan verdicts (no full-loop clone; Diagnos closest and live-verified, including its single-axis progress defect); raw data in `candidates.tsv` / `results.jsonl` / `queries.txt` beside it.
 
 Update the owning topic and this index when product decisions change. Preserve supersession and historical rationale; follow Harness documentation rules for shared infrastructure decisions.
